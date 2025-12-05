@@ -15,7 +15,18 @@ pkg_check_modules(GR REQUIRED gnuradio-runtime)
 include_directories(${GR_INCLUDE_DIRS})
 
 # Set Python installation paths
+if(NOT GR_PYTHON_DIR)
+    execute_process(
+        COMMAND python3 -c "import gnuradio; import os; print(os.path.dirname(gnuradio.__file__))"
+        OUTPUT_VARIABLE GR_PYTHON_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+endif()
 set(GR_PYTHON_DIR ${GR_PYTHON_DIR} CACHE PATH "Directory for Python modules")
+
+if(NOT GRC_BLOCKS_DIR)
+    set(GRC_BLOCKS_DIR "/usr/share/gnuradio/grc/blocks")
+endif()
 set(GRC_BLOCKS_DIR ${GRC_BLOCKS_DIR} CACHE PATH "Directory for GRC block definitions")
 
 # Add subdirectories

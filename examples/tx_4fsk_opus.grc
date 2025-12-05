@@ -1,0 +1,419 @@
+options:
+  parameters:
+    author: Generated
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
+    comment: ''
+    copyright: ''
+    description: 4FSK Digital Voice Transmitter with Opus and LDPC FEC
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: no_gui
+    hier_block_src_path: '.:'
+    id: tx_4fsk_opus
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: run
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: 4FSK Opus TX
+    window_size: (1400,800)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 4.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: audio_samp_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '8000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 20]
+    rotation: 0
+    state: enabled
+- name: fsk_deviation
+  id: variable
+  parameters:
+    comment: ''
+    value: '2400'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [560, 20]
+    rotation: 0
+    state: enabled
+- name: input_file
+  id: variable
+  parameters:
+    comment: Input WAV file path
+    value: '"input.wav"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [32, 408.0]
+    rotation: 0
+    state: enabled
+- name: ldpc_encoder_def
+  id: variable_ldpc_encoder_def
+  parameters:
+    comment: LDPC encoder definition (rate 3/4)
+    dim1: '1'
+    dim2: '1'
+    file: /home/haaken/github-projects/gr-sleipnir/ldpc_matrices/ldpc_rate34.alist
+    ndim: '0'
+    value: '"ok"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1208, 8.0]
+    rotation: 0
+    state: enabled
+- name: ldpc_matrix_file
+  id: variable
+  parameters:
+    comment: LDPC matrix for voice frames (rate 3/4)
+    value: '"../ldpc_matrices/ldpc_rate34.alist"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [680, 20]
+    rotation: 0
+    state: enabled
+- name: output_file
+  id: variable
+  parameters:
+    comment: Output IQ file path
+    value: '"tx_output.iq"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 408.0]
+    rotation: 0
+    state: enabled
+- name: rf_samp_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 20]
+    rotation: 0
+    state: enabled
+- name: rrc_num_taps
+  id: variable
+  parameters:
+    comment: Root Raised Cosine filter number of taps (11 symbols at RF rate)
+    value: '110'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [904, 16.0]
+    rotation: 0
+    state: enabled
+- name: symbol_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '4800'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [440, 20]
+    rotation: 0
+    state: enabled
+- name: analog_frequency_modulator_fc_0
+  id: analog_frequency_modulator_fc
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 4FSK frequency modulator
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    sensitivity: (2.0*math.pi*fsk_deviation)/rf_samp_rate
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [2176, 168.0]
+    rotation: 0
+    state: enabled
+- name: blocks_char_to_short_0
+  id: blocks_char_to_short
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert byte to short
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1000, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: Save modulated signal to IQ file
+    file: output_file
+    type: complex
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [2352, 152.0]
+    rotation: 0
+    state: enabled
+- name: blocks_float_to_complex_0
+  id: blocks_float_to_complex
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert float symbols to complex for frequency modulator
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [2008, 160.0]
+    rotation: 0
+    state: enabled
+- name: blocks_float_to_int_0
+  id: blocks_float_to_int
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert float to int
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '1'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1344, 192.0]
+    rotation: 0
+    state: enabled
+- name: blocks_packed_to_unpacked_xx_0
+  id: blocks_packed_to_unpacked_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    bits_per_chunk: '2'
+    comment: Pack bytes to 2-bit chunks for 4FSK
+    endianness: gr.GR_MSB_FIRST
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_ports: '1'
+    type: byte
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [768, 192.0]
+    rotation: 0
+    state: enabled
+- name: blocks_short_to_float_0
+  id: blocks_short_to_float
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert short to float
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '1'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1184, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_wavfile_source_0
+  id: blocks_wavfile_source
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Read audio from WAV file
+    file: input_file
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nchan: '1'
+    repeat: 'True'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 200.0]
+    rotation: 0
+    state: enabled
+- name: digital_chunks_to_symbols_xx_0
+  id: digital_chunks_to_symbols_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Map 2-bit chunks to 4FSK symbols
+    dimension: '1'
+    in_type: int
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_ports: '1'
+    out_type: float
+    symbol_table: '[-3, -1, 1, 3]'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1592, 192.0]
+    rotation: 0
+    state: enabled
+- name: gr_opus_opus_encoder_0
+  id: gr_opus_opus_encoder
+  parameters:
+    affinity: ''
+    alias: ''
+    application: audio
+    bitrate: '6000'
+    channels: '1'
+    comment: Opus encoder (6 kbps)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    sample_rate: audio_samp_rate
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [344, 208.0]
+    rotation: 0
+    state: enabled
+- name: import_0
+  id: import
+  parameters:
+    alias: ''
+    comment: ''
+    imports: import math
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1056, 8.0]
+    rotation: 0
+    state: true
+- name: ldpc_encoder_0
+  id: fec_extended_encoder
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 'LDPC encoder (rate 3/4: 384 to 512 bits)'
+    encoder_list: '[ldpc_encoder_def]'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    puncpat: '"11"'
+    threadtype: ordinary
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [560, 184.0]
+    rotation: 0
+    state: enabled
+- name: low_pass_filter_0
+  id: low_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: Audio lowpass filter
+    cutoff_freq: '3400'
+    decim: '1'
+    gain: '1'
+    interp: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: audio_samp_rate
+    type: fir_filter_fff
+    width: '400'
+    win: window.WIN_HAMMING
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [176, 192.0]
+    rotation: 0
+    state: enabled
+- name: root_raised_cosine_filter_0
+  id: root_raised_cosine_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha: '0.35'
+    comment: Root Raised Cosine filter (TX pulse shaping)
+    decim: '1'
+    gain: '1'
+    interp: '6'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    ntaps: rrc_num_taps
+    samp_rate: rf_samp_rate
+    sym_rate: symbol_rate
+    type: interp_fir_filter_fff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1792, 160.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [analog_frequency_modulator_fc_0, '0', blocks_file_sink_0, '0']
+- [blocks_char_to_short_0, '0', blocks_short_to_float_0, '0']
+- [blocks_float_to_complex_0, '0', analog_frequency_modulator_fc_0, '0']
+- [blocks_float_to_int_0, '0', digital_chunks_to_symbols_xx_0, '0']
+- [blocks_packed_to_unpacked_xx_0, '0', blocks_char_to_short_0, '0']
+- [blocks_short_to_float_0, '0', blocks_float_to_int_0, '0']
+- [blocks_wavfile_source_0, '0', low_pass_filter_0, '0']
+- [digital_chunks_to_symbols_xx_0, '0', root_raised_cosine_filter_0, '0']
+- [gr_opus_opus_encoder_0, '0', ldpc_encoder_0, '0']
+- [ldpc_encoder_0, '0', blocks_packed_to_unpacked_xx_0, '0']
+- [low_pass_filter_0, '0', gr_opus_opus_encoder_0, '0']
+- [root_raised_cosine_filter_0, '0', blocks_float_to_complex_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0
