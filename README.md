@@ -25,11 +25,11 @@ gr-sleipnir is an experimental digital voice communication system for ham radio 
 - **Integrated Services**: Voice, text messaging, callsign metadata, and framing in a single protocol
 - **PTT Control**: Push-to-talk control integration for radio operation
 - **GNU Radio Integration**: Built on GNU Radio framework for flexibility and extensibility
-- **Battery-Friendly Cryptography**: BrainpoolP256r1 + ChaCha20Poly1305 optimized for low-power devices
+- **Optional Cryptography**: BrainpoolP256r1 + ChaCha20Poly1305 optimized for low-power devices (optional features)
 
-## Cryptography: BrainpoolP256r1 + ChaCha20Poly1305
+## Cryptography: BrainpoolP256r1 + ChaCha20Poly1305 (Optional)
 
-The system uses a combination of BrainpoolP256r1 (from [gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)) and ChaCha20Poly1305 (from gr-nacl) for authentication and message integrity. This combination is specifically chosen for its battery-friendly characteristics.
+The system optionally supports a combination of BrainpoolP256r1 (from [gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)) and ChaCha20Poly1305 (from gr-nacl) for authentication and message integrity. This combination is specifically chosen for its battery-friendly characteristics. **Note: Encryption and signing are optional features** - the system can operate without cryptographic features for basic voice communication.
 
 ### Why This Combination is Battery-Friendly
 
@@ -49,14 +49,14 @@ The system uses a combination of BrainpoolP256r1 (from [gr-linux-crypto](https:/
 
 ## Why Opus Over Codec2?
 
-Codec2 is a low-bitrate speech codec designed in the early 2000s, optimized for very low bandwidth (typically 1200-3200 bps). While effective for its era, codec2 has limitations:
+Codec2 is a low-bitrate speech codec released in 2010, optimized for very low bandwidth (typically 1200-3200 bps). While effective for its era, codec2 has limitations:
 
 - **Limited Audio Quality**: Designed for intelligibility over quality, resulting in robotic-sounding audio
 - **Aging Technology**: Based on older speech coding techniques
 - **Fixed Bitrates**: Limited flexibility in bitrate selection
-- **Made for HF,not VHF bands**
+- **Made for HF, not VHF bands**
 
-Opus, developed in the 2010s, represents a significant advancement:
+Opus, standardized in 2012, represents a significant advancement:
 
 - **Superior Quality**: Modern hybrid codec combining CELP and MDCT techniques
 - **Adaptive Bitrate**: Supports bitrates from 6 kbps to 510 kbps with excellent quality at low rates
@@ -70,16 +70,31 @@ At comparable bitrates (e.g., 6-8 kbps), Opus provides noticeably better audio q
 
 The system consists of two main components:
 
-### 1. 4FSK NFM Transceiver (`som_4fsk_nfm_ptt.grc`)
+### 1. 4FSK Opus Transceiver Flowgraphs
 
-The main transceiver flowgraph implementing:
-- Audio input/output processing
-- G.711 vocoder encoding/decoding (currently)
+The system includes separate transmitter and receiver flowgraphs:
+
+**Transmitter (`tx_4fsk_opus.grc`)**:
+- WAV file source for audio input
+- Low-pass filter for audio preprocessing
+- Opus audio encoder (6 kbps)
+- LDPC forward error correction (rate 3/4)
 - 4FSK symbol mapping and modulation
+- Root raised cosine pulse shaping
 - Frequency modulation for RF transmission
-- Quadrature demodulation for reception
-- PTT control via ZeroMQ messaging
-- Baseband I/Q processing via ZeroMQ
+- Complex baseband I/Q file output
+
+**Receiver (`rx_4fsk_opus.grc`)**:
+- Complex baseband I/Q file input
+- Automatic gain control (AGC)
+- Quadrature demodulation for FSK reception
+- Root raised cosine matched filtering
+- Symbol timing recovery (Mueller & Muller)
+- 4FSK symbol slicing
+- LDPC forward error correction decoding
+- Opus audio decoder
+- Low-pass filter for audio post-processing
+- WAV file sink for audio output
 
 ### 2. gr-opus Module
 
@@ -102,7 +117,7 @@ The system supports two modulation modes optimized for different use cases:
 - **Symbol Rate**: 4800 symbols/second
 - **Gross Capacity**: 9,600 bps
 - **FSK Deviation**: 2400 Hz
-- **RF Sample Rate**: 500 kHz
+- **RF Sample Rate**: 48 kHz (10 samples per symbol)
 - **Audio Sample Rate**: 8 kHz
 - **Bandwidth**: ~9-10 kHz
 - **SNR Requirement**: Baseline
@@ -147,7 +162,7 @@ The system supports two modulation modes optimized for different use cases:
 
 - **Codec**: Opus (via gr-opus module)
 - **Channel Spacing**: Compatible with standard NFM spacing (typically 12.5 kHz or 25 kHz)
-- **PTT Control**: ZeroMQ message-based
+- **PTT Control**: Optional ZeroMQ message-based control
 
 ## Requirements
 
@@ -156,7 +171,7 @@ The system supports two modulation modes optimized for different use cases:
 - GNU Radio 3.8 or later
 - libopus-dev (Opus codec development libraries)
 - CMake 3.8 or later
-- ZeroMQ libraries
+- ZeroMQ libraries (optional, for PTT control and I/Q streaming)
 
 ### Python Dependencies
 
@@ -167,7 +182,10 @@ The system supports two modulation modes optimized for different use cases:
 
 ```bash
 # Install system dependencies (Ubuntu/Debian)
-sudo apt-get install gnuradio-dev libopus-dev cmake libzmq3-dev
+sudo apt-get install gnuradio-dev libopus-dev cmake
+
+# Optional: Install ZeroMQ for PTT control and I/Q streaming
+sudo apt-get install libzmq3-dev
 
 # Install Python dependencies
 pip3 install numpy opuslib --break-system-packages
@@ -183,46 +201,60 @@ sudo ldconfig
 
 ## Usage
 
-### Running the Transceiver
+### Running the Flowgraphs
 
-Open the flowgraph in GNU Radio Companion:
+**Transmitter**:
+Open the transmitter flowgraph in GNU Radio Companion:
 
 ```bash
-gnuradio-companion som_4fsk_nfm_ptt.grc
+cd examples
+gnuradio-companion tx_4fsk_opus.grc
 ```
 
 Or run the generated Python script directly:
 
 ```bash
-python3 som_4fsk_nfm_ptt.py
+cd examples
+grcc tx_4fsk_opus.grc
+python3 tx_4fsk_opus.py
+```
+
+**Receiver**:
+Open the receiver flowgraph in GNU Radio Companion:
+
+```bash
+cd examples
+gnuradio-companion rx_4fsk_opus.grc
+```
+
+Or run the generated Python script directly:
+
+```bash
+cd examples
+grcc rx_4fsk_opus.grc
+python3 rx_4fsk_opus.py
 ```
 
 ### Configuration
 
-Key parameters can be adjusted in the flowgraph:
+Key parameters can be adjusted in the flowgraphs:
 - `audio_samp_rate`: Audio sample rate (default: 8000 Hz)
+- `rf_samp_rate`: RF sample rate (default: 48000 Hz)
+- `symbol_rate`: Symbol rate (default: 4800 symbols/second)
 - `fsk_deviation`: FSK deviation in Hz (default: 2400)
-- `rf_samp_rate`: RF sample rate (default: 500 kHz)
-- `audio_dev`: Audio device name
+- `ldpc_matrix_file`: Path to LDPC matrix file (default: `../ldpc_matrices/ldpc_rate34.alist`)
 
-### PTT Control
+### File-Based Testing
 
-PTT (Push-to-Talk) control is handled via ZeroMQ messages:
-- Send "SOT" (Start of Transmission) to enable transmission
-- Send "EOT" (End of Transmission) to disable transmission
-- Messages are sent to `ipc:///tmp/ptt_msg`
+The flowgraphs are configured for file-based testing:
+- **Transmitter**: Reads from `input.wav`, outputs to `tx_output.cfile`
+- **Receiver**: Reads from `tx_output.cfile`, outputs to `output.wav`
 
-Example PTT control:
-
-```python
-import zmq
-context = zmq.Context()
-socket = context.socket(zmq.PUB)
-socket.connect("ipc:///tmp/ptt_msg")
-socket.send_string("SOT")  # Key PTT
-# ... transmit ...
-socket.send_string("EOT")  # Release PTT
-```
+To test the system:
+1. Place a WAV file named `input.wav` in the `examples` directory
+2. Run the transmitter flowgraph to generate `tx_output.cfile`
+3. Run the receiver flowgraph to decode and generate `output.wav`
+4. Compare `input.wav` and `output.wav` to verify audio quality
 
 ## Project Structure
 
@@ -230,7 +262,14 @@ socket.send_string("EOT")  # Release PTT
 gr-sleipnir/
 ├── README.md                 # This file
 ├── CMakeLists.txt           # Root CMake configuration
-├── som_4fsk_nfm_ptt.grc     # Main transceiver flowgraph
+├── examples/                 # Example flowgraphs
+│   ├── tx_4fsk_opus.grc     # 4FSK Opus transmitter
+│   └── rx_4fsk_opus.grc     # 4FSK Opus receiver
+├── ldpc_matrices/           # LDPC FEC matrix files
+│   ├── ldpc_rate34.alist    # Rate 3/4 LDPC matrix (4FSK)
+│   └── ldpc_rate23.alist    # Rate 2/3 LDPC matrix (8FSK)
+├── python/                  # Python utilities
+│   └── frame_aware_ldpc.py  # Frame-aware LDPC encoder/decoder
 └── gr-opus/                 # Opus codec GNU Radio module
     ├── python/              # Python blocks
     ├── grc/                 # GRC block definitions
@@ -255,11 +294,13 @@ This is an experimental project. The system is functional but may require tuning
 
 ## Future Work
 
-- Integration of Opus codec into the main transceiver flowgraph (replacing G.711)
-- Bitrate optimization for NFM channel constraints
-- Error correction coding
-- Performance testing and optimization
-- Documentation and usage examples
+- Real-time audio I/O integration (currently file-based)
+- Optional PTT control integration for live radio operation (ZeroMQ-based)
+- Optional ZeroMQ integration for baseband I/Q streaming
+- 8FSK mode implementation with higher bitrate Opus
+- Frame synchronization and superframe structure
+- Optional authentication and message integrity (BrainpoolP256r1 + ChaCha20Poly1305)
+- Performance testing and optimization under various channel conditions
 
 ## License
 
@@ -271,7 +312,9 @@ Contributions are welcome. Please ensure all code follows the project's coding s
 
 ## Legal and Appropriate Uses for Amateur Radio
 
-### Digital Signatures (Primary Use Case)
+**Note**: The cryptographic features described below are **optional**. The system can operate without encryption or signing for basic voice communication.
+
+### Digital Signatures (Optional Feature)
 
 - **Cryptographically sign transmissions** to verify sender identity
 - **Prevent callsign spoofing** through cryptographic authentication

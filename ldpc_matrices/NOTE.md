@@ -60,10 +60,10 @@ The LDPC frame size should be compatible with:
 - Overall system latency requirements
 
 For 8 kHz audio at 20ms frames:
-- Raw audio: 160 samples = 160 bytes (mono, 8-bit) or 320 bytes (mono, 16-bit)
-- After G.711 encoding: 160 bytes
-- After LDPC encoding (rate 3/4): ~213 bytes
-- After 4FSK mapping: ~427 symbols
+- Raw audio: 160 samples = 320 bytes (mono, 16-bit float)
+- After Opus encoding (6 kbps): ~15 bytes (variable, typically 12-20 bytes per 20ms frame)
+- After LDPC encoding (rate 3/4): ~20-27 bytes (depending on Opus frame size)
+- After 4FSK mapping: ~40-54 symbols
 
 Choose matrix dimensions that accommodate these frame sizes efficiently.
 

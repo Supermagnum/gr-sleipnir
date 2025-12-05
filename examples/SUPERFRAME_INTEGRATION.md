@@ -26,9 +26,11 @@ This guide explains how to integrate the frame-aware LDPC matrices into gr-sleip
 
 Create two separate flowgraphs:
 1. **Authentication flowgraph**: Uses `ldpc_auth_768_256.alist`
-2. **Voice flowgraph**: Uses `ldpc_voice_576_384.alist`
+2. **Voice flowgraph**: Uses `ldpc_voice_576_384.alist` or `ldpc_rate34.alist`
 
 Switch between them based on frame number in your application logic.
+
+**Note**: The current `tx_4fsk_opus.grc` and `rx_4fsk_opus.grc` flowgraphs use `ldpc_rate34.alist` (rate 3/4) for voice frames, which is suitable for 4FSK mode.
 
 ### Method 2: Frame-Aware Python Blocks
 
@@ -53,12 +55,12 @@ Create parallel encoder/decoder paths:
 
 ## Current Flowgraph Updates
 
-The following flowgraphs have been updated to use the voice frame matrix for testing:
+The following flowgraphs use LDPC FEC for testing:
 
-- `som_4fsk_file.grc` - Now uses `ldpc_voice_576_384.alist` (rate 2/3)
-- `som_8fsk_file.grc` - Now uses `ldpc_voice_576_384.alist` (rate 2/3)
+- `tx_4fsk_opus.grc` - Uses `ldpc_rate34.alist` (rate 3/4) for 4FSK mode
+- `rx_4fsk_opus.grc` - Uses `ldpc_rate34.alist` (rate 3/4) for 4FSK mode
 
-These can be used to test the voice frame LDPC matrix.
+These can be used to test the LDPC FEC integration with Opus codec.
 
 ## Testing the Matrices
 
@@ -66,7 +68,7 @@ These can be used to test the voice frame LDPC matrix.
 
 ```bash
 cd examples
-grcc som_4fsk_file.grc
+grcc tx_4fsk_opus.grc
 ```
 
 Should show no "Bad AList file name!" errors.
