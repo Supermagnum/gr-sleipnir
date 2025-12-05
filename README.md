@@ -98,7 +98,7 @@ The system includes separate transmitter and receiver flowgraphs:
 
 ### 2. gr-opus Module
 
-A GNU Radio Out-of-Tree (OOT) module providing:
+The gr-opus module is a separate GNU Radio Out-of-Tree (OOT) module available at [https://github.com/Supermagnum/gr-opus](https://github.com/Supermagnum/gr-opus). It provides:
 - Opus audio encoder block
 - Opus audio decoder block
 - Support for multiple sample rates (8kHz, 12kHz, 16kHz, 24kHz, 48kHz)
@@ -190,7 +190,8 @@ sudo apt-get install libzmq3-dev
 # Install Python dependencies
 pip3 install numpy opuslib --break-system-packages
 
-# Build gr-opus module
+# Build gr-opus module (separate repository)
+git clone https://github.com/Supermagnum/gr-opus.git
 cd gr-opus
 mkdir build && cd build
 cmake ..
@@ -268,25 +269,15 @@ gr-sleipnir/
 ├── ldpc_matrices/           # LDPC FEC matrix files
 │   ├── ldpc_rate34.alist    # Rate 3/4 LDPC matrix (4FSK)
 │   └── ldpc_rate23.alist    # Rate 2/3 LDPC matrix (8FSK)
-├── python/                  # Python utilities
-│   └── frame_aware_ldpc.py  # Frame-aware LDPC encoder/decoder
-└── gr-opus/                 # Opus codec GNU Radio module
-    ├── python/              # Python blocks
-    ├── grc/                 # GRC block definitions
-    ├── tests/               # Unit tests
-    └── examples/            # Example flowgraphs
+└── python/                  # Python utilities
+    └── frame_aware_ldpc.py  # Frame-aware LDPC encoder/decoder
+
+Note: gr-opus is a separate module available at https://github.com/Supermagnum/gr-opus
 ```
 
 ## Testing
 
-The gr-opus module includes comprehensive tests:
-
-```bash
-cd gr-opus
-python3 -m unittest discover tests/ -p 'qa_*.py' -v
-```
-
-See `gr-opus/test-results.md` for detailed test results.
+The gr-opus module includes comprehensive tests. See the [gr-opus repository](https://github.com/Supermagnum/gr-opus) for testing instructions and detailed test results.
 
 ## Status
 
@@ -352,4 +343,5 @@ For experiments or research on frequencies where encryption is legally permitted
 - [Opus Codec](https://opus-codec.org/)
 - [GNU Radio](https://www.gnuradio.org/)
 - [Codec2](https://www.rowetel.com/?page_id=452)
+- [gr-opus](https://github.com/Supermagnum/gr-opus) - Opus codec GNU Radio module
 - [gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto) - BrainpoolP256r1 and Linux crypto integration

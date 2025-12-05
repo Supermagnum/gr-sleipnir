@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(gr-opus)
+project(gr-sleipnir)
 
 # Set the version of this module here
 set(GR_OPUS_VERSION_MAJOR 1)
