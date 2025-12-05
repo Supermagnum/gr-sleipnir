@@ -1,0 +1,15 @@
+build/
+*.pyc
+__pycache__/
+*.swp
+*~
+.DS_Store
+*.o
+*.so
+*.a
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+

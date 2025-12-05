@@ -25,6 +25,27 @@ gr-sleipnir is an experimental digital voice communication system for ham radio 
 - **Integrated Services**: Voice, text messaging, callsign metadata, and framing in a single protocol
 - **PTT Control**: Push-to-talk control integration for radio operation
 - **GNU Radio Integration**: Built on GNU Radio framework for flexibility and extensibility
+- **Battery-Friendly Cryptography**: BrainpoolP256r1 + ChaCha20Poly1305 optimized for low-power devices
+
+## Cryptography: BrainpoolP256r1 + ChaCha20Poly1305
+
+The system uses a combination of BrainpoolP256r1 (from [gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)) and ChaCha20Poly1305 (from gr-nacl) for authentication and message integrity. This combination is specifically chosen for its battery-friendly characteristics.
+
+### Why This Combination is Battery-Friendly
+
+#### 1. ChaCha20Poly1305 (from gr-nacl)
+
+- **Software-optimized**: Designed for efficient software implementation without requiring special hardware instructions
+- **ARM-friendly**: Provides excellent performance on ARM processors (common in battery-powered devices)
+- **No hardware dependency**: Unlike AES, which benefits from AES-NI instructions (Intel/AMD), ChaCha20 works efficiently in pure software
+- **Lower power consumption**: Software implementations consume less power than hardware-accelerated instructions that require specialized CPU features
+- **High throughput**: Even without hardware acceleration, ChaCha20 achieves high encryption speeds
+
+#### 2. BrainpoolP256r1 (from gr-linux-crypto)
+
+- **Lightweight ECC**: Smaller key sizes compared to RSA (256 bits vs. 2048+ bits for equivalent security)
+- **Efficient key exchange**: ECDH operations are computationally efficient
+- **Battery-conscious**: Fewer CPU cycles = less power consumption during key exchange operations
 
 ## Why Opus Over Codec2?
 
@@ -248,10 +269,44 @@ GPLv3
 
 Contributions are welcome. Please ensure all code follows the project's coding standards and includes appropriate tests.
 
+## Legal and Appropriate Uses for Amateur Radio
+
+### Digital Signatures (Primary Use Case)
+
+- **Cryptographically sign transmissions** to verify sender identity
+- **Prevent callsign spoofing** through cryptographic authentication
+- **Replace error-prone DTMF authentication** with secure digital signatures
+- **Legal**: Digital signatures do not obscure content and are generally permitted in amateur radio
+
+### Message Integrity
+
+- **Detect transmission errors** through cryptographic integrity checks
+- **Verify message authenticity** to ensure messages haven't been tampered with
+- **Non-obscuring authentication tags** that verify but don't hide content
+- **Legal**: Integrity verification does not hide message content
+
+### Key Management Infrastructure
+
+- **Secure key storage** using Nitrokey hardware security modules and kernel keyring
+- **Off-air key exchange** using ECDH (Elliptic Curve Diffie-Hellman)
+- **Authentication key distribution** for establishing trust relationships
+- **Legal**: Key management does not encrypt on-air content
+
+### Important Note
+
+**Signing and verifying sender identity is NOT encryption**. Digital signatures provide authentication and integrity verification without obscuring the message content, making them appropriate for amateur radio use where encryption is generally prohibited.
+
+### Experimental and Research Uses
+
+For experiments or research on frequencies where encryption is legally permitted:
+
+- Encryption may be used in accordance with local regulations
+- Users must verify applicable frequency bands and regulations
+- This module provides the technical capability; users are responsible for legal compliance
+
 ## References
 
 - [Opus Codec](https://opus-codec.org/)
 - [GNU Radio](https://www.gnuradio.org/)
 - [Codec2](https://www.rowetel.com/?page_id=452)
-
-# gr-sleipnir
+- [gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto) - BrainpoolP256r1 and Linux crypto integration
