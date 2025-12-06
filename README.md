@@ -1,6 +1,6 @@
 # gr-sleipnir
 
-A GNU Radio-based digital voice mode designed for amateur radio narrowband FM (NFM) channel spacing, utilizing modern audio codecs for superior voice quality compared to traditional codec2 implementations.
+A Experimental GNU Radio-based digital voice mode designed for amateur radio narrowband FM (NFM) channel spacing, utilizing modern audio codecs for superior voice quality compared to traditional codec2 implementations.
 
 ## About the Name
 
@@ -288,6 +288,8 @@ This is an experimental project. The system is functional but may require tuning
 - Real-time audio I/O integration (currently file-based)
 - Optional PTT control integration for live radio operation (ZeroMQ-based)
 - Optional ZeroMQ integration for baseband I/Q streaming
+- Optional integration with LinHT
+- a hierarchical block class that encapsulates the entire TX/RX chain
 - 8FSK mode implementation with higher bitrate Opus
 - Frame synchronization and superframe structure
 - Optional authentication and message integrity (BrainpoolP256r1 + ChaCha20Poly1305)
