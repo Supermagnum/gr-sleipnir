@@ -164,6 +164,12 @@ The system supports two modulation modes optimized for different use cases:
 - **Channel Spacing**: Compatible with standard NFM spacing (typically 12.5 kHz or 25 kHz)
 - **PTT Control**: Optional ZeroMQ message-based control
 
+## Performance
+
+The following graph shows the performance of the system in dB versus the Shannon limit:
+
+![Performance vs Shannon Limit](Pictures/performance.jpg)
+
 ## Requirements
 
 ### System Dependencies
