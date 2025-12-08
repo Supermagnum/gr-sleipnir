@@ -2,6 +2,39 @@
 
 A Experimental GNU Radio-based digital voice mode designed for amateur radio narrowband FM (NFM) channel spacing, utilizing modern audio codecs for superior voice quality compared to traditional codec2 implementations.
 
+## Table of Contents
+
+- [About the Name](#about-the-name)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Cryptography](#cryptography-brainpoolp256r1--chacha20poly1305-optional)
+- [Why Opus Over Codec2?](#why-opus-over-codec2)
+- [System Architecture](#system-architecture)
+- [Technical Specifications](#technical-specifications)
+- [Performance](#performance)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [1. Install System Dependencies](#1-install-system-dependencies)
+  - [2. Build and Install gr-opus Module](#2-build-and-install-gr-opus-module)
+  - [3. Build and Install gr-sleipnir](#3-build-and-install-gr-sleipnir)
+  - [4. Verify Installation](#4-verify-installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Documentation](#documentation)
+  - [Superframe System](#superframe-system)
+  - [TX/RX Modules](#txrx-modules)
+  - [PTT Control](#ptt-control)
+  - [LDPC Matrices](#ldpc-matrices)
+  - [Testing](#testing)
+  - [Examples](#examples)
+- [Testing](#testing-1)
+- [Status](#status)
+- [Future Work](#future-work)
+- [License](#license)
+- [Contributing](#contributing)
+- [Legal and Appropriate Uses](#legal-and-appropriate-uses-for-amateur-radio)
+- [References](#references)
+
 ## About the Name
 
 Sleipnir is the eight-legged horse of Odin, the Allfather in Norse mythology. According to the Prose Edda, Sleipnir was the finest of all horses, capable of traveling between the worlds of the gods, giants, and the dead. The name reflects the project's dual nature:
@@ -186,17 +219,25 @@ The following graph shows the performance of the system in dB versus the Shannon
 
 ### Installation
 
+#### 1. Install System Dependencies
+
 ```bash
 # Install system dependencies (Ubuntu/Debian)
-sudo apt-get install gnuradio-dev libopus-dev cmake
+sudo apt-get install gnuradio-dev libopus-dev cmake python3-dev
 
 # Optional: Install ZeroMQ for PTT control and I/Q streaming
 sudo apt-get install libzmq3-dev
 
 # Install Python dependencies
-pip3 install numpy opuslib --break-system-packages
+pip3 install numpy cryptography --break-system-packages
+```
 
-# Build gr-opus module (separate repository)
+#### 2. Build and Install gr-opus Module
+
+gr-sleipnir requires the gr-opus module (separate repository):
+
+```bash
+# Clone and build gr-opus
 git clone https://github.com/Supermagnum/gr-opus.git
 cd gr-opus
 mkdir build && cd build
@@ -204,7 +245,80 @@ cmake ..
 make
 sudo make install
 sudo ldconfig
+cd ../..
 ```
+
+#### 3. Build and Install gr-sleipnir
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/gr-sleipnir.git
+cd gr-sleipnir
+
+# Create build directory
+mkdir build && cd build
+
+# Configure with CMake
+cmake ..
+
+# Build (validates Python syntax)
+make
+
+# Optional: Validate Python files
+make check_python
+
+# Install the module
+# Use absolute path to avoid sudo working directory issues
+sudo make -C $(pwd)/build install
+
+# Update library cache
+sudo ldconfig
+```
+
+**Note**: gr-sleipnir is a Python-only GNU Radio module, so `make` doesn't compile any C/C++ code. It validates the build configuration and Python syntax. The actual installation happens with `make install`.
+
+#### 4. Verify Installation
+
+After installation, verify that the module can be imported:
+
+```bash
+python3 -c "import sleipnir; print('gr-sleipnir installed successfully')"
+```
+
+If you encounter import errors, check that the Python modules are installed in the correct location:
+
+```bash
+python3 -c "import gnuradio; import os; print(os.path.dirname(gnuradio.__file__))"
+```
+
+The sleipnir module should be installed in `gnuradio/sleipnir/` within that directory.
+
+#### Troubleshooting Installation
+
+**Issue: "getcwd: Fila eller mappa finnes ikke" when using sudo**
+
+This error occurs when `sudo` loses the current working directory context. **Solution: Use absolute path with `-C` flag:**
+
+```bash
+# From project root directory
+sudo make -C $(pwd)/build install
+
+# Or with explicit absolute path
+sudo make -C /home/haaken/github-projects/gr-sleipnir/build install
+```
+
+**Alternative: Test installation without sudo (using DESTDIR):**
+```bash
+cd build
+make install DESTDIR=/tmp/gr-sleipnir-install
+# Then manually copy files if needed
+```
+
+**Issue: Module not found after installation**
+
+- Verify installation location: `python3 -c "import gnuradio; import os; print(os.path.dirname(gnuradio.__file__))"`
+- Check that files exist: `ls -la /usr/lib/python3/dist-packages/gnuradio/sleipnir/`
+- Ensure Python can find the module: `python3 -c "import sys; print(sys.path)"`
 
 ## Usage
 
@@ -267,23 +381,109 @@ To test the system:
 
 ```
 gr-sleipnir/
-├── README.md                 # This file
-├── CMakeLists.txt           # Root CMake configuration
-├── examples/                 # Example flowgraphs
-│   ├── tx_4fsk_opus.grc     # 4FSK Opus transmitter
-│   └── rx_4fsk_opus.grc     # 4FSK Opus receiver
-├── ldpc_matrices/           # LDPC FEC matrix files
-│   ├── ldpc_rate34.alist    # Rate 3/4 LDPC matrix (4FSK)
-│   └── ldpc_rate23.alist    # Rate 2/3 LDPC matrix (8FSK)
-└── python/                  # Python utilities
-    └── frame_aware_ldpc.py  # Frame-aware LDPC encoder/decoder
+├── README.md                      # This file
+├── CMakeLists.txt                 # Root CMake configuration
+├── SUPERFRAME_IMPLEMENTATION.md   # Superframe implementation guide
+├── TEST_RESULTS.md                # Latest test execution results
+├── examples/                      # Example flowgraphs and documentation
+│   ├── tx_4fsk_opus.grc          # 4FSK Opus transmitter
+│   ├── rx_4fsk_opus.grc          # 4FSK Opus receiver
+│   ├── tx_8fsk_opus.grc          # 8FSK Opus transmitter
+│   ├── rx_8fsk_opus.grc          # 8FSK Opus receiver
+│   ├── SLEIPNIR_TX_MODULE.md     # TX module guide
+│   ├── SLEIPNIR_RX_MODULE.md     # RX module guide
+│   ├── SUPERFRAME_FLOWGRAPHS.md  # Superframe flowgraph guide
+│   ├── SUPERFRAME_INTEGRATION.md # Superframe integration guide
+│   └── PTT_METHODS.md            # PTT control methods guide
+├── ldpc_matrices/                 # LDPC FEC matrix files
+│   ├── ldpc_rate34.alist         # Rate 3/4 LDPC matrix (4FSK)
+│   ├── ldpc_rate23.alist         # Rate 2/3 LDPC matrix (8FSK)
+│   ├── ldpc_voice_576_384.alist  # Voice frame LDPC (rate 2/3)
+│   ├── ldpc_auth_768_256.alist   # Auth frame LDPC (rate 1/3)
+│   ├── README.md                  # LDPC matrices overview
+│   ├── README_SUMMARY.md          # LDPC matrices summary
+│   ├── SUPERFRAME_LDPC.md        # Superframe LDPC documentation
+│   └── NOTE.md                    # Additional LDPC notes
+├── python/                        # Python utilities and modules
+│   ├── superframe_controller.py  # Superframe controller
+│   ├── voice_frame_builder.py    # Voice frame builder
+│   ├── crypto_helpers.py          # Cryptographic helpers
+│   ├── sleipnir_tx_hier.py       # TX hierarchical block
+│   ├── sleipnir_rx_hier.py       # RX hierarchical block
+│   ├── sleipnir_superframe_assembler.py  # Superframe assembler
+│   ├── sleipnir_superframe_parser.py     # Superframe parser
+│   ├── ptt_gpio.py               # GPIO PTT control
+│   ├── ptt_serial.py             # Serial PTT control
+│   ├── ptt_vox.py                # VOX PTT control
+│   ├── ptt_network.py            # Network PTT control
+│   ├── ptt_control_integration.py # PTT integration helper
+│   ├── zmq_control_helper.py     # ZMQ control helper
+│   ├── zmq_status_output.py      # ZMQ status output
+│   ├── frame_aware_ldpc.py       # Frame-aware LDPC encoder/decoder
+│   ├── README_SUPERFRAME.md      # Superframe Python API
+│   ├── README_TX_MODULE.md       # TX module quick reference
+│   └── README_RX_MODULE.md       # RX module quick reference
+├── tests/                        # Test suite
+│   ├── README.md                 # Test suite documentation
+│   ├── TEST_SCENARIOS.md         # Test scenarios documentation
+│   ├── TEST_SUMMARY.md           # Test summary
+│   ├── INTEGRATION_TESTS.md      # Integration test guide
+│   ├── run_all_tests.py          # Test runner
+│   └── test_*.py                 # Individual test files
+└── Pictures/                     # Images and graphics
+    └── performance.jpg           # Performance graph
 
 Note: gr-opus is a separate module available at https://github.com/Supermagnum/gr-opus
 ```
 
+## Documentation
+
+### Superframe System
+
+- **[Superframe Implementation Guide](SUPERFRAME_IMPLEMENTATION.md)** - Complete guide to implementing and using the superframe transmission system
+- **[Superframe Python API](python/README_SUPERFRAME.md)** - Python API documentation for superframe components
+- **[Superframe Flowgraphs](examples/SUPERFRAME_FLOWGRAPHS.md)** - Guide for modifying and creating GRC flowgraphs for superframe transmission
+- **[Superframe Integration](examples/SUPERFRAME_INTEGRATION.md)** - Integration guide for superframe system
+- **[Superframe LDPC Matrices](ldpc_matrices/SUPERFRAME_LDPC.md)** - Documentation for LDPC matrices used in superframe system
+
+### TX/RX Modules
+
+- **[TX Module Documentation](python/README_TX_MODULE.md)** - Quick reference for the TX module
+- **[TX Module Guide](examples/SLEIPNIR_TX_MODULE.md)** - Complete guide to the sleipnir_tx_hier module
+- **[RX Module Documentation](python/README_RX_MODULE.md)** - Quick reference for the RX module
+- **[RX Module Guide](examples/SLEIPNIR_RX_MODULE.md)** - Complete guide to the sleipnir_rx_hier module
+
+### PTT Control
+
+- **[PTT Methods Guide](examples/PTT_METHODS.md)** - Documentation for GPIO, Serial, VOX, and Network PTT control methods
+
+### LDPC Matrices
+
+- **[LDPC Matrices README](ldpc_matrices/README.md)** - Overview of LDPC parity check matrices
+- **[LDPC Matrices Summary](ldpc_matrices/README_SUMMARY.md)** - Summary of available LDPC matrices
+- **[LDPC Notes](ldpc_matrices/NOTE.md)** - Additional notes on LDPC matrices
+
+### Testing
+
+- **[Test Suite README](tests/README.md)** - Comprehensive test suite documentation
+- **[Test Scenarios](tests/TEST_SCENARIOS.md)** - Detailed documentation of test scenarios
+- **[Test Summary](tests/TEST_SUMMARY.md)** - Quick reference summary of test results
+- **[Test Results](TEST_RESULTS.md)** - Latest test execution results
+- **[Integration Tests](tests/INTEGRATION_TESTS.md)** - Guide for running integration tests
+
+### Examples
+
+Example flowgraphs are located in the `examples/` directory:
+- `tx_4fsk_opus.grc` - 4FSK Opus transmitter
+- `rx_4fsk_opus.grc` - 4FSK Opus receiver
+- `tx_8fsk_opus.grc` - 8FSK Opus transmitter
+- `rx_8fsk_opus.grc` - 8FSK Opus receiver
+
 ## Testing
 
 The gr-opus module includes comprehensive tests. See the [gr-opus repository](https://github.com/Supermagnum/gr-opus) for testing instructions and detailed test results.
+
+For gr-sleipnir specific tests, see the [Test Suite Documentation](tests/README.md).
 
 ## Status
 
@@ -292,14 +492,10 @@ This is an experimental project. The system is functional but may require tuning
 ## Future Work
 
 - Real-time audio I/O integration (currently file-based)
-- Optional PTT control integration for live radio operation (ZeroMQ-based)
-- Optional ZeroMQ integration for baseband I/Q streaming
-- Optional integration with LinHT
-- a hierarchical block class that encapsulates the entire TX/RX chain
-- 8FSK mode implementation with higher bitrate Opus
-- Frame synchronization and superframe structure
-- Optional authentication and message integrity (BrainpoolP256r1 + ChaCha20Poly1305)
 - Performance testing and optimization under various channel conditions
+- Enhanced error recovery and frame synchronization
+- Additional modulation modes
+- Integration with additional hardware platforms
 
 ## License
 

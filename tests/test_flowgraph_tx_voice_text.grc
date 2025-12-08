@@ -1,0 +1,52 @@
+options:
+  parameters:
+    author: Test Flowgraph
+    catch_exceptions: 'True'
+    category: '[Tests]'
+    cmake_opt: ''
+    comment: Test flowgraph for voice + text multiplexing
+    copyright: ''
+    description: TX flowgraph testing voice and text multiplexing
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: no_gui
+    hier_block_src_path: '.:'
+    id: test_tx_voice_text
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'False'
+    run_command: '{python} -u {filename}'
+    run_options: run
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: Test TX Voice+Text
+    window_size: (1400,800)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 4.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: callsign
+  id: variable
+  parameters:
+    comment: Station callsign
+    value: '"TEST"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 20]
+    rotation: 0
+    state: enabled
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0
+

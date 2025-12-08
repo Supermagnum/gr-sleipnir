@@ -5,7 +5,7 @@ This guide explains how to integrate the frame-aware LDPC matrices into gr-sleip
 ## Superframe Structure
 
 - **Superframe**: 25 frames (1 second total)
-- **Frame 0**: Authentication frame with BrainpoolP256r1 signature
+- **Frame 0**: Opptional Authentication frame with BrainpoolP256r1 signature
 - **Frames 1-24**: Voice frames with Opus audio + MAC
 
 ## LDPC Matrix Usage
