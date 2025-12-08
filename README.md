@@ -439,10 +439,17 @@ gr-sleipnir/
 ├── SUPERFRAME_IMPLEMENTATION.md   # Superframe implementation guide
 ├── TEST_RESULTS.md                # Latest test execution results
 ├── examples/                      # Example flowgraphs and documentation
-│   ├── tx_4fsk_opus.grc          # 4FSK Opus transmitter
-│   ├── rx_4fsk_opus.grc          # 4FSK Opus receiver
-│   ├── tx_8fsk_opus.grc          # 8FSK Opus transmitter
-│   ├── rx_8fsk_opus.grc          # 8FSK Opus receiver
+│   ├── sleipnir_tx_basic.grc     # Basic TX example
+│   ├── sleipnir_rx_basic.grc     # Basic RX example
+│   ├── sleipnir_tx_encrypted.grc # TX with encryption/signing
+│   ├── sleipnir_rx_verified.grc # RX with signature verification
+│   ├── sleipnir_tx_ptt.grc       # TX with GPIO PTT control
+│   ├── sleipnir_rx_zmq.grc       # RX with ZMQ output
+│   ├── tx_4fsk_opus.grc          # 4FSK Opus transmitter (legacy)
+│   ├── rx_4fsk_opus.grc          # 4FSK Opus receiver (legacy)
+│   ├── tx_8fsk_opus.grc          # 8FSK Opus transmitter (legacy)
+│   ├── rx_8fsk_opus.grc          # 8FSK Opus receiver (legacy)
+│   ├── README_EXAMPLES.md        # Examples documentation
 │   ├── SLEIPNIR_TX_MODULE.md     # TX module guide
 │   ├── SLEIPNIR_RX_MODULE.md     # RX module guide
 │   ├── SUPERFRAME_FLOWGRAPHS.md  # Superframe flowgraph guide
@@ -526,11 +533,23 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 
 ### Examples
 
-Example flowgraphs are located in the `examples/` directory:
-- `tx_4fsk_opus.grc` - 4FSK Opus transmitter
-- `rx_4fsk_opus.grc` - 4FSK Opus receiver
-- `tx_8fsk_opus.grc` - 8FSK Opus transmitter
-- `rx_8fsk_opus.grc` - 8FSK Opus receiver
+Example flowgraphs demonstrating gr-sleipnir module usage:
+
+- **[Examples Documentation](examples/README_EXAMPLES.md)** - Complete guide to example flowgraphs
+
+**gr-sleipnir Module Examples:**
+- `sleipnir_tx_basic.grc` - Basic TX example using sleipnir_tx_hier
+- `sleipnir_rx_basic.grc` - Basic RX example using sleipnir_rx_hier
+- `sleipnir_tx_encrypted.grc` - TX with encryption and signing
+- `sleipnir_rx_verified.grc` - RX with signature verification
+- `sleipnir_tx_ptt.grc` - TX with GPIO PTT control
+- `sleipnir_rx_zmq.grc` - RX with ZMQ status output
+
+**Legacy Examples (direct block usage):**
+- `tx_4fsk_opus.grc` - 4FSK Opus transmitter (legacy)
+- `rx_4fsk_opus.grc` - 4FSK Opus receiver (legacy)
+- `tx_8fsk_opus.grc` - 8FSK Opus transmitter (legacy)
+- `rx_8fsk_opus.grc` - 8FSK Opus receiver (legacy)
 
 ## Testing
 

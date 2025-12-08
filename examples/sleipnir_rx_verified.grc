@@ -1,0 +1,197 @@
+options:
+  parameters:
+    author: gr-sleipnir
+    catch_exceptions: 'True'
+    category: '[gr-sleipnir]'
+    cmake_opt: ''
+    comment: RX example with signature verification enabled
+    copyright: ''
+    description: gr-sleipnir receiver with signature verification and decryption
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: no_gui
+    hier_block_src_path: '.:'
+    id: sleipnir_rx_verified
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: run
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: gr-sleipnir RX Verified
+    window_size: (1400,800)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 4.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: audio_samp_rate
+  id: variable
+  parameters:
+    comment: Audio sample rate (8 kHz)
+    value: '8000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 20]
+    rotation: 0
+    state: enabled
+- name: input_file
+  id: variable
+  parameters:
+    comment: Input IQ file path
+    value: '"rx_input.iq"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 60]
+    rotation: 0
+    state: enabled
+- name: local_callsign
+  id: variable
+  parameters:
+    comment: Local station callsign
+    value: '"N0CALL"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [400, 20]
+    rotation: 0
+    state: enabled
+- name: output_file
+  id: variable
+  parameters:
+    comment: Output WAV file path
+    value: '"output.wav"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 408.0]
+    rotation: 0
+    state: enabled
+- name: private_key_path
+  id: variable
+  parameters:
+    comment: Path to private key for decryption
+    value: '"keys/private.pem"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [600, 20]
+    rotation: 0
+    state: enabled
+- name: public_key_store
+  id: variable
+  parameters:
+    comment: Path to public key store directory
+    value: '"keys/public_keys"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [800, 20]
+    rotation: 0
+    state: enabled
+- name: rf_samp_rate
+  id: variable
+  parameters:
+    comment: RF sample rate (48 kHz)
+    value: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 20]
+    rotation: 0
+    state: enabled
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: Save decoded audio to WAV file
+    file: output_file
+    nbits: '16'
+    type: wav
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1000, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_source_0
+  id: blocks_file_source
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Read IQ samples from file
+    file: input_file
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 200.0]
+    rotation: 0
+    state: enabled
+- name: sleipnir_rx_hier_0
+  id: python_block
+  parameters:
+    alias: ''
+    comment: gr-sleipnir RX with signature verification
+    code: |-
+      import sys
+      from pathlib import Path
+      sys.path.insert(0, str(Path(__file__).parent.parent))
+      
+      from python.sleipnir_rx_hier import sleipnir_rx_hier
+      
+      self.sleipnir_rx = sleipnir_rx_hier(
+          local_callsign=$local_callsign,
+          audio_samp_rate=$audio_samp_rate,
+          rf_samp_rate=$rf_samp_rate,
+          private_key_path=$private_key_path,
+          require_signatures=False,  # Set to True to reject unsigned messages
+          public_key_store_path=$public_key_store
+      )
+    imports: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    state: 'True'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [400, 200.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [blocks_file_source_0, '0', sleipnir_rx_hier_0, '0']
+- [sleipnir_rx_hier_0, '0', blocks_file_sink_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0
+

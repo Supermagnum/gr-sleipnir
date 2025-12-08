@@ -1,0 +1,209 @@
+options:
+  parameters:
+    author: gr-sleipnir
+    catch_exceptions: 'True'
+    category: '[gr-sleipnir]'
+    cmake_opt: ''
+    comment: TX example with GPIO PTT control
+    copyright: ''
+    description: gr-sleipnir transmitter with GPIO PTT control
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: no_gui
+    hier_block_src_path: '.:'
+    id: sleipnir_tx_ptt
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: run
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: gr-sleipnir TX with PTT
+    window_size: (1400,800)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 4.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: audio_samp_rate
+  id: variable
+  parameters:
+    comment: Audio sample rate (8 kHz)
+    value: '8000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 20]
+    rotation: 0
+    state: enabled
+- name: callsign
+  id: variable
+  parameters:
+    comment: Source callsign
+    value: '"N0CALL"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [400, 20]
+    rotation: 0
+    state: enabled
+- name: gpio_pin
+  id: variable
+  parameters:
+    comment: GPIO pin number for PTT control
+    value: '18'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [600, 20]
+    rotation: 0
+    state: enabled
+- name: input_file
+  id: variable
+  parameters:
+    comment: Input WAV file path
+    value: '"input.wav"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [32, 408.0]
+    rotation: 0
+    state: enabled
+- name: output_file
+  id: variable
+  parameters:
+    comment: Output IQ file path
+    value: '"tx_output.iq"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 408.0]
+    rotation: 0
+    state: enabled
+- name: rf_samp_rate
+  id: variable
+  parameters:
+    comment: RF sample rate (48 kHz)
+    value: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 20]
+    rotation: 0
+    state: enabled
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: Save modulated signal to IQ file
+    file: output_file
+    type: complex
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1000, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_wavfile_source_0
+  id: blocks_wavfile_source
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Read audio from WAV file
+    file: input_file
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nchan: '1'
+    repeat: 'True'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 200.0]
+    rotation: 0
+    state: enabled
+- name: ptt_gpio_0
+  id: python_block
+  parameters:
+    alias: ''
+    comment: GPIO PTT control block
+    code: |-
+      import sys
+      from pathlib import Path
+      sys.path.insert(0, str(Path(__file__).parent.parent))
+      
+      from python.ptt_gpio import make_ptt_gpio
+      
+      self.ptt = make_ptt_gpio(
+          gpio_pin=int($gpio_pin),
+          active_high=True
+      )
+    imports: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    state: 'True'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [400, 300.0]
+    rotation: 0
+    state: enabled
+- name: sleipnir_tx_hier_0
+  id: python_block
+  parameters:
+    alias: ''
+    comment: gr-sleipnir TX hierarchical block
+    code: |-
+      import sys
+      from pathlib import Path
+      sys.path.insert(0, str(Path(__file__).parent.parent))
+      
+      from python.sleipnir_tx_hier import sleipnir_tx_hier
+      
+      self.sleipnir_tx = sleipnir_tx_hier(
+          callsign=$callsign,
+          audio_samp_rate=$audio_samp_rate,
+          rf_samp_rate=$rf_samp_rate,
+          enable_signing=False,
+          enable_encryption=False
+      )
+    imports: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    state: 'True'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [400, 200.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [blocks_wavfile_source_0, '0', sleipnir_tx_hier_0, '0']
+- [sleipnir_tx_hier_0, '0', blocks_file_sink_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0
+
