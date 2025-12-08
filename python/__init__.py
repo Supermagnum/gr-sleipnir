@@ -49,6 +49,17 @@ try:
 except ImportError:
     from python.zmq_status_output import zmq_status_output, make_zmq_status_output
 
+# Export crypto modules (for direct access)
+try:
+    from . import crypto_integration
+    from . import crypto_helpers
+except ImportError:
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from python import crypto_integration
+    from python import crypto_helpers
+
 __all__ = [
     # Hierarchical blocks
     'sleipnir_tx_hier',
@@ -77,4 +88,7 @@ __all__ = [
     # ZMQ helpers
     'zmq_status_output',
     'make_zmq_status_output',
+    # Crypto modules
+    'crypto_integration',
+    'crypto_helpers',
 ]

@@ -39,12 +39,17 @@ class sleipnir_superframe_parser(gr.sync_block):
     AUTH_FRAME_BYTES = 32   # 256 bits after LDPC decoding
     FRAMES_PER_SUPERFRAME = 25
 
+    # Sync frame constants (must match TX)
+    SYNC_PATTERN = 0xDEADBEEFCAFEBABE  # 64-bit sync pattern
+    SYNC_FRAME_BYTES = 48  # Same size as voice frame
+
     def __init__(
         self,
         local_callsign: str = "N0CALL",
         private_key_path: Optional[str] = None,
         require_signatures: bool = False,
-        public_key_store_path: Optional[str] = None
+        public_key_store_path: Optional[str] = None,
+        enable_sync_detection: bool = True
     ):
         """
         Initialize superframe parser.
@@ -66,6 +71,7 @@ class sleipnir_superframe_parser(gr.sync_block):
         self.require_signatures = require_signatures
         self.private_key_path = private_key_path
         self.public_key_store_path = public_key_store_path
+        self.enable_sync_detection = enable_sync_detection
 
         # Load private key if provided
         self.private_key = None
@@ -85,6 +91,8 @@ class sleipnir_superframe_parser(gr.sync_block):
         # State
         self.frame_buffer = []
         self.superframe_counter = 0
+        self.sync_state = "searching"  # "searching", "synced", "lost"
+        self.last_sync_counter = None
 
         # Message ports
         self.message_port_register_in(pmt.intern("in"))
@@ -164,20 +172,24 @@ class sleipnir_superframe_parser(gr.sync_block):
                                           pmt.intern(status.get('message_type', 'voice')))
                 self.message_port_pub(pmt.intern("out"), pmt.cons(output_meta, audio_pmt))
 
-    def parse_frames(self, data: bytes) -> List[bytes]:
+    def parse_frames(self, data: bytes) -> list[bytes]:
         """
         Parse frames from decoded data.
 
-        Handles desynchronization by looking for frame boundaries.
+        Handles desynchronization by looking for sync patterns and frame boundaries.
         """
         frames = []
 
-        # Simplified parsing - assumes frames are properly aligned
-        # Real implementation would:
-        # 1. Look for sync patterns
-        # 2. Handle frame boundaries
-        # 3. Extract frame payloads
+        if self.enable_sync_detection:
+            # Try to detect sync frame first
+            sync_frame_idx = self.detect_sync_frame(data)
+            if sync_frame_idx is not None:
+                # Found sync frame - use it for synchronization
+                self.handle_sync_frame(data[sync_frame_idx:sync_frame_idx+self.SYNC_FRAME_BYTES])
+                # Parse frames starting from sync frame position
+                return self.parse_frames_with_sync(data, sync_frame_idx)
 
+        # Standard parsing - assumes frames are properly aligned
         # Check if we have auth frame (25 frames) or just voice frames (24 frames)
         total_frames = len(data) // self.VOICE_FRAME_BYTES
 
@@ -194,7 +206,127 @@ class sleipnir_superframe_parser(gr.sync_block):
         for i in range(0, len(voice_data), self.VOICE_FRAME_BYTES):
             frame = voice_data[i:i+self.VOICE_FRAME_BYTES]
             if len(frame) == self.VOICE_FRAME_BYTES:
+                # Check if this is a sync frame
+                if self.is_sync_frame(frame):
+                    self.handle_sync_frame(frame)
+                    continue  # Skip sync frame in output
                 frames.append(frame)
+
+        return frames
+
+    def detect_sync_frame(self, data: bytes) -> Optional[int]:
+        """
+        Detect sync frame in data by looking for sync pattern.
+
+        Returns:
+            Index of sync frame start, or None if not found
+        """
+        sync_pattern_bytes = struct.pack('>Q', self.SYNC_PATTERN)
+
+        # Search for sync pattern
+        for i in range(len(data) - self.SYNC_FRAME_BYTES + 1):
+            if data[i:i+8] == sync_pattern_bytes:
+                # Found sync pattern - verify it's a valid sync frame
+                if i + self.SYNC_FRAME_BYTES <= len(data):
+                    frame = data[i:i+self.SYNC_FRAME_BYTES]
+                    if self.validate_sync_frame(frame):
+                        return i
+
+        return None
+
+    def is_sync_frame(self, frame: bytes) -> bool:
+        """Check if frame is a sync frame."""
+        if len(frame) < 8:
+            return False
+
+        sync_pattern_bytes = struct.pack('>Q', self.SYNC_PATTERN)
+        return frame[:8] == sync_pattern_bytes
+
+    def validate_sync_frame(self, frame: bytes) -> bool:
+        """
+        Validate sync frame structure.
+
+        Checks:
+        - Sync pattern matches
+        - Frame counter is 0
+        - Superframe counter is reasonable
+        """
+        if len(frame) < self.SYNC_FRAME_BYTES:
+            return False
+
+        # Check sync pattern
+        sync_pattern_bytes = struct.pack('>Q', self.SYNC_PATTERN)
+        if frame[:8] != sync_pattern_bytes:
+            return False
+
+        # Check frame counter (should be 0)
+        frame_counter = struct.unpack('>I', frame[12:16])[0]
+        if frame_counter != 0:
+            return False
+
+        # Superframe counter should be reasonable (0 to 2^32-1)
+        superframe_counter = struct.unpack('>I', frame[8:12])[0]
+        if superframe_counter > 0xFFFFFFFF:
+            return False
+
+        return True
+
+    def handle_sync_frame(self, sync_frame: bytes):
+        """
+        Handle detected sync frame.
+
+        Updates sync state and frame counter.
+        """
+        if len(sync_frame) < self.SYNC_FRAME_BYTES:
+            return
+
+        superframe_counter = struct.unpack('>I', sync_frame[8:12])[0]
+
+        if self.last_sync_counter is None:
+            # First sync frame
+            self.sync_state = "synced"
+            self.superframe_counter = superframe_counter
+            self.last_sync_counter = superframe_counter
+            print(f"Sync acquired: superframe_counter={superframe_counter}")
+        else:
+            # Validate counter increment
+            expected_counter = (self.last_sync_counter + 1) % 0x100000000
+            if superframe_counter == expected_counter or superframe_counter == self.last_sync_counter:
+                # Counter is valid
+                self.sync_state = "synced"
+                self.superframe_counter = superframe_counter
+                self.last_sync_counter = superframe_counter
+            else:
+                # Counter mismatch - sync may be lost
+                print(f"Sync warning: expected counter {expected_counter}, got {superframe_counter}")
+                self.sync_state = "lost"
+                # Still update counter but mark as lost
+                self.superframe_counter = superframe_counter
+                self.last_sync_counter = superframe_counter
+
+    def parse_frames_with_sync(self, data: bytes, sync_frame_idx: int) -> list[bytes]:
+        """
+        Parse frames starting from sync frame position.
+
+        Args:
+            data: Decoded data
+            sync_frame_idx: Index where sync frame starts
+
+        Returns:
+            List of frame payloads
+        """
+        frames = []
+
+        # Skip sync frame
+        data_after_sync = data[sync_frame_idx + self.SYNC_FRAME_BYTES:]
+
+        # Parse remaining frames
+        for i in range(0, len(data_after_sync), self.VOICE_FRAME_BYTES):
+            frame = data_after_sync[i:i+self.VOICE_FRAME_BYTES]
+            if len(frame) == self.VOICE_FRAME_BYTES:
+                # Skip additional sync frames
+                if not self.is_sync_frame(frame):
+                    frames.append(frame)
 
         return frames
 
@@ -284,7 +416,7 @@ class sleipnir_superframe_parser(gr.sync_block):
         print("Decryption not fully implemented")
         return None
 
-    def process_superframe(self, frames: List[bytes]) -> Optional[tuple]:
+    def process_superframe(self, frames: list[bytes]) -> Optional[tuple]:
         """
         Process complete superframe.
 
@@ -383,7 +515,8 @@ class sleipnir_superframe_parser(gr.sync_block):
             'recipients': ','.join(recipients) if recipients else '',
             'message_type': message_type,
             'frame_counter': len(opus_frames),
-            'superframe_counter': self.superframe_counter
+            'superframe_counter': self.superframe_counter,
+            'sync_state': self.sync_state
         }
 
         self.superframe_counter += 1
@@ -409,6 +542,8 @@ class sleipnir_superframe_parser(gr.sync_block):
                                   pmt.from_long(status.get('frame_counter', 0)))
         status_pmt = pmt.dict_add(status_pmt, pmt.intern("superframe_counter"),
                                   pmt.from_long(status.get('superframe_counter', 0)))
+        status_pmt = pmt.dict_add(status_pmt, pmt.intern("sync_state"),
+                                  pmt.intern(status.get('sync_state', 'unknown')))
 
         self.message_port_pub(pmt.intern("status"), status_pmt)
 
@@ -417,13 +552,15 @@ def make_sleipnir_superframe_parser(
     local_callsign: str = "N0CALL",
     private_key_path: Optional[str] = None,
     require_signatures: bool = False,
-    public_key_store_path: Optional[str] = None
+    public_key_store_path: Optional[str] = None,
+    enable_sync_detection: bool = True
 ):
     """Factory function for GRC."""
     return sleipnir_superframe_parser(
         local_callsign=local_callsign,
         private_key_path=private_key_path,
         require_signatures=require_signatures,
-        public_key_store_path=public_key_store_path
+        public_key_store_path=public_key_store_path,
+        enable_sync_detection=enable_sync_detection
     )
 

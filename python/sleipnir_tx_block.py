@@ -211,7 +211,7 @@ class sleipnir_tx_block(gr.sync_block):
 
         return self.frame_builder.build_frame(opus_data, frame_num)
 
-    def assemble_superframe(self, opus_frames: List[bytes]) -> List[bytes]:
+    def assemble_superframe(self, opus_frames: list[bytes]) -> list[bytes]:
         """
         Assemble complete superframe (25 frames).
 

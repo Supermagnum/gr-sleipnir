@@ -12,6 +12,7 @@ Output: PDU with superframe payloads (list of frame payloads)
 import numpy as np
 from gnuradio import gr
 import pmt
+import struct
 from typing import List, Optional
 
 import sys
@@ -35,13 +36,20 @@ class sleipnir_superframe_assembler(gr.sync_block):
     Output: PDU with list of frame payloads ready for LDPC encoding
     """
 
+    # Sync frame constants
+    SYNC_PATTERN = 0xDEADBEEFCAFEBABE  # 64-bit sync pattern
+    SYNC_FRAME_INTERVAL = 5  # Insert sync frame every N superframes (default: 5)
+    SYNC_FRAME_BYTES = 48  # Same size as voice frame
+
     def __init__(
         self,
         callsign: str = "N0CALL",
         enable_signing: bool = False,
         enable_encryption: bool = False,
         private_key_path: Optional[str] = None,
-        mac_key: Optional[bytes] = None
+        mac_key: Optional[bytes] = None,
+        enable_sync_frames: bool = True,
+        sync_frame_interval: int = 5
     ):
         gr.sync_block.__init__(
             self,
@@ -53,6 +61,8 @@ class sleipnir_superframe_assembler(gr.sync_block):
         self.callsign = callsign
         self.enable_signing = enable_signing
         self.enable_encryption = enable_encryption
+        self.enable_sync_frames = enable_sync_frames
+        self.sync_frame_interval = sync_frame_interval
 
         # Load private key if provided
         self.private_key = None
@@ -69,6 +79,9 @@ class sleipnir_superframe_assembler(gr.sync_block):
             mac_key=mac_key,
             enable_mac=(mac_key is not None)
         )
+
+        # Superframe counter for sync frames
+        self.superframe_counter = 0
 
         # Message ports
         self.message_port_register_in(pmt.intern("in"))
@@ -142,19 +155,33 @@ class sleipnir_superframe_assembler(gr.sync_block):
             payload_bytes = b''.join(frame_payloads)
             output_pmt = pmt.init_u8vector(len(payload_bytes), list(payload_bytes))
 
+            # Update metadata with superframe counter
+            output_meta = pmt.make_dict()
+            if pmt.is_dict(meta):
+                keys = pmt.dict_keys(meta)
+                for i in range(pmt.length(keys)):
+                    key = pmt.nth(i, keys)
+                    value = pmt.dict_ref(meta, key, pmt.PMT_NIL)
+                    output_meta = pmt.dict_add(output_meta, key, value)
+            output_meta = pmt.dict_add(output_meta, pmt.intern("superframe_counter"),
+                                      pmt.from_long(self.superframe_counter))
+
             # Output
-            self.message_port_pub(pmt.intern("out"), pmt.cons(meta, output_pmt))
+            self.message_port_pub(pmt.intern("out"), pmt.cons(output_meta, output_pmt))
+
+            # Increment superframe counter
+            self.superframe_counter += 1
 
         except Exception as e:
             print(f"Error assembling superframe: {e}")
 
-    def assemble_superframe(self, opus_frames: List[bytes]) -> List[bytes]:
+    def assemble_superframe(self, opus_frames: list[bytes]) -> list[bytes]:
         """
         Assemble superframe from 24 Opus frames.
 
         Returns list of frame payloads:
         - Frame 0 (if signing enabled): 32 bytes auth payload
-        - Frames 1-24: 48 bytes voice payloads
+        - Frames 1-24: 48 bytes voice payloads (or sync frame if enabled)
         """
         if len(opus_frames) != 24:
             raise ValueError(f"Expected 24 Opus frames, got {len(opus_frames)}")
@@ -169,12 +196,54 @@ class sleipnir_superframe_assembler(gr.sync_block):
             auth_payload = self.build_auth_frame(superframe_data)
             frames.append(auth_payload)
 
-        # Frames 1-24: Voice frames
+        # Check if we should insert sync frame
+        insert_sync_frame = (
+            self.enable_sync_frames and
+            not self.enable_signing and  # Only when signing disabled
+            self.superframe_counter > 0 and
+            (self.superframe_counter % self.sync_frame_interval == 0)
+        )
+
+        # Frames 1-24: Voice frames (or sync frame)
+        sync_frame_inserted = False
         for i, opus_frame in enumerate(opus_frames, start=1):
+            # Insert sync frame at position 1 (first voice frame position)
+            if insert_sync_frame and i == 1 and not sync_frame_inserted:
+                sync_payload = self.build_sync_frame()
+                frames.append(sync_payload)
+                sync_frame_inserted = True
+                # Skip one voice frame (replaced by sync frame)
+                continue
+
             voice_payload = self.build_voice_frame(opus_frame, i)
             frames.append(voice_payload)
 
         return frames
+
+    def build_sync_frame(self) -> bytes:
+        """
+        Build sync frame payload (48 bytes).
+
+        Structure:
+        - Bytes 0-7:   Sync pattern (64 bits, fixed value)
+        - Bytes 8-11:  Superframe counter (32 bits)
+        - Bytes 12-15: Frame counter (32 bits, always 0 for sync frame)
+        - Bytes 16-47: Reserved/padding
+        """
+        sync_frame = bytearray(self.SYNC_FRAME_BYTES)
+
+        # Sync pattern (64 bits = 8 bytes)
+        struct.pack_into('>Q', sync_frame, 0, self.SYNC_PATTERN)
+
+        # Superframe counter (32 bits = 4 bytes)
+        struct.pack_into('>I', sync_frame, 8, self.superframe_counter)
+
+        # Frame counter (32 bits = 4 bytes, always 0 for sync frame)
+        struct.pack_into('>I', sync_frame, 12, 0)
+
+        # Bytes 16-47: Reserved/padding (already zeros)
+
+        return bytes(sync_frame)
 
     def build_auth_frame(self, superframe_data: bytes) -> bytes:
         """Build authentication frame payload (32 bytes)."""
@@ -200,7 +269,9 @@ def make_sleipnir_superframe_assembler(
     enable_signing: bool = False,
     enable_encryption: bool = False,
     private_key_path: Optional[str] = None,
-    mac_key: Optional[bytes] = None
+    mac_key: Optional[bytes] = None,
+    enable_sync_frames: bool = True,
+    sync_frame_interval: int = 5
 ):
     """Factory function for GRC."""
     return sleipnir_superframe_assembler(
@@ -208,6 +279,8 @@ def make_sleipnir_superframe_assembler(
         enable_signing=enable_signing,
         enable_encryption=enable_encryption,
         private_key_path=private_key_path,
-        mac_key=mac_key
+        mac_key=mac_key,
+        enable_sync_frames=enable_sync_frames,
+        sync_frame_interval=sync_frame_interval
     )
 

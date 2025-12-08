@@ -231,7 +231,7 @@ class sleipnir_rx_block(gr.sync_block):
         print("Decryption not fully implemented")
         return None
 
-    def process_superframe(self, frames: List[bytes]) -> Optional[List[bytes]]:
+    def process_superframe(self, frames: list[bytes]) -> Optional[list[bytes]]:
         """
         Process complete superframe.
 

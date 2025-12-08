@@ -25,6 +25,8 @@ A Experimental GNU Radio-based digital voice mode designed for amateur radio nar
   - [TX/RX Modules](#txrx-modules)
   - [PTT Control](#ptt-control)
   - [LDPC Matrices](#ldpc-matrices)
+  - [Crypto Integration](#crypto-integration)
+  - [Sync Frames](#sync-frames)
   - [Testing](#testing)
   - [Examples](#examples)
 - [Testing](#testing-1)
@@ -438,6 +440,12 @@ gr-sleipnir/
 ├── CMakeLists.txt                 # Root CMake configuration
 ├── SUPERFRAME_IMPLEMENTATION.md   # Superframe implementation guide
 ├── TEST_RESULTS.md                # Latest test execution results
+├── docs/                          # Additional documentation
+│   ├── CRYPTO_INTEGRATION.md      # Crypto integration guide
+│   ├── CRYPTO_WIRING.md           # Crypto block wiring guide
+│   ├── GR_LINUX_CRYPTO_VERIFICATION.md  # gr-linux-crypto verification
+│   ├── SYNC_FRAME_ANALYSIS.md     # Sync frame analysis
+│   └── SYNC_FRAME_IMPLEMENTATION.md  # Sync frame implementation
 ├── examples/                      # Example flowgraphs and documentation
 │   ├── sleipnir_tx_basic.grc     # Basic TX example
 │   ├── sleipnir_rx_basic.grc     # Basic RX example
@@ -468,6 +476,7 @@ gr-sleipnir/
 │   ├── superframe_controller.py  # Superframe controller
 │   ├── voice_frame_builder.py    # Voice frame builder
 │   ├── crypto_helpers.py          # Cryptographic helpers
+│   ├── crypto_integration.py      # Crypto block integration wrappers
 │   ├── sleipnir_tx_hier.py       # TX hierarchical block
 │   ├── sleipnir_rx_hier.py       # RX hierarchical block
 │   ├── sleipnir_superframe_assembler.py  # Superframe assembler
@@ -512,6 +521,17 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 - **[TX Module Guide](examples/SLEIPNIR_TX_MODULE.md)** - Complete guide to the sleipnir_tx_hier module
 - **[RX Module Documentation](python/README_RX_MODULE.md)** - Quick reference for the RX module
 - **[RX Module Guide](examples/SLEIPNIR_RX_MODULE.md)** - Complete guide to the sleipnir_rx_hier module
+
+### Crypto Integration
+
+- **[Crypto Integration Guide](docs/CRYPTO_INTEGRATION.md)** - Integration of gr-linux-crypto and gr-nacl blocks into TX/RX flow
+- **[Crypto Block Wiring](docs/CRYPTO_WIRING.md)** - Detailed wiring diagrams and connection guide for crypto blocks
+- **[gr-linux-crypto Verification](docs/GR_LINUX_CRYPTO_VERIFICATION.md)** - Steps to verify gr-linux-crypto installation and functionality
+
+### Sync Frames
+
+- **[Sync Frame Analysis](docs/SYNC_FRAME_ANALYSIS.md)** - Analysis of sync frame requirements for receiver acquisition
+- **[Sync Frame Implementation](docs/SYNC_FRAME_IMPLEMENTATION.md)** - Implementation details for periodic sync frames in TX and RX
 
 ### PTT Control
 
