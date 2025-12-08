@@ -12,34 +12,29 @@ Complete TX chain combining:
 This can be used as a hierarchical block in GRC.
 """
 
-from gnuradio import gr, blocks, digital, analog, filter
-from gnuradio import fec
-from gnuradio.gr import sizeof_gr_complex, sizeof_float, sizeof_char
-import numpy as np
-import math
+from gnuradio import gr, fec
+from gnuradio.gr import sizeof_gr_complex, sizeof_float
 
 # Import our custom blocks
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from python.sleipnir_superframe_assembler import sleipnir_superframe_assembler
-
 
 class sleipnir_tx_hier(gr.hier_block2):
     """
     gr-sleipnir TX hierarchical block.
-    
+
     Inputs:
     - Port 0: Audio samples (float32) - 8 kHz
-    
+
     Outputs:
     - Port 0: Complex baseband (complex64) - RF sample rate
-    
+
     Message Ports:
     - ctrl: Control messages (PMT dict)
     """
-    
+
     def __init__(
         self,
         callsign: str = "N0CALL",
@@ -57,7 +52,7 @@ class sleipnir_tx_hier(gr.hier_block2):
     ):
         """
         Initialize sleipnir TX hierarchical block.
-        
+
         Args:
             callsign: Source callsign
             audio_samp_rate: Audio sample rate (Hz)
@@ -78,7 +73,7 @@ class sleipnir_tx_hier(gr.hier_block2):
             gr.io_signature(1, 1, sizeof_float),  # Audio input
             gr.io_signature(1, 1, sizeof_gr_complex)  # Complex output
         )
-        
+
         # Parameters
         self.callsign = callsign
         self.audio_samp_rate = audio_samp_rate
@@ -86,20 +81,20 @@ class sleipnir_tx_hier(gr.hier_block2):
         self.symbol_rate = symbol_rate
         self.fsk_deviation = fsk_deviation
         self.fsk_levels = fsk_levels
-        
+
         # Calculate samples per symbol
         self.sps = int(rf_samp_rate / symbol_rate)
-        
+
         # Blocks
-        
+
         # 1. Opus encoder (from gr-opus)
         # Note: This would be gr_opus.opus_encoder in actual implementation
         # For now, we'll use a placeholder or pass through
-        
+
         # 2. Superframe assembler (PDU-based)
         # Convert audio stream to PDU, then assemble superframes
         # This is complex - for now, we'll create a simplified version
-        
+
         # 3. LDPC encoder
         # Load LDPC matrix
         try:
@@ -107,7 +102,7 @@ class sleipnir_tx_hier(gr.hier_block2):
         except:
             print(f"Warning: Could not load LDPC matrix {voice_matrix_file}")
             ldpc_encoder_def = None
-        
+
         # 4. Symbol mapping
         if fsk_levels == 4:
             symbol_table = [-3, -1, 1, 3]
@@ -117,7 +112,7 @@ class sleipnir_tx_hier(gr.hier_block2):
             bits_per_symbol = 3
         else:
             raise ValueError(f"Invalid FSK levels: {fsk_levels}")
-        
+
         # 5. Pulse shaping (Root Raised Cosine)
         rrc_taps = filter.firdes.root_raised_cosine(
             self.sps,  # gain
@@ -126,28 +121,28 @@ class sleipnir_tx_hier(gr.hier_block2):
             0.35,  # alpha
             110  # num_taps
         )
-        
+
         # 6. Frequency modulator
         sensitivity = (2.0 * math.pi * fsk_deviation) / rf_samp_rate
-        
+
         # Simplified chain (actual implementation would be more complex)
         # For now, this is a template
-        
+
         # Connect blocks
         # self.connect(self, audio_input_block, ...)
-        
+
         # Message port for control
         self.message_port_register_hier_in("ctrl")
-    
+
     def set_callsign(self, callsign: str):
         """Update callsign."""
         self.callsign = callsign
-    
+
     def set_enable_signing(self, enable: bool):
         """Enable/disable signing."""
         # Update superframe assembler
         pass
-    
+
     def set_enable_encryption(self, enable: bool):
         """Enable/disable encryption."""
         # Update superframe assembler

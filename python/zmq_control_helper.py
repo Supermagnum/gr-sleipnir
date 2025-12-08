@@ -8,25 +8,25 @@ Provides helper functions for sending control messages via ZMQ.
 import zmq
 import json
 import pmt
-from typing import Optional, List, Dict
+from typing import Optional
 
 
 class SleipnirControlClient:
     """
     Client for sending control messages to sleipnir TX block via ZMQ.
     """
-    
+
     def __init__(self, zmq_address: str = "tcp://localhost:5555"):
         """
         Initialize ZMQ control client.
-        
+
         Args:
             zmq_address: ZMQ address (e.g., "tcp://localhost:5555")
         """
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUSH)
         self.socket.connect(zmq_address)
-    
+
     def send_control(
         self,
         enable_signing: Optional[bool] = None,
@@ -41,7 +41,7 @@ class SleipnirControlClient:
     ):
         """
         Send control message to TX block.
-        
+
         Args:
             enable_signing: Enable ECDSA signing
             enable_encryption: Enable encryption
@@ -54,7 +54,7 @@ class SleipnirControlClient:
             mac_key: MAC key (32 bytes)
         """
         msg_dict = {}
-        
+
         if enable_signing is not None:
             msg_dict['enable_signing'] = enable_signing
         if enable_encryption is not None:
@@ -73,11 +73,11 @@ class SleipnirControlClient:
             msg_dict['to_callsign'] = to_callsign
         if mac_key:
             msg_dict['mac_key'] = mac_key.hex()
-        
+
         # Send as JSON
         msg_json = json.dumps(msg_dict)
         self.socket.send_string(msg_json)
-    
+
     def close(self):
         """Close ZMQ connection."""
         self.socket.close()
@@ -97,13 +97,13 @@ def create_control_pmt(
 ):
     """
     Create PMT dict for control message.
-    
+
     Returns PMT dict suitable for message port.
     """
     msg_dict = pmt.make_dict()
-    
+
     if enable_signing is not None:
-        msg_dict = pmt.dict_add(msg_dict, pmt.intern("enable_signing"), 
+        msg_dict = pmt.dict_add(msg_dict, pmt.intern("enable_signing"),
                                 pmt.from_bool(enable_signing))
     if enable_encryption is not None:
         msg_dict = pmt.dict_add(msg_dict, pmt.intern("enable_encryption"),
@@ -129,6 +129,6 @@ def create_control_pmt(
     if mac_key:
         msg_dict = pmt.dict_add(msg_dict, pmt.intern("mac_key"),
                                 pmt.to_pmt(mac_key))
-    
+
     return msg_dict
 

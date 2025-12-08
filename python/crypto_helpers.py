@@ -27,25 +27,25 @@ except ImportError:
 def load_private_key(key_path: str) -> Optional[object]:
     """
     Load private key from file.
-    
+
     Supports:
     - PEM format (ECDSA private key, BrainpoolP256r1 preferred)
     - DER format
-    
+
     Args:
         key_path: Path to private key file
-    
+
     Returns:
         Private key object (from cryptography library)
     """
     if not CRYPTOGRAPHY_AVAILABLE:
         print("Error: cryptography library not available for loading keys")
         return None
-    
+
     try:
         with open(key_path, 'rb') as f:
             key_data = f.read()
-        
+
         # Try PEM format first
         try:
             private_key = serialization.load_pem_private_key(
@@ -82,22 +82,22 @@ def load_private_key(key_path: str) -> Optional[object]:
 def generate_ecdsa_signature(data: bytes, private_key: object) -> bytes:
     """
     Generate ECDSA signature using BrainpoolP256r1.
-    
+
     Args:
         data: Data to sign
         private_key: Private key object (from cryptography library)
-    
+
     Returns:
         32-byte signature (hash of full 64-byte ECDSA signature)
         For frame 0, we use 256 bits = 32 bytes
     """
     # Hash the data first (SHA-256)
     data_hash = hashlib.sha256(data).digest()
-    
+
     if not CRYPTOGRAPHY_AVAILABLE:
         print("Error: cryptography library not available for ECDSA signing")
         return b'\x00' * 32
-    
+
     try:
         # Sign with ECDSA using BrainpoolP256r1
         # The private_key should be loaded with BrainpoolP256r1 curve
@@ -105,7 +105,7 @@ def generate_ecdsa_signature(data: bytes, private_key: object) -> bytes:
             data_hash,
             ec.ECDSA(hashes.SHA256())
         )
-        
+
         # BrainpoolP256r1 signature is 64 bytes (r + s, each 32 bytes)
         # For frame 0, we need 256 bits = 32 bytes
         # We'll use hash of signature to get 32 bytes
@@ -119,17 +119,17 @@ def generate_ecdsa_signature(data: bytes, private_key: object) -> bytes:
 def compute_chacha20_mac(data: bytes, key: bytes) -> bytes:
     """
     Compute ChaCha20-Poly1305 MAC (authentication tag).
-    
+
     Args:
         data: Data to authenticate
         key: 32-byte ChaCha20-Poly1305 key
-    
+
     Returns:
         16-byte Poly1305 authentication tag
     """
     if len(key) != 32:
         raise ValueError("ChaCha20-Poly1305 key must be 32 bytes")
-    
+
     if CRYPTOGRAPHY_AVAILABLE:
         try:
             # Use cryptography library for ChaCha20-Poly1305
@@ -141,7 +141,7 @@ def compute_chacha20_mac(data: bytes, key: bytes) -> bytes:
         except Exception as e:
             print(f"Error computing MAC with cryptography library: {e}")
             # Fall through to fallback
-    
+
     # Fallback: Use HMAC-SHA256 truncated to 16 bytes
     print("Warning: Using HMAC-SHA256 as fallback for ChaCha20-Poly1305 MAC")
     mac = hmac.new(key, data, hashlib.sha256).digest()
@@ -151,10 +151,10 @@ def compute_chacha20_mac(data: bytes, key: bytes) -> bytes:
 def get_callsign_bytes(callsign: str) -> bytes:
     """
     Convert callsign to 5-byte format.
-    
+
     Args:
         callsign: Callsign string (max 5 characters)
-    
+
     Returns:
         5-byte callsign (padded with spaces, uppercase)
     """
@@ -165,16 +165,16 @@ def get_callsign_bytes(callsign: str) -> bytes:
 def verify_ecdsa_signature(data: bytes, signature: bytes, public_key: object) -> bool:
     """
     Verify ECDSA signature.
-    
+
     Note: This is a simplified implementation. The signature stored in frame 0
     is a 32-byte hash of the full 64-byte ECDSA signature. For proper verification,
     you would need to store the full signature or use a different approach.
-    
+
     Args:
         data: Original data
         signature: Signature to verify (32 bytes, hash of full signature)
         public_key: Public key object (from cryptography library)
-    
+
     Returns:
         True if signature is valid, False otherwise
     """
@@ -190,12 +190,12 @@ def verify_ecdsa_signature(data: bytes, signature: bytes, public_key: object) ->
 def verify_chacha20_mac(data: bytes, mac: bytes, key: bytes) -> bool:
     """
     Verify ChaCha20-Poly1305 MAC.
-    
+
     Args:
         data: Original data
         mac: MAC to verify (16 bytes)
         key: 32-byte ChaCha20-Poly1305 key
-    
+
     Returns:
         True if MAC is valid, False otherwise
     """

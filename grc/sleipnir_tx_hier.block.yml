@@ -1,0 +1,111 @@
+id: sleipnir_tx_hier
+label: Sleipnir TX Hierarchical Block
+category: '[gr-sleipnir]'
+
+parameters:
+- id: callsign
+  label: Callsign
+  dtype: string
+  default: '"N0CALL"'
+  hide: none
+
+- id: audio_samp_rate
+  label: Audio Sample Rate (Hz)
+  dtype: float
+  default: '8000.0'
+  hide: none
+
+- id: rf_samp_rate
+  label: RF Sample Rate (Hz)
+  dtype: float
+  default: '48000.0'
+  hide: none
+
+- id: symbol_rate
+  label: Symbol Rate (symbols/sec)
+  dtype: float
+  default: '4800.0'
+  hide: none
+
+- id: fsk_deviation
+  label: FSK Deviation (Hz)
+  dtype: float
+  default: '2400.0'
+  hide: none
+
+- id: fsk_levels
+  label: FSK Levels
+  dtype: int
+  default: '4'
+  options: [4, 8]
+  hide: none
+
+- id: auth_matrix_file
+  label: Auth LDPC Matrix File
+  dtype: file_open
+  default: '"../ldpc_matrices/ldpc_auth_768_256.alist"'
+  hide: none
+
+- id: voice_matrix_file
+  label: Voice LDPC Matrix File
+  dtype: file_open
+  default: '"../ldpc_matrices/ldpc_voice_576_384.alist"'
+  hide: none
+
+- id: enable_signing
+  label: Enable Signing
+  dtype: bool
+  default: 'False'
+  hide: none
+
+- id: enable_encryption
+  label: Enable Encryption
+  dtype: bool
+  default: 'False'
+  hide: none
+
+- id: private_key_path
+  label: Private Key Path
+  dtype: file_open
+  default: 'None'
+  hide: part
+
+- id: mac_key
+  label: MAC Key (bytes)
+  dtype: raw
+  default: 'None'
+  hide: part
+
+templates:
+  imports: |-
+    from gnuradio import sleipnir
+  make: |-
+    sleipnir.make_sleipnir_tx_hier(
+        callsign=${callsign},
+        audio_samp_rate=${audio_samp_rate},
+        rf_samp_rate=${rf_samp_rate},
+        symbol_rate=${symbol_rate},
+        fsk_deviation=${fsk_deviation},
+        fsk_levels=${fsk_levels},
+        auth_matrix_file=${auth_matrix_file},
+        voice_matrix_file=${voice_matrix_file},
+        enable_signing=${enable_signing},
+        enable_encryption=${enable_encryption},
+        private_key_path=${private_key_path},
+        mac_key=${mac_key}
+    )
+
+inputs:
+- domain: stream
+  dtype: float
+  vlen: 1
+  name: audio_in
+
+outputs:
+- domain: stream
+  dtype: complex
+  vlen: 1
+  name: rf_out
+
+file_format: 1
+

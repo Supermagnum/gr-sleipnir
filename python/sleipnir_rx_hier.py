@@ -12,34 +12,30 @@ Complete RX chain combining:
 - Status reporting
 """
 
-from gnuradio import gr, blocks, digital, filter, fec
-from gnuradio.gr import sizeof_gr_complex, sizeof_float, sizeof_char
-import numpy as np
-import math
+from gnuradio import gr
+from gnuradio.gr import sizeof_gr_complex, sizeof_float
 
 # Import our custom blocks
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from python.sleipnir_superframe_parser import sleipnir_superframe_parser
-
 
 class sleipnir_rx_hier(gr.hier_block2):
     """
     gr-sleipnir RX hierarchical block.
-    
+
     Inputs:
     - Port 0: Complex baseband samples (complex64) - RF sample rate
-    
+
     Outputs:
     - Port 0: Audio samples (float32) - 8 kHz
-    
+
     Message Ports:
     - status: Status messages (PMT dict)
     - audio_pdu: Audio PDUs (PMT blob)
     """
-    
+
     def __init__(
         self,
         local_callsign: str = "N0CALL",
@@ -56,7 +52,7 @@ class sleipnir_rx_hier(gr.hier_block2):
     ):
         """
         Initialize sleipnir RX hierarchical block.
-        
+
         Args:
             local_callsign: This station's callsign
             audio_samp_rate: Audio sample rate (Hz)
@@ -76,7 +72,7 @@ class sleipnir_rx_hier(gr.hier_block2):
             gr.io_signature(1, 1, sizeof_gr_complex),  # Complex input
             gr.io_signature(1, 1, sizeof_float)  # Audio output
         )
-        
+
         # Parameters
         self.local_callsign = local_callsign
         self.audio_samp_rate = audio_samp_rate
@@ -84,13 +80,13 @@ class sleipnir_rx_hier(gr.hier_block2):
         self.symbol_rate = symbol_rate
         self.fsk_deviation = fsk_deviation
         self.fsk_levels = fsk_levels
-        
+
         # Calculate samples per symbol
         self.sps = int(rf_samp_rate / symbol_rate)
-        
+
         # Blocks would be connected here in actual implementation
         # This is a template showing the structure
-        
+
         # 1. Demodulator (assumed to be connected externally)
         # 2. Symbol sync (assumed to be connected externally)
         # 3. Symbol to bits conversion
@@ -98,23 +94,23 @@ class sleipnir_rx_hier(gr.hier_block2):
         # 5. Superframe parser
         # 6. Opus decoder
         # 7. Audio output
-        
+
         # Message ports
         self.message_port_register_hier_out("status")
         self.message_port_register_hier_out("audio_pdu")
-        
+
         # Control port
         self.message_port_register_hier_in("ctrl")
-    
+
     def set_local_callsign(self, callsign: str):
         """Update local callsign."""
         self.local_callsign = callsign
-    
+
     def set_require_signatures(self, require: bool):
         """Set require signatures flag."""
         # Update parser
         pass
-    
+
     def set_private_key_path(self, key_path: str):
         """Update private key path."""
         # Update parser

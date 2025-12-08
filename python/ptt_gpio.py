@@ -30,17 +30,17 @@ except ImportError:
 class ptt_gpio(gr.sync_block):
     """
     GPIO-based PTT control block.
-    
+
     Monitors GPIO pin for PTT state and controls TX block accordingly.
-    
+
     Inputs:
     - Port 0: Audio samples (passed through when PTT active)
-    
+
     Outputs:
     - Port 0: Audio samples (passed through when PTT active)
     - Message Port 'ptt': PTT state messages (PMT bool)
     """
-    
+
     def __init__(
         self,
         gpio_pin: int = 18,
@@ -50,7 +50,7 @@ class ptt_gpio(gr.sync_block):
     ):
         """
         Initialize GPIO PTT block.
-        
+
         Args:
             gpio_pin: GPIO pin number (BCM numbering for RPi)
             active_low: True if PTT is active low (default)
@@ -63,18 +63,18 @@ class ptt_gpio(gr.sync_block):
             in_sig=[np.float32],
             out_sig=[np.float32]
         )
-        
+
         self.gpio_pin = gpio_pin
         self.active_low = active_low
         self.sample_rate = sample_rate
         self.debounce_ms = debounce_ms
         self.debounce_samples = int(sample_rate * debounce_ms / 1000.0)
-        
+
         # State
         self.ptt_state = False
         self.last_state = False
         self.debounce_counter = 0
-        
+
         # Initialize GPIO
         if GPIO_AVAILABLE:
             try:
@@ -90,24 +90,24 @@ class ptt_gpio(gr.sync_block):
             except Exception as e:
                 print(f"Warning: Could not initialize GPIO: {e}")
                 GPIO_AVAILABLE = False
-        
+
         # Message port
         self.message_port_register_out(pmt.intern("ptt"))
-        
+
         # PTT state tracking
         self.ptt_active = False
-    
+
     def read_gpio(self) -> bool:
         """Read GPIO pin state."""
         if not GPIO_AVAILABLE:
             return False
-        
+
         try:
             if GPIO_LIB == 'gpiod':
                 value = self.line.get_value()
             else:
                 value = GPIO.input(self.gpio_pin)
-            
+
             # Invert if active low
             if self.active_low:
                 return value == 0
@@ -116,41 +116,41 @@ class ptt_gpio(gr.sync_block):
         except Exception as e:
             print(f"Error reading GPIO: {e}")
             return False
-    
+
     def work(self, input_items, output_items):
         """Process samples and monitor PTT state."""
         noutput_items = len(output_items[0])
-        
+
         # Read GPIO state
         current_state = self.read_gpio()
-        
+
         # Debounce
         if current_state != self.last_state:
             self.debounce_counter = 0
         else:
             self.debounce_counter += noutput_items
-        
+
         # Update state after debounce
         if self.debounce_counter >= self.debounce_samples:
             if current_state != self.ptt_state:
                 self.ptt_state = current_state
                 self.ptt_active = current_state
-                
+
                 # Emit PTT state message
                 ptt_pmt = pmt.from_bool(self.ptt_state)
                 self.message_port_pub(pmt.intern("ptt"), ptt_pmt)
-        
+
         self.last_state = current_state
-        
+
         # Pass through audio when PTT is active
         if self.ptt_state:
             output_items[0][:noutput_items] = input_items[0][:noutput_items]
         else:
             # Output silence when PTT inactive
             output_items[0][:noutput_items] = 0.0
-        
+
         return noutput_items
-    
+
     def __del__(self):
         """Cleanup GPIO on destruction."""
         if GPIO_AVAILABLE:
