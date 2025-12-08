@@ -212,10 +212,21 @@ The following graph shows the performance of the system in dB versus the Shannon
 - CMake 3.8 or later
 - ZeroMQ libraries (optional, for PTT control and I/Q streaming)
 
+### GNU Radio Out-of-Tree (OOT) Modules
+
+gr-sleipnir requires the following GNU Radio OOT modules:
+
+- **[gr-opus](https://github.com/Supermagnum/gr-opus)** - Opus audio codec support
+- **[gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)** - Linux crypto infrastructure integration (optional, for BrainpoolP256r1 ECDSA)
+- **[gr-openssl](https://github.com/gnuradio/gr-openssl)** - OpenSSL integration (optional, for additional crypto operations)
+- **[gr-nacl](https://github.com/gnuradio/gr-nacl)** - NaCl/ChaCha20-Poly1305 support (optional, for authenticated encryption)
+
+**Note**: Cryptographic features are optional. The system can operate without these modules for basic voice communication.
+
 ### Python Dependencies
 
 - numpy
-- opuslib (Python bindings for Opus)
+- cryptography (for ECDSA signatures and ChaCha20-Poly1305 MAC when gr-linux-crypto/gr-nacl unavailable)
 
 ### Installation
 
@@ -232,10 +243,11 @@ sudo apt-get install libzmq3-dev
 pip3 install numpy cryptography --break-system-packages
 ```
 
-#### 2. Build and Install gr-opus Module
+#### 2. Build and Install Required GNU Radio OOT Modules
 
-gr-sleipnir requires the gr-opus module (separate repository):
+gr-sleipnir requires several GNU Radio OOT modules:
 
+**gr-opus (Required)**:
 ```bash
 # Clone and build gr-opus
 git clone https://github.com/Supermagnum/gr-opus.git
@@ -248,11 +260,52 @@ sudo ldconfig
 cd ../..
 ```
 
+**gr-linux-crypto (Optional, for BrainpoolP256r1 ECDSA)**:
+```bash
+# Clone and build gr-linux-crypto
+git clone https://github.com/Supermagnum/gr-linux-crypto.git
+cd gr-linux-crypto
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig
+cd ../..
+```
+
+**gr-openssl (Optional, for additional crypto operations)**:
+```bash
+# Clone and build gr-openssl
+git clone https://github.com/gnuradio/gr-openssl.git
+cd gr-openssl
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig
+cd ../..
+```
+
+**gr-nacl (Optional, for ChaCha20-Poly1305)**:
+```bash
+# Clone and build gr-nacl
+git clone https://github.com/gnuradio/gr-nacl.git
+cd gr-nacl
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig
+cd ../..
+```
+
+**Note**: Only gr-opus is required for basic voice communication. The crypto modules are optional and used when cryptographic features are enabled.
+
 #### 3. Build and Install gr-sleipnir
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/gr-sleipnir.git
+git clone https://github.com/Supermagnum/gr-sleipnir.git
 cd gr-sleipnir
 
 # Create build directory
