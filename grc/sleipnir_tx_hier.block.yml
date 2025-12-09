@@ -106,6 +106,12 @@ inputs:
 - domain: message
   id: key_source
   optional: true
+- domain: message
+  id: aprs_in
+  optional: true
+- domain: message
+  id: text_in
+  optional: true
 
 outputs:
 - domain: stream

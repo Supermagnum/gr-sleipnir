@@ -32,7 +32,15 @@ class VoiceFrameBuilder:
     CALLSIGN_BYTES = 5  # 40 bits
     FRAME_COUNTER_BYTES = 1  # 8 bits
     RESERVED_BYTES = 0  # 0 bits (removed to fit 48-byte payload)
-    TOTAL_PAYLOAD_BYTES = 48  # 384 bits (40 + 8 + 5 + 1 + 0 = 54, but we'll use 48)
+    # Adjusted for actual LDPC matrix: 386 bits input (49 bytes)
+    # Original spec: 384 bits (48 bytes), but matrix requires 386 bits
+    TOTAL_PAYLOAD_BYTES = 49  # 386 bits (matches ldpc_voice_576_384.alist which needs 386 bits input)
+    
+    # Frame type indicators (in first byte of data field)
+    FRAME_TYPE_VOICE = 0x00
+    FRAME_TYPE_APRS = 0x01
+    FRAME_TYPE_TEXT = 0x02
+    FRAME_TYPE_SYNC = 0xFF
 
     # Adjusted structure to fit 48 bytes:
     # Opus: 40 bytes (320 bits)
@@ -64,38 +72,43 @@ class VoiceFrameBuilder:
 
     def build_frame(
         self,
-        opus_data: bytes,
-        frame_num: int
+        data: bytes,
+        frame_num: int,
+        frame_type: int = FRAME_TYPE_VOICE
     ) -> bytes:
         """
-        Build a voice frame payload.
+        Build a frame payload (voice, APRS, or text).
 
         Args:
-            opus_data: Opus-encoded audio (exactly 40 bytes)
+            data: Frame data (40 bytes for voice/APRS/text)
             frame_num: Frame number within superframe (1-24)
+            frame_type: Frame type (FRAME_TYPE_VOICE, FRAME_TYPE_APRS, FRAME_TYPE_TEXT)
 
         Returns:
-            48-byte payload ready for LDPC encoding
+            49-byte payload ready for LDPC encoding (386 bits for voice matrix)
         """
-        # Accept 40-byte Opus input, truncate/pad to fit payload
-        if len(opus_data) > self.OPUS_BYTES:
-            opus_data = opus_data[:self.OPUS_BYTES]
-        elif len(opus_data) < self.OPUS_BYTES:
-            opus_data = opus_data.ljust(self.OPUS_BYTES, b'\x00')
+        # Accept 40-byte input, truncate/pad to fit payload
+        if len(data) > self.OPUS_BYTES:
+            data = data[:self.OPUS_BYTES]
+        elif len(data) < self.OPUS_BYTES:
+            data = data.ljust(self.OPUS_BYTES, b'\x00')
 
         if frame_num < 1 or frame_num > 24:
             raise ValueError(f"Frame number must be 1-24, got {frame_num}")
 
-        # Build payload (48 bytes total)
+        # Build payload (49 bytes total for 386-bit LDPC input)
         payload = bytearray(self.TOTAL_PAYLOAD_BYTES)
 
-        # Opus voice data (32 bytes, offset 0)
-        payload[0:self.OPUS_BYTES] = opus_data[:self.OPUS_BYTES]
+        # First byte indicates frame type
+        payload[0] = frame_type & 0xFF
+        # Remaining 39 bytes for data
+        payload[1:self.OPUS_BYTES] = data[:self.OPUS_BYTES-1]
 
-        # Compute MAC if enabled (covers Opus data + callsign + frame_counter)
+        # Compute MAC if enabled (covers data + frame type + callsign + frame_counter)
         if self.enable_mac:
             mac_data = (
-                opus_data[:self.OPUS_BYTES] +
+                bytes([frame_type]) +
+                data[:self.OPUS_BYTES-1] +
                 get_callsign_bytes(self.callsign) +
                 bytes([frame_num])
             )
@@ -105,34 +118,73 @@ class VoiceFrameBuilder:
             # Zero MAC if disabled
             payload[self.OPUS_BYTES:self.OPUS_BYTES + self.MAC_BYTES] = b'\x00' * self.MAC_BYTES
 
-        # Note: Callsign and frame counter are in metadata, not frame payload
-        # This keeps payload at exactly 48 bytes (384 bits) for LDPC encoding
-
         return bytes(payload)
+    
+    def build_voice_frame(self, opus_data: bytes, frame_num: int) -> bytes:
+        """Build a voice frame payload (backward compatibility)."""
+        return self.build_frame(opus_data, frame_num, self.FRAME_TYPE_VOICE)
+    
+    def build_aprs_frame(self, aprs_data: bytes, frame_num: int) -> bytes:
+        """Build an APRS frame payload."""
+        return self.build_frame(aprs_data, frame_num, self.FRAME_TYPE_APRS)
+    
+    def build_text_frame(self, text_data: bytes, frame_num: int) -> bytes:
+        """Build a text message frame payload."""
+        return self.build_frame(text_data, frame_num, self.FRAME_TYPE_TEXT)
 
     def parse_frame(self, payload: bytes) -> dict:
         """
-        Parse a voice frame payload.
+        Parse a frame payload (voice, APRS, or text).
 
         Args:
             payload: 48-byte payload (after LDPC decoding)
 
         Returns:
-            Dictionary with parsed fields
+            Dictionary with parsed fields including frame_type
         """
-        if len(payload) != self.TOTAL_PAYLOAD_BYTES:
+        # Accept both 48 and 49 byte payloads for backward compatibility
+        if len(payload) not in (48, self.TOTAL_PAYLOAD_BYTES):
             raise ValueError(
-                f"Payload must be exactly {self.TOTAL_PAYLOAD_BYTES} bytes, "
+                f"Payload must be {self.TOTAL_PAYLOAD_BYTES} bytes (or 48 for compatibility), "
                 f"got {len(payload)}"
             )
+        # Pad to expected size if needed
+        if len(payload) == 48:
+            payload = payload + b'\x00'  # Pad to 49 bytes
 
-        return {
-            'opus_data': payload[0:self.OPUS_BYTES],
+        frame_type = payload[0]
+        data = payload[1:self.OPUS_BYTES]
+        
+        # Determine data field name based on frame type
+        if frame_type == self.FRAME_TYPE_VOICE:
+            data_field = 'opus_data'
+        elif frame_type == self.FRAME_TYPE_APRS:
+            data_field = 'aprs_data'
+        elif frame_type == self.FRAME_TYPE_TEXT:
+            data_field = 'text_data'
+        else:
+            data_field = 'data'  # Unknown type
+        
+        result = {
+            'frame_type': frame_type,
+            data_field: data,
             'mac': payload[self.OPUS_BYTES:self.OPUS_BYTES + self.MAC_BYTES],
             'callsign': self.callsign,  # From builder, not payload
             'frame_counter': 0,  # From metadata, not payload
             'reserved': b''
         }
+        
+        # For backward compatibility, always include opus_data (may be empty for non-voice)
+        if 'opus_data' not in result:
+            result['opus_data'] = b'' if frame_type != self.FRAME_TYPE_VOICE else data
+
+        return result
+    
+    def get_frame_type(self, payload: bytes) -> int:
+        """Get frame type from payload."""
+        if len(payload) < 1:
+            return self.FRAME_TYPE_VOICE  # Default
+        return payload[0]
 
     def verify_mac(self, payload: bytes) -> bool:
         """

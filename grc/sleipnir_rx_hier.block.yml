@@ -111,6 +111,12 @@ outputs:
 - domain: message
   id: audio_pdu
   optional: true
+- domain: message
+  id: aprs_out
+  optional: true
+- domain: message
+  id: text_out
+  optional: true
 
 file_format: 1
 

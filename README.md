@@ -26,6 +26,7 @@ A Experimental GNU Radio-based digital voice mode designed for amateur radio nar
   - [PTT Control](#ptt-control)
   - [LDPC Matrices](#ldpc-matrices)
   - [Crypto Integration](#crypto-integration)
+  - [APRS and Text Messaging](#aprs-and-text-messaging)
   - [Sync Frames](#sync-frames)
   - [Testing](#testing)
   - [Examples](#examples)
@@ -57,7 +58,9 @@ gr-sleipnir is an experimental digital voice communication system for ham radio 
 - **Modern Audio Codec**: Uses Opus codec (via gr-opus module) for superior voice quality
 - **Forward Error Correction**: LDPC coding (rate 3/4 for 4FSK, rate 2/3 for 8FSK) for robust communication
 - **NFM Channel Spacing**: Designed to operate within standard narrowband FM channel allocations
-- **Integrated Services**: Voice, text messaging, callsign metadata, and framing in a single protocol
+- **Integrated Services**: Voice, APRS packets, text messaging, callsign metadata, and framing in a single protocol
+- **APRS Support**: Automatic Packet Reporting System (APRS) packet transmission and reception
+- **Text Messaging**: Real-time text messaging multiplexed with voice
 - **PTT Control**: Push-to-talk control integration for radio operation
 - **GNU Radio Integration**: Built on GNU Radio framework for flexibility and extensibility
 - **Optional Cryptography**: BrainpoolP256r1 + ChaCha20Poly1305 optimized for low-power devices (optional features)
@@ -528,6 +531,10 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 - **[Crypto Block Wiring](docs/CRYPTO_WIRING.md)** - Detailed wiring diagrams and connection guide for crypto blocks
 - **[gr-linux-crypto Verification](docs/GR_LINUX_CRYPTO_VERIFICATION.md)** - Steps to verify gr-linux-crypto installation and functionality
 
+### APRS and Text Messaging
+
+- **[APRS and Text Messaging Guide](docs/APRS_TEXT_MESSAGING.md)** - Comprehensive guide to APRS packet and text message transmission/reception, frame type multiplexing, and integration examples
+
 ### Sync Frames
 
 - **[Sync Frame Analysis](docs/SYNC_FRAME_ANALYSIS.md)** - Analysis of sync frame requirements for receiver acquisition
@@ -575,7 +582,13 @@ Example flowgraphs demonstrating gr-sleipnir module usage:
 
 The gr-opus module includes comprehensive tests. See the [gr-opus repository](https://github.com/Supermagnum/gr-opus) for testing instructions and detailed test results.
 
-For gr-sleipnir specific tests, see the [Test Suite Documentation](tests/README.md).
+For gr-sleipnir specific tests, see the [Test Suite Documentation](tests/README_TESTING.md).
+
+The test suite includes:
+- Comprehensive block and parameter testing across varying channel conditions
+- Cryptographic key source validation
+- APRS and text messaging functionality tests
+- Data leakage and security validation
 
 ## Status
 

@@ -35,13 +35,13 @@ class sleipnir_superframe_parser(gr.sync_block):
     Output: PDU with Opus frames and status messages
     """
 
-    VOICE_FRAME_BYTES = 48  # 384 bits after LDPC decoding
+    VOICE_FRAME_BYTES = 49  # 386 bits after LDPC decoding (matches encoder input)
     AUTH_FRAME_BYTES = 32   # 256 bits after LDPC decoding
     FRAMES_PER_SUPERFRAME = 25
 
     # Sync frame constants (must match TX)
     SYNC_PATTERN = 0xDEADBEEFCAFEBABE  # 64-bit sync pattern
-    SYNC_FRAME_BYTES = 48  # Same size as voice frame
+    SYNC_FRAME_BYTES = 49  # Same size as voice frame (386 bits)
 
     def __init__(
         self,
@@ -96,13 +96,19 @@ class sleipnir_superframe_parser(gr.sync_block):
 
         # Message ports
         self.message_port_register_in(pmt.intern("in"))
-        self.message_port_register_out(pmt.intern("out"))
+        self.message_port_register_out(pmt.intern("out"))  # Opus frames output
         self.message_port_register_out(pmt.intern("status"))
         self.set_msg_handler(pmt.intern("in"), self.handle_msg)
 
         # Control port
         self.message_port_register_in(pmt.intern("ctrl"))
         self.set_msg_handler(pmt.intern("ctrl"), self.handle_control)
+        
+        # APRS output port
+        self.message_port_register_out(pmt.intern("aprs_out"))
+        
+        # Text output port
+        self.message_port_register_out(pmt.intern("text_out"))
 
     def handle_control(self, msg):
         """Handle control messages."""
@@ -204,7 +210,7 @@ class sleipnir_superframe_parser(gr.sync_block):
             # Emit status
             self.emit_status(status)
 
-            # Emit Opus frames
+            # Emit Opus frames (only voice, not APRS/text)
             if opus_frames:
                 audio_data = b''.join(opus_frames)
                 audio_pmt = pmt.init_u8vector(len(audio_data), list(audio_data))
@@ -212,8 +218,10 @@ class sleipnir_superframe_parser(gr.sync_block):
                 output_meta = pmt.dict_add(output_meta, pmt.intern("sender"),
                                           pmt.intern(status.get('sender', '')))
                 output_meta = pmt.dict_add(output_meta, pmt.intern("message_type"),
-                                          pmt.intern(status.get('message_type', 'voice')))
+                                          pmt.intern("voice"))
                 self.message_port_pub(pmt.intern("out"), pmt.cons(output_meta, audio_pmt))
+            
+            # APRS and text messages are emitted in process_superframe
 
     def parse_frames(self, data: bytes) -> list[bytes]:
         """
@@ -522,8 +530,10 @@ class sleipnir_superframe_parser(gr.sync_block):
                 if first_voice:
                     sender_callsign = first_voice.get('callsign', '').strip()
 
-        # Process voice frames
+        # Process frames (voice, APRS, text)
         opus_frames = []
+        aprs_packets = []
+        text_messages = []
         recipients = []
         message_type = "voice"
         encrypted = False
@@ -534,7 +544,7 @@ class sleipnir_superframe_parser(gr.sync_block):
             if not parsed:
                 continue
 
-            opus_data = parsed['opus_data']
+            frame_type = parsed.get('frame_type', self.frame_builder.FRAME_TYPE_VOICE)
             mac = parsed['mac']
             frame_callsign = parsed['callsign'].strip()
             frame_counter = parsed['frame_counter']
@@ -544,10 +554,20 @@ class sleipnir_superframe_parser(gr.sync_block):
                 encrypted = True
                 # MAC verification would go here
 
-            # Check if addressed to this station
-            # Recipients typically in metadata, not individual frames
-
-            opus_frames.append(opus_data)
+            # Route based on frame type
+            if frame_type == self.frame_builder.FRAME_TYPE_VOICE:
+                opus_data = parsed.get('opus_data', b'')
+                # Only add non-zero Opus data to avoid adding APRS/text as audio
+                if opus_data and opus_data != b'\x00' * len(opus_data):
+                    opus_frames.append(opus_data)
+            elif frame_type == self.frame_builder.FRAME_TYPE_APRS:
+                aprs_data = parsed.get('aprs_data', b'')
+                if aprs_data:
+                    aprs_packets.append(aprs_data)
+            elif frame_type == self.frame_builder.FRAME_TYPE_TEXT:
+                text_data = parsed.get('text_data', b'')
+                if text_data:
+                    text_messages.append(text_data)
 
         # Build status
         status = {
@@ -558,11 +578,33 @@ class sleipnir_superframe_parser(gr.sync_block):
             'recipients': ','.join(recipients) if recipients else '',
             'message_type': message_type,
             'frame_counter': len(opus_frames),
+            'aprs_count': len(aprs_packets),
+            'text_count': len(text_messages),
             'superframe_counter': self.superframe_counter,
             'sync_state': self.sync_state
         }
 
         self.superframe_counter += 1
+        # Emit APRS packets
+        if aprs_packets:
+            aprs_data = b''.join(aprs_packets)
+            aprs_pmt = pmt.init_u8vector(len(aprs_data), list(aprs_data))
+            aprs_meta = pmt.make_dict()
+            aprs_meta = pmt.dict_add(aprs_meta, pmt.intern("sender"), pmt.intern(sender_callsign))
+            aprs_meta = pmt.dict_add(aprs_meta, pmt.intern("message_type"), pmt.intern("aprs"))
+            aprs_meta = pmt.dict_add(aprs_meta, pmt.intern("packet_count"), pmt.from_long(len(aprs_packets)))
+            self.message_port_pub(pmt.intern("aprs_out"), pmt.cons(aprs_meta, aprs_pmt))
+        
+        # Emit text messages
+        if text_messages:
+            text_data = b''.join(text_messages)
+            text_pmt = pmt.init_u8vector(len(text_data), list(text_data))
+            text_meta = pmt.make_dict()
+            text_meta = pmt.dict_add(text_meta, pmt.intern("sender"), pmt.intern(sender_callsign))
+            text_meta = pmt.dict_add(text_meta, pmt.intern("message_type"), pmt.intern("text"))
+            text_meta = pmt.dict_add(text_meta, pmt.intern("message_count"), pmt.from_long(len(text_messages)))
+            self.message_port_pub(pmt.intern("text_out"), pmt.cons(text_meta, text_pmt))
+
         return (opus_frames, status)
 
     def emit_status(self, status: Dict):

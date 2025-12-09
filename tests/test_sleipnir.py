@@ -153,9 +153,9 @@ class ChannelModel(gr.hier_block2):
         )
         
         # Add noise
-        noise_adder = blocks.add_cc()
-        self.connect(self, noise_adder, 0)
-        self.connect(noise_source, noise_adder, 1)
+        noise_adder = blocks.add_cc(1)
+        self.connect(self, (noise_adder, 0))
+        self.connect(noise_source, (noise_adder, 1))
         
         # Frequency offset
         if abs(freq_offset_hz) > 0.001:
@@ -275,11 +275,33 @@ class TestFlowgraph:
         self.fsk_deviation = config.get('fsk_deviation', 2400.0)
         self.fsk_levels = 4 if self.modulation == '4FSK' else 8
         
-        # LDPC matrices
-        self.auth_matrix = config.get('auth_matrix_file', 
-            '../ldpc_matrices/ldpc_auth_768_256.alist')
-        self.voice_matrix = config.get('voice_matrix_file',
-            '../ldpc_matrices/ldpc_voice_576_384.alist')
+        # LDPC matrices - resolve to absolute paths
+        project_root = Path(__file__).parent.parent
+        auth_matrix_rel = config.get('auth_matrix_file', 
+            'ldpc_matrices/ldpc_auth_768_256.alist')
+        voice_matrix_rel = config.get('voice_matrix_file',
+            'ldpc_matrices/ldpc_voice_576_384.alist')
+        
+        # Resolve paths
+        if not os.path.isabs(auth_matrix_rel):
+            if auth_matrix_rel.startswith('../'):
+                self.auth_matrix = str(project_root / auth_matrix_rel[3:])
+            elif auth_matrix_rel.startswith('ldpc_matrices/'):
+                self.auth_matrix = str(project_root / auth_matrix_rel)
+            else:
+                self.auth_matrix = str(project_root / 'ldpc_matrices' / auth_matrix_rel)
+        else:
+            self.auth_matrix = auth_matrix_rel
+            
+        if not os.path.isabs(voice_matrix_rel):
+            if voice_matrix_rel.startswith('../'):
+                self.voice_matrix = str(project_root / voice_matrix_rel[3:])
+            elif voice_matrix_rel.startswith('ldpc_matrices/'):
+                self.voice_matrix = str(project_root / voice_matrix_rel)
+            else:
+                self.voice_matrix = str(project_root / 'ldpc_matrices' / voice_matrix_rel)
+        else:
+            self.voice_matrix = voice_matrix_rel
         
         # Crypto settings
         self.enable_signing = self.crypto_mode in ['sign', 'both']
@@ -306,25 +328,66 @@ class TestFlowgraph:
         if len(wav_samples) == 0:
             raise ValueError(f"Could not read WAV file: {self.wav_input}")
         
-        # Resample if needed
-        if abs(wav_samp_rate - self.audio_samp_rate) > 1.0:
-            logger.info(f"Resampling from {wav_samp_rate} Hz to {self.audio_samp_rate} Hz")
-            resample_ratio = self.audio_samp_rate / wav_samp_rate
-            resampler = filter.rational_resampler_fff(
-                interpolation=int(self.audio_samp_rate),
-                decimation=int(wav_samp_rate)
-            )
-            # For now, use vector source
-            vec_source = blocks.vector_source_f(wav_samples.tolist(), False)
-            resampled = resampler
-            tb.connect(vec_source, resampled)
-            audio_source = resampled
-        else:
-            vec_source = blocks.vector_source_f(wav_samples.tolist(), False)
-            audio_source = vec_source
+        # Use WAV file source - it handles the file reading efficiently
+        # Limit duration to avoid very long tests
+        max_duration_seconds = 5.0
+        max_samples = int(self.audio_samp_rate * max_duration_seconds)
         
-        # TX chain
+        # TEMPORARILY DISABLED: wavfile_source may be causing crashes
+        # Use vector_source_f instead
+        use_wavfile_source = False  # Set to True to re-enable
+        
         try:
+            if use_wavfile_source:
+                wav_source = blocks.wavfile_source(self.wav_input, True)  # repeat=True
+                audio_source = wav_source
+                
+                # Resample if needed
+                if abs(wav_samp_rate - self.audio_samp_rate) > 1.0:
+                    logger.info(f"Resampling from {wav_samp_rate} Hz to {self.audio_samp_rate} Hz")
+                    # Calculate simplified ratio using GCD
+                    from math import gcd
+                    interp = int(self.audio_samp_rate)
+                    decim = int(wav_samp_rate)
+                    g = gcd(interp, decim)
+                    interp = interp // g
+                    decim = decim // g
+                    logger.info(f"Resampler ratio: {interp}/{decim}")
+                    resampler = filter.rational_resampler_fff(interp, decim)
+                    tb.connect(wav_source, resampler)
+                    audio_source = resampler
+                else:
+                    # No resampling needed, connect directly
+                    audio_source = wav_source
+            else:
+                # Use vector source instead (more reliable)
+                raise Exception("Using vector source instead of wavfile_source")
+        except Exception as e:
+            logger.warning(f"Could not use WAV file source, using limited vector source: {e}")
+            # Fallback: use vector source with limited samples
+            if len(wav_samples) > max_samples:
+                wav_samples = wav_samples[:max_samples]
+                logger.info(f"Limiting to {max_samples} samples ({max_duration_seconds} seconds)")
+            
+            vec_source = blocks.vector_source_f(wav_samples.tolist(), False)
+            
+            if abs(wav_samp_rate - self.audio_samp_rate) > 1.0:
+                logger.info(f"Resampling from {wav_samp_rate} Hz to {self.audio_samp_rate} Hz")
+                from math import gcd
+                interp = int(self.audio_samp_rate)
+                decim = int(wav_samp_rate)
+                g = gcd(interp, decim)
+                interp = interp // g
+                decim = decim // g
+                resampler = filter.rational_resampler_fff(interp, decim)
+                tb.connect(vec_source, resampler)
+                audio_source = resampler
+            else:
+                audio_source = vec_source
+        
+        # TX chain - hierarchical block handles stream input and PDU conversion internally
+        try:
+            logger.info(f"Creating TX block with matrices: {self.auth_matrix}, {self.voice_matrix}")
             tx_block = make_sleipnir_tx_hier(
                 callsign=self.tx_callsign,
                 audio_samp_rate=self.audio_samp_rate,
@@ -339,18 +402,22 @@ class TestFlowgraph:
                 private_key_path=self.private_key_path,
                 mac_key=self.mac_key
             )
+            logger.info("TX block created successfully")
         except Exception as e:
-            logger.warning(f"Could not create TX block, using placeholder: {e}")
-            # Placeholder: complex source with zeros
-            tx_block = blocks.vector_source_c([0.0+0.0j] * int(self.rf_samp_rate), False)
+            logger.error(f"Could not create TX block: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
-        # Connect TX
+        # Connect audio source to TX block (stream connection)
         try:
             tb.connect(audio_source, tx_block)
+            logger.info("TX block connected successfully")
         except Exception as e:
-            logger.warning(f"Could not connect TX, using direct connection: {e}")
-            # If connection fails, create a simple chain
-            pass
+            logger.error(f"Could not connect TX block: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # Channel model
         fading_type = "none"
@@ -374,8 +441,9 @@ class TestFlowgraph:
             # Use direct connection
             pass
         
-        # RX chain
+        # RX chain - hierarchical block handles stream input and PDU conversion internally
         try:
+            logger.info(f"Creating RX block with matrices: {self.auth_matrix}, {self.voice_matrix}")
             rx_block = make_sleipnir_rx_hier(
                 local_callsign=self.rx_callsign,
                 audio_samp_rate=self.audio_samp_rate,
@@ -388,36 +456,46 @@ class TestFlowgraph:
                 private_key_path=self.private_key_path,
                 require_signatures=self.enable_signing
             )
+            logger.info("RX block created successfully")
         except Exception as e:
-            logger.warning(f"Could not create RX block, using placeholder: {e}")
-            # Placeholder: null sink
-            rx_block = blocks.null_sink(sizeof_float)
+            logger.error(f"Could not create RX block: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # Metrics collector
         metrics = MetricsCollector()
         
-        # Connect RX and metrics
+        # Connect channel to RX block, then RX to metrics (all stream connections)
         try:
             tb.connect(channel, rx_block)
+            logger.info("Channel connected to RX block")
             tb.connect(rx_block, metrics)
+            logger.info("RX block connected to metrics collector")
         except Exception as e:
-            logger.warning(f"Could not connect RX chain: {e}")
-            # Use null sink
-            null_sink = blocks.null_sink(sizeof_float)
-            tb.connect(metrics, null_sink)
+            logger.error(f"Could not connect RX chain: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # File sink for output audio
         output_wav = str(self.output_dir / f"output_snr{self.snr_db:.1f}.wav")
         try:
+            # wavfile_sink requires format and subformat enums
             wav_sink = blocks.wavfile_sink(
                 output_wav,
                 1,  # channels
                 int(self.audio_samp_rate),
-                16  # bits per sample
+                blocks.wavfile_format_t.FORMAT_WAV,
+                blocks.wavfile_subformat_t.FORMAT_PCM_16,
+                False  # append
             )
             tb.connect(metrics, wav_sink)
         except Exception as e:
             logger.warning(f"Could not create WAV sink: {e}")
+            # Connect metrics to null sink if WAV sink fails
+            null_sink = blocks.null_sink(sizeof_float)
+            tb.connect(metrics, null_sink)
         
         self.tb = tb
         self.metrics = metrics
@@ -433,14 +511,41 @@ class TestFlowgraph:
         start_time = time.time()
         
         try:
-            # Create and start flowgraph
+            # Create flowgraph
+            logger.info("Creating flowgraph...")
             tb = self.create_flowgraph()
+            logger.info("Flowgraph created successfully")
             
             # Run for specified duration
-            tb.start()
-            time.sleep(duration)
-            tb.stop()
-            tb.wait()
+            logger.info("Starting flowgraph...")
+            try:
+                tb.start()
+                logger.info(f"Flowgraph started, running for {duration} seconds...")
+            except Exception as e:
+                logger.error(f"Failed to start flowgraph: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
+            
+            # Run for specified duration with timeout protection
+            # Use simple sleep instead of polling loop to avoid potential issues
+            start_run = time.time()
+            try:
+                # Simple sleep - don't poll is_running() as it may cause issues
+                time.sleep(duration)
+            except KeyboardInterrupt:
+                logger.info("Test interrupted by user")
+            
+            logger.info("Stopping flowgraph...")
+            try:
+                tb.stop()
+                logger.info("Waiting for flowgraph to finish...")
+                tb.wait()
+                logger.info("Flowgraph finished successfully")
+            except Exception as e:
+                logger.error(f"Error stopping flowgraph: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Collect metrics
             metrics_data = self.metrics.get_metrics()

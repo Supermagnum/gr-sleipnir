@@ -15,6 +15,7 @@ The test suite exercises:
 
 - `test_sleipnir.py` - Main test script
 - `test_crypto_key_sources.py` - Cryptographic key sources and security validation tests
+- `test_aprs_text_messaging.py` - APRS and text messaging functionality tests
 - `config.yaml` - Test configuration
 - `analyze_results.py` - Results analysis and plotting
 - `README_TESTING.md` - This file
@@ -156,6 +157,36 @@ WAV File Sink
 - **Sample rate match** - Input/output sample rate consistency
 - **Audio SNR** - Signal-to-noise ratio of decoded audio
 - **WARP-Q score** - Speech quality metric (if warpq available)
+
+## APRS and Text Messaging Testing
+
+The `test_aprs_text_messaging.py` test suite provides comprehensive testing of APRS and text messaging functionality:
+
+### Test Scenarios
+
+- **Voice + APRS Simultaneous**: Verifies APRS packets don't corrupt voice frames
+- **Voice + Text Messaging**: Verifies text messages don't impact voice quality
+- **APRS-Only Mode**: Pure APRS beacon testing
+- **Text-Only Mode**: Pure text messaging
+- **Mixed Mode Stress Test**: Voice + APRS + text simultaneously
+- **Data Leakage Validation**: Ensures APRS/text never appear in audio output
+
+### Critical Validations
+
+- APRS packets must NOT appear in audio output
+- Text messages must NOT appear in audio output
+- Callsign metadata correctly embedded/extracted
+- Frame type identification works correctly
+- No cross-contamination between data types
+
+Run the APRS and text messaging tests:
+```bash
+python tests/test_aprs_text_messaging.py
+```
+
+Expected results: All 6 tests should pass, verifying proper frame type identification, data separation, and no cross-contamination.
+
+For detailed documentation, see [docs/APRS_TEXT_MESSAGING.md](../docs/APRS_TEXT_MESSAGING.md).
 
 ## Cryptographic Key Sources Testing
 

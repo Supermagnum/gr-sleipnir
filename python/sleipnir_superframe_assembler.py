@@ -39,7 +39,7 @@ class sleipnir_superframe_assembler(gr.sync_block):
     # Sync frame constants
     SYNC_PATTERN = 0xDEADBEEFCAFEBABE  # 64-bit sync pattern
     SYNC_FRAME_INTERVAL = 5  # Insert sync frame every N superframes (default: 5)
-    SYNC_FRAME_BYTES = 48  # Same size as voice frame
+    SYNC_FRAME_BYTES = 49  # Same size as voice frame (386 bits for LDPC)
 
     def __init__(
         self,
@@ -82,15 +82,27 @@ class sleipnir_superframe_assembler(gr.sync_block):
 
         # Superframe counter for sync frames
         self.superframe_counter = 0
+        
+        # Queues for APRS and text messages
+        self.aprs_queue = []
+        self.text_queue = []
 
         # Message ports
-        self.message_port_register_in(pmt.intern("in"))
-        self.message_port_register_out(pmt.intern("out"))
+        self.message_port_register_in(pmt.intern("in"))  # Opus frames input
+        self.message_port_register_out(pmt.intern("out"))  # Frame payloads output
         self.set_msg_handler(pmt.intern("in"), self.handle_msg)
 
         # Control port for configuration
         self.message_port_register_in(pmt.intern("ctrl"))
         self.set_msg_handler(pmt.intern("ctrl"), self.handle_control)
+        
+        # APRS input port
+        self.message_port_register_in(pmt.intern("aprs_in"))
+        self.set_msg_handler(pmt.intern("aprs_in"), self.handle_aprs_msg)
+        
+        # Text input port
+        self.message_port_register_in(pmt.intern("text_in"))
+        self.set_msg_handler(pmt.intern("text_in"), self.handle_text_msg)
 
     def handle_control(self, msg):
         """Handle control messages to update configuration."""
@@ -146,6 +158,55 @@ class sleipnir_superframe_assembler(gr.sync_block):
 
         except Exception as e:
             print(f"Error handling control message: {e}")
+    
+    def handle_aprs_msg(self, msg):
+        """Handle incoming APRS message."""
+        if not pmt.is_pair(msg):
+            return
+        
+        meta = pmt.car(msg)
+        data = pmt.cdr(msg)
+        
+        # Extract APRS data
+        if pmt.is_blob(data):
+            aprs_data = pmt.to_python(data)
+        elif pmt.is_u8vector(data):
+            aprs_data = bytes(pmt.u8vector_elements(data))
+        else:
+            print("Warning: APRS message must be blob or u8vector")
+            return
+        
+        # Queue APRS data (max 40 bytes per frame, but we use 39 for data + 1 for type)
+        # APRS packets can be longer, so we may need to split them
+        max_aprs_per_frame = 39
+        for i in range(0, len(aprs_data), max_aprs_per_frame):
+            chunk = aprs_data[i:i+max_aprs_per_frame]
+            self.aprs_queue.append(chunk)
+    
+    def handle_text_msg(self, msg):
+        """Handle incoming text message."""
+        if not pmt.is_pair(msg):
+            return
+        
+        meta = pmt.car(msg)
+        data = pmt.cdr(msg)
+        
+        # Extract text data
+        if pmt.is_symbol(data):
+            text_data = pmt.symbol_to_string(data).encode('utf-8')
+        elif pmt.is_blob(data):
+            text_data = pmt.to_python(data)
+        elif pmt.is_u8vector(data):
+            text_data = bytes(pmt.u8vector_elements(data))
+        else:
+            print("Warning: Text message must be symbol, blob, or u8vector")
+            return
+        
+        # Queue text data (max 39 bytes per frame)
+        max_text_per_frame = 39
+        for i in range(0, len(text_data), max_text_per_frame):
+            chunk = text_data[i:i+max_text_per_frame]
+            self.text_queue.append(chunk)
 
     def handle_msg(self, msg):
         """Handle incoming PDU with Opus frames."""
@@ -208,8 +269,8 @@ class sleipnir_superframe_assembler(gr.sync_block):
         Assemble superframe from 24 Opus frames.
 
         Returns list of frame payloads:
-        - Frame 0 (if signing enabled): 32 bytes auth payload
-        - Frames 1-24: 48 bytes voice payloads (or sync frame if enabled)
+        - Frame 0 (if signing enabled): 32 bytes auth payload (will be padded to match matrix)
+        - Frames 1-24: 49 bytes voice payloads (386 bits for LDPC) (or sync frame if enabled)
         """
         if len(opus_frames) != 24:
             raise ValueError(f"Expected 24 Opus frames, got {len(opus_frames)}")
@@ -232,7 +293,7 @@ class sleipnir_superframe_assembler(gr.sync_block):
             (self.superframe_counter % self.sync_frame_interval == 0)
         )
 
-        # Frames 1-24: Voice frames (or sync frame)
+        # Frames 1-24: Voice/APRS/Text frames (or sync frame)
         sync_frame_inserted = False
         for i, opus_frame in enumerate(opus_frames, start=1):
             # Insert sync frame at position 1 (first voice frame position)
@@ -243,14 +304,41 @@ class sleipnir_superframe_assembler(gr.sync_block):
                 # Skip one voice frame (replaced by sync frame)
                 continue
 
-            voice_payload = self.build_voice_frame(opus_frame, i)
+            # Check for APRS or text messages to insert
+            frame_data = opus_frame
+            frame_type = self.frame_builder.FRAME_TYPE_VOICE
+            
+            # Priority: APRS > Text > Voice
+            if self.aprs_queue:
+                aprs_data = self.aprs_queue.pop(0)
+                # Ensure bytes and pad to 39 bytes
+                if isinstance(aprs_data, np.ndarray):
+                    aprs_data = bytes(aprs_data)
+                frame_data = (aprs_data[:39] if len(aprs_data) >= 39 else aprs_data + b'\x00' * (39 - len(aprs_data)))
+                frame_type = self.frame_builder.FRAME_TYPE_APRS
+            elif self.text_queue:
+                text_data = self.text_queue.pop(0)
+                # Ensure bytes and pad to 39 bytes
+                if isinstance(text_data, np.ndarray):
+                    text_data = bytes(text_data)
+                frame_data = (text_data[:39] if len(text_data) >= 39 else text_data + b'\x00' * (39 - len(text_data)))
+                frame_type = self.frame_builder.FRAME_TYPE_TEXT
+            
+            # Build frame with appropriate type
+            if frame_type == self.frame_builder.FRAME_TYPE_VOICE:
+                voice_payload = self.build_voice_frame(frame_data, i)
+            elif frame_type == self.frame_builder.FRAME_TYPE_APRS:
+                voice_payload = self.frame_builder.build_aprs_frame(frame_data, i)
+            else:  # TEXT
+                voice_payload = self.frame_builder.build_text_frame(frame_data, i)
+            
             frames.append(voice_payload)
 
         return frames
 
     def build_sync_frame(self) -> bytes:
         """
-        Build sync frame payload (48 bytes).
+        Build sync frame payload (49 bytes, 386 bits for LDPC).
 
         Structure:
         - Bytes 0-7:   Sync pattern (64 bits, fixed value)
@@ -274,21 +362,27 @@ class sleipnir_superframe_assembler(gr.sync_block):
         return bytes(sync_frame)
 
     def build_auth_frame(self, superframe_data: bytes) -> bytes:
-        """Build authentication frame payload (32 bytes)."""
+        """
+        Build authentication frame payload.
+        
+        Note: For now, we pad to 49 bytes (386 bits) to match voice matrix.
+        TODO: Generate proper auth matrix (256 bits -> 768 bits) and use 32 bytes.
+        """
         try:
             signature = generate_ecdsa_signature(superframe_data, self.private_key)
-            # Pad/truncate to 32 bytes
-            if len(signature) > 32:
-                signature = signature[:32]
-            elif len(signature) < 32:
-                signature = signature.ljust(32, b'\x00')
+            # Pad/truncate to 49 bytes to match voice matrix (temporary workaround)
+            # TODO: Use proper auth matrix (32 bytes -> 96 bytes)
+            if len(signature) > 49:
+                signature = signature[:49]
+            elif len(signature) < 49:
+                signature = signature.ljust(49, b'\x00')
             return signature
         except Exception as e:
             print(f"Error building auth frame: {e}")
-            return b'\x00' * 32
+            return b'\x00' * 49
 
     def build_voice_frame(self, opus_data: bytes, frame_num: int) -> bytes:
-        """Build voice frame payload (48 bytes)."""
+        """Build voice frame payload (49 bytes, 386 bits for LDPC)."""
         return self.frame_builder.build_frame(opus_data, frame_num)
 
 
