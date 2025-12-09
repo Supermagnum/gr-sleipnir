@@ -10,6 +10,11 @@ Usage:
 
 import sys
 import os
+
+# Increase recursion limit to work around gr-opus recursion issue
+# gr-opus encoder has deep attribute access that can exceed default limit
+sys.setrecursionlimit(10000)
+
 import json
 import csv
 import yaml
@@ -222,6 +227,33 @@ class MetricsCollector(gr.sync_block):
         self.total_samples = 0
         self.audio_samples = []
         self.max_samples = 48000 * 10  # 10 seconds max
+        
+        # Register message port for status messages
+        self.message_port_register_in(pmt.intern("status"))
+        self.set_msg_handler(pmt.intern("status"), self.handle_status)
+        
+    def handle_status(self, msg):
+        """Handle status messages from superframe parser."""
+        try:
+            if pmt.is_dict(msg):
+                # Extract frame_counter from status message
+                if pmt.dict_has_key(msg, pmt.intern("frame_counter")):
+                    frame_counter = pmt.to_long(
+                        pmt.dict_ref(msg, pmt.intern("frame_counter"), pmt.PMT_NIL)
+                    )
+                    # Increment frame count by number of frames in this superframe
+                    self.frame_count += frame_counter
+                
+                # Check for errors
+                if pmt.dict_has_key(msg, pmt.intern("signature_valid")):
+                    signature_valid = pmt.to_bool(
+                        pmt.dict_ref(msg, pmt.intern("signature_valid"), pmt.PMT_F)
+                    )
+                    if not signature_valid and pmt.dict_has_key(msg, pmt.intern("require_signatures")):
+                        # Count as error if signatures are required but invalid
+                        self.error_count += 1
+        except Exception as e:
+            logger.warning(f"Error handling status message: {e}")
         
     def work(self, input_items, output_items):
         noutput_items = len(output_items[0])
@@ -472,6 +504,11 @@ class TestFlowgraph:
             logger.info("Channel connected to RX block")
             tb.connect(rx_block, metrics)
             logger.info("RX block connected to metrics collector")
+            
+            # Connect status messages from RX block to metrics collector
+            # The RX hierarchical block forwards status messages from superframe parser
+            tb.msg_connect(rx_block, "status", metrics, "status")
+            logger.info("Status messages connected to metrics collector")
         except Exception as e:
             logger.error(f"Could not connect RX chain: {e}")
             import traceback

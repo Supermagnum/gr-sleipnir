@@ -86,6 +86,16 @@ class sleipnir_superframe_assembler(gr.sync_block):
         # Queues for APRS and text messages
         self.aprs_queue = []
         self.text_queue = []
+        
+        # Store reference to self to prevent garbage collection issues
+        # This helps prevent segfaults when GNU Radio gateway accesses the block
+        self._self_ref = self
+        
+        # Store instance in class-level list to prevent garbage collection
+        # This ensures the Python object stays alive even if local references are cleared
+        if not hasattr(type(self), '_instances'):
+            type(self)._instances = []
+        type(self)._instances.append(self)
 
         # Message ports
         self.message_port_register_in(pmt.intern("in"))  # Opus frames input
@@ -211,30 +221,94 @@ class sleipnir_superframe_assembler(gr.sync_block):
     def handle_msg(self, msg):
         """Handle incoming PDU with Opus frames."""
         if not pmt.is_pair(msg):
+            print("Superframe assembler: Received non-pair message")
             return
 
         meta = pmt.car(msg)
         data = pmt.cdr(msg)
 
-        if not pmt.is_blob(data):
-            print("Warning: Expected blob data")
+        # Extract Opus frames from PDU
+        # Handle different PMT types that tagged_stream_to_pdu might produce
+        opus_data = None
+        try:
+            if pmt.is_u8vector(data):
+                opus_data = bytes(pmt.u8vector_elements(data))
+            elif pmt.is_blob(data):
+                opus_data = pmt.to_python(data)
+            elif pmt.is_uniform_vector(data):
+                # Handle uniform vectors (might be short vector from char_to_short conversion)
+                # Convert to Python first, then handle numpy arrays
+                python_data = pmt.to_python(data)
+                if isinstance(python_data, np.ndarray):
+                    # Handle numpy arrays (from uniform vector conversion)
+                    # If it's int16 (itemsize 2), convert to uint8
+                    if python_data.dtype in [np.int16, np.int32]:
+                        opus_data = python_data.astype(np.uint8).tobytes()
+                    else:
+                        opus_data = python_data.astype(np.uint8).tobytes()
+                elif isinstance(python_data, list):
+                    # Convert list to bytes (handle both int and bytes)
+                    opus_data = bytes([b & 0xFF if isinstance(b, int) else b for b in python_data])
+                else:
+                    print(f"Superframe assembler: Unsupported uniform vector type: {type(python_data)}")
+                    return
+            else:
+                # Try generic conversion for other PMT types
+                try:
+                    python_data = pmt.to_python(data)
+                    if isinstance(python_data, bytes):
+                        opus_data = python_data
+                    elif isinstance(python_data, np.ndarray):
+                        # Handle numpy arrays (from uniform vector conversion)
+                        opus_data = python_data.astype(np.uint8).tobytes()
+                    elif isinstance(python_data, list):
+                        # Convert list to bytes (handle both int and bytes)
+                        opus_data = bytes([b & 0xFF if isinstance(b, int) else b for b in python_data])
+                    elif isinstance(python_data, (int, float)):
+                        # Single value - shouldn't happen but handle gracefully
+                        print(f"Superframe assembler: Received single value instead of data: {python_data}")
+                        return
+                    else:
+                        print(f"Superframe assembler: Unexpected data type after conversion: {type(python_data)}")
+                        return
+                except Exception as e:
+                    print(f"Superframe assembler: Error converting data: {e}, type: {type(data)}")
+                    return
+            
+            if opus_data is None:
+                print(f"Superframe assembler: Could not extract data from PDU, type: {type(data)}")
+                return
+        except Exception as e:
+            print(f"Superframe assembler: Error processing PDU: {e}, type: {type(data)}")
+            import traceback
+            traceback.print_exc()
             return
 
-        # Extract Opus frames from blob
-        opus_data = pmt.to_python(data)
+        print(f"Superframe assembler: Received {len(opus_data)} bytes of Opus data")
 
         # Expect 24 frames of 40 bytes each = 960 bytes
         expected_size = 24 * 40
-        if len(opus_data) != expected_size:
-            print(f"Warning: Expected {expected_size} bytes, got {len(opus_data)}")
-            # Pad or truncate
-            if len(opus_data) < expected_size:
-                opus_data = opus_data.ljust(expected_size, b'\x00')
-            else:
-                opus_data = opus_data[:expected_size]
+        
+        # Accumulate frames until we have enough for a superframe
+        if not hasattr(self, '_opus_frame_buffer'):
+            self._opus_frame_buffer = bytearray()
+        
+        self._opus_frame_buffer.extend(opus_data)
+        
+        # Check if we have enough for a superframe
+        if len(self._opus_frame_buffer) < expected_size:
+            print(f"Superframe assembler: Accumulating frames ({len(self._opus_frame_buffer)}/{expected_size} bytes)")
+            return  # Wait for more data
+        
+        # Extract exactly one superframe worth of data
+        superframe_data = bytes(self._opus_frame_buffer[:expected_size])
+        self._opus_frame_buffer = self._opus_frame_buffer[expected_size:]
+        
+        print(f"Superframe assembler: Processing superframe with {len(superframe_data)} bytes")
 
         # Split into 24 frames
-        opus_frames = [opus_data[i:i+40] for i in range(0, len(opus_data), 40)]
+        opus_frames = [superframe_data[i:i+40] for i in range(0, len(superframe_data), 40)]
+        print(f"Superframe assembler: Split into {len(opus_frames)} frames")
 
         # Assemble superframe
         try:
@@ -242,7 +316,10 @@ class sleipnir_superframe_assembler(gr.sync_block):
 
             # Convert to PMT
             payload_bytes = b''.join(frame_payloads)
-            output_pmt = pmt.init_u8vector(len(payload_bytes), list(payload_bytes))
+            # Use array.array for more efficient conversion (avoids creating large list)
+            import array
+            payload_array = array.array('B', payload_bytes)
+            output_pmt = pmt.init_u8vector(len(payload_bytes), payload_array)
 
             # Update metadata with superframe counter
             output_meta = pmt.make_dict()
@@ -360,6 +437,15 @@ class sleipnir_superframe_assembler(gr.sync_block):
         # Bytes 16-47: Reserved/padding (already zeros)
 
         return bytes(sync_frame)
+    
+    def __del__(self):
+        """Cleanup method to release resources"""
+        # Remove from class instances list
+        if hasattr(type(self), '_instances'):
+            try:
+                type(self)._instances.remove(self)
+            except (ValueError, AttributeError):
+                pass
 
     def build_auth_frame(self, superframe_data: bytes) -> bytes:
         """

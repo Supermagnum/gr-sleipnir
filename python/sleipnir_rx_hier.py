@@ -190,35 +190,46 @@ class sleipnir_rx_hier(gr.hier_block2):
         multiply_const = blocks.multiply_const_vff([0.5])  # Scale
         float_to_uchar = blocks.float_to_uchar(1, 1.0)
         
-        # 6. Unpack bits
-        unpack_bits = blocks.unpacked_to_packed_bb(1, gr.GR_MSB_FIRST)
-        
-        # 7. Convert to float for LDPC decoder (soft bits)
+        # 6. Convert to float for processing
+        # When FEC is disabled: convert to bytes for hard decision
+        # When FEC is enabled: keep as float for soft decision decoding
         uchar_to_float = blocks.uchar_to_float()
 
         # 8. FEC LDPC decoder (using GNU Radio-generated matrices)
-        # Voice frames: 72 bytes (576 bits) input -> 49 bytes (386 bits) output
-        # Temporarily disabled to debug crash
+        # Voice frames: 576 soft bits (float32) input -> 48 bytes (384 bits) output
+        # Auth frames: 768 soft bits (float32) input -> 32 bytes (256 bits) output
         ldpc_decoder = None
-        USE_FEC = False  # Set to True once crash is fixed
+        USE_FEC = False  # Temporarily disabled - segmentation fault needs investigation
         
         if USE_FEC and FEC_AVAILABLE and os.path.exists(voice_matrix_file):
             decoder_obj = fec.ldpc_decoder_make(voice_matrix_file, 50)  # max_iterations as positional arg
             # Wrap decoder object to make it a proper GNU Radio block
             # Decoder takes float32 (soft decisions) input, outputs uint8
+            # Decoder handles frame boundaries internally based on matrix size
             ldpc_decoder = fec.decoder(decoder_obj, gr.sizeof_float, gr.sizeof_char)
         
         # 9. Stream to PDU for superframe parser
-        # LDPC decoder outputs uint8 stream, convert to PDU
-        # Voice matrix: 386 bits input -> 576 bits output (72 bytes)
-        # Auth matrix: TBD (currently using voice matrix, so 72 bytes)
-        frame_size_bytes = 72  # 576 bits output from voice LDPC decoder
+        # When FEC is disabled: superframe assembler outputs 49-byte frames
+        # When FEC is enabled: LDPC decoder outputs 48 bytes (384 bits) for voice matrix
+        if USE_FEC and ldpc_decoder:
+            frame_size_bytes = 48  # 384 bits output from voice LDPC decoder
+        else:
+            frame_size_bytes = 49  # 49 bytes from superframe assembler (no FEC)
+        
+        # Create stream_to_tagged_stream with proper buffer configuration
+        # Set minimum output buffer to prevent forecast issues
         ldpc_stream_to_tagged = blocks.stream_to_tagged_stream(
             itemsize=1,  # uint8
             vlen=1,
             packet_len=frame_size_bytes,
             len_tag_key="packet_len"
         )
+        # Set buffer sizes to help with forecasting
+        try:
+            ldpc_stream_to_tagged.set_min_output_buffer(frame_size_bytes * 4)
+            ldpc_stream_to_tagged.set_max_output_buffer(frame_size_bytes * 16)
+        except:
+            pass  # Buffer setting methods may not be available in all GNU Radio versions
         from gnuradio import pdu
         from gnuradio.gr import sizeof_char
         ldpc_tagged_to_pdu = pdu.tagged_stream_to_pdu(sizeof_char, "packet_len")
@@ -268,9 +279,9 @@ class sleipnir_rx_hier(gr.hier_block2):
         self.connect(quadrature_demod, rrc_filter)
         self.connect(rrc_filter, symbol_sync)
         self.connect(symbol_sync, add_const, multiply_const, float_to_uchar)
-        self.connect(float_to_uchar, unpack_bits, uchar_to_float)
+        self.connect(float_to_uchar, uchar_to_float)
         # LDPC decoder is stream-based (float32 input, uint8 output)
-        # LDPC decoder is stream-based (float32 input, uint8 output)
+        # Decoder handles frame boundaries internally - no tagged stream needed on input
         if ldpc_decoder:
             self.connect(uchar_to_float, ldpc_decoder)
             # Convert LDPC decoder output (stream) to PDU for superframe parser

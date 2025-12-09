@@ -1,0 +1,35 @@
+================================================================================
+GR-SLEIPNIR TEST SUITE SUMMARY REPORT
+================================================================================
+
+Total Tests: 104
+Successful Tests: 26
+Failed Tests: 78
+
+SNR Range: -5.0 to 19.0 dB
+
+FER Statistics:
+  Min: 1.0000
+  Max: 1.0000
+  Mean: 1.0000
+  Median: 1.0000
+
+Performance by Modulation:
+  4FSK:
+    Tests: 13
+    Avg FER: 1.0000
+  8FSK:
+    Tests: 13
+    Avg FER: 1.0000
+
+Performance by Channel Type:
+  AWGN:
+    Tests: 26
+    Avg FER: 1.0000
+
+Performance by Crypto Mode:
+  none:
+    Tests: 26
+    Avg FER: 1.0000
+
+================================================================================

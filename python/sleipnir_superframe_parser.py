@@ -35,7 +35,14 @@ class sleipnir_superframe_parser(gr.sync_block):
     Output: PDU with Opus frames and status messages
     """
 
-    VOICE_FRAME_BYTES = 49  # 386 bits after LDPC decoding (matches encoder input)
+    # Frame sizes depend on FEC:
+    # - With FEC: LDPC decoder outputs 48 bytes (384 bits) for voice matrix
+    # - Without FEC: Superframe assembler outputs 49 bytes
+    # We need to handle both cases
+    VOICE_FRAME_BYTES_WITH_FEC = 48  # 384 bits output from LDPC decoder
+    VOICE_FRAME_BYTES_WITHOUT_FEC = 49  # 49 bytes from superframe assembler
+    # Default to 48 bytes (FEC enabled case)
+    VOICE_FRAME_BYTES = 48  # Default: assume FEC is enabled
     AUTH_FRAME_BYTES = 32   # 256 bits after LDPC decoding
     FRAMES_PER_SUPERFRAME = 25
 
@@ -176,13 +183,14 @@ class sleipnir_superframe_parser(gr.sync_block):
     def handle_msg(self, msg):
         """Handle incoming PDU with decoded bits."""
         if not pmt.is_pair(msg):
+            print("Warning: handle_msg received non-pair message")
             return
 
         meta = pmt.car(msg)
         data = pmt.cdr(msg)
 
-        if not pmt.is_blob(data):
-            print("Warning: Expected blob data")
+        if not pmt.is_blob(data) and not pmt.is_u8vector(data):
+            print(f"Warning: Expected blob/u8vector data, got {type(data)}")
             return
 
         # Extract decoded bits
@@ -194,11 +202,16 @@ class sleipnir_superframe_parser(gr.sync_block):
             print("Warning: Unexpected data type")
             return
 
+        print(f"Superframe parser received {len(decoded_data)} bytes")
+
         # Parse frames from decoded data
         # This is simplified - actual implementation would handle frame sync
         frames = self.parse_frames(decoded_data)
 
+        print(f"Superframe parser parsed {len(frames)} frames")
+
         if not frames:
+            print("Warning: No frames parsed from data")
             return
 
         # Process superframe
@@ -206,6 +219,8 @@ class sleipnir_superframe_parser(gr.sync_block):
 
         if result:
             opus_frames, status = result
+
+            print(f"Superframe processed: {len(opus_frames)} Opus frames, frame_counter={status.get('frame_counter', 0)}")
 
             # Emit status
             self.emit_status(status)
@@ -220,8 +235,10 @@ class sleipnir_superframe_parser(gr.sync_block):
                 output_meta = pmt.dict_add(output_meta, pmt.intern("message_type"),
                                           pmt.intern("voice"))
                 self.message_port_pub(pmt.intern("out"), pmt.cons(output_meta, audio_pmt))
+        else:
+            print("Warning: process_superframe returned None")
             
-            # APRS and text messages are emitted in process_superframe
+        # APRS and text messages are emitted in process_superframe
 
     def parse_frames(self, data: bytes) -> list[bytes]:
         """
@@ -241,9 +258,25 @@ class sleipnir_superframe_parser(gr.sync_block):
                 return self.parse_frames_with_sync(data, sync_frame_idx)
 
         # Standard parsing - assumes frames are properly aligned
-        # Check if we have auth frame (25 frames) or just voice frames (24 frames)
-        total_frames = len(data) // self.VOICE_FRAME_BYTES
+        # Try both frame sizes (48 bytes with FEC, 49 bytes without FEC)
+        # First try 48 bytes (FEC enabled)
+        frame_size = self.VOICE_FRAME_BYTES_WITH_FEC
+        total_frames = len(data) // frame_size
+        
+        # If 48-byte frames don't divide evenly, try 49-byte frames
+        if len(data) % frame_size != 0:
+            frame_size_alt = self.VOICE_FRAME_BYTES_WITHOUT_FEC
+            total_frames_alt = len(data) // frame_size_alt
+            if len(data) % frame_size_alt == 0:
+                frame_size = frame_size_alt
+                total_frames = total_frames_alt
+                print(f"Using frame size {frame_size} bytes (without FEC)")
+            else:
+                print(f"Warning: Data length {len(data)} doesn't divide evenly by {frame_size} or {frame_size_alt}")
+        else:
+            print(f"Using frame size {frame_size} bytes (with FEC)")
 
+        # Check if we have auth frame (25 frames) or just voice frames (24 frames)
         if total_frames == 25:
             # Has auth frame
             auth_frame = data[:self.AUTH_FRAME_BYTES]
@@ -254,9 +287,9 @@ class sleipnir_superframe_parser(gr.sync_block):
             voice_data = data
 
         # Parse voice frames
-        for i in range(0, len(voice_data), self.VOICE_FRAME_BYTES):
-            frame = voice_data[i:i+self.VOICE_FRAME_BYTES]
-            if len(frame) == self.VOICE_FRAME_BYTES:
+        for i in range(0, len(voice_data), frame_size):
+            frame = voice_data[i:i+frame_size]
+            if len(frame) == frame_size:
                 # Check if this is a sync frame
                 if self.is_sync_frame(frame):
                     self.handle_sync_frame(frame)
@@ -372,9 +405,16 @@ class sleipnir_superframe_parser(gr.sync_block):
         data_after_sync = data[sync_frame_idx + self.SYNC_FRAME_BYTES:]
 
         # Parse remaining frames
-        for i in range(0, len(data_after_sync), self.VOICE_FRAME_BYTES):
-            frame = data_after_sync[i:i+self.VOICE_FRAME_BYTES]
-            if len(frame) == self.VOICE_FRAME_BYTES:
+        # Try both frame sizes (48 bytes with FEC, 49 bytes without FEC)
+        frame_size = self.VOICE_FRAME_BYTES_WITH_FEC
+        if len(data_after_sync) % frame_size != 0:
+            frame_size_alt = self.VOICE_FRAME_BYTES_WITHOUT_FEC
+            if len(data_after_sync) % frame_size_alt == 0:
+                frame_size = frame_size_alt
+        
+        for i in range(0, len(data_after_sync), frame_size):
+            frame = data_after_sync[i:i+frame_size]
+            if len(frame) == frame_size:
                 # Skip additional sync frames
                 if not self.is_sync_frame(frame):
                     frames.append(frame)

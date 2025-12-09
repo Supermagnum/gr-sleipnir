@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-12-09T12:20:17.683136",
+  "error": "Unable to coerce endpoints: 'int' object is not subscriptable",
+  "test_config": {
+    "snr_db": 5.0,
+    "modulation": "4FSK",
+    "crypto_mode": "none"
+  },
+  "test_number": 43
+}

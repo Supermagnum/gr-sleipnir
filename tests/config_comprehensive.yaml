@@ -1,0 +1,75 @@
+# gr-sleipnir Comprehensive Test Suite Configuration
+# Focused on key scenarios for reasonable execution time
+
+# System parameters
+audio_samp_rate: 8000.0
+rf_samp_rate: 48000.0
+symbol_rate: 4800.0
+fsk_deviation: 2400.0
+
+# LDPC matrix files (relative to project root)
+auth_matrix_file: ../ldpc_matrices/ldpc_auth_768_256.alist
+voice_matrix_file: ../ldpc_matrices/ldpc_voice_576_384.alist
+
+# Callsigns
+tx_callsign: "TESTTX"
+rx_callsign: "TESTRX"
+
+# Crypto settings (optional)
+private_key_path: null  # Path to private key file if testing encryption
+mac_key: null  # 32-byte MAC key (hex string) if testing encryption
+
+# Test parameters
+test_duration: 5.0  # Duration of each test in seconds
+
+# SNR sweep range - focused on key points
+snr_range:
+  start: -5
+  end: 20
+  step: 2  # Step of 2 dB for reasonable coverage
+
+# Modulation modes to test
+modulations:
+  - "4FSK"
+  - "8FSK"
+
+# Crypto modes to test - focused on key scenarios
+crypto_modes:
+  - "none"      # No crypto (baseline)
+  # - "sign"      # Signing only (if keys available)
+  # - "encrypt"   # Encryption only (if keys available)
+  # - "both"      # Both signing and encryption (if keys available)
+
+# Channel conditions - focused on key scenarios
+channel_types:
+  - "AWGN"      # Additive White Gaussian Noise (most common)
+  - "rayleigh"  # Rayleigh fading (common in mobile scenarios)
+  # - "clean"     # No impairments (for baseline)
+  # - "rician"    # Rician fading (less common)
+
+# Frequency offsets to test - focused on key scenarios
+freq_offsets:
+  - 0.0         # No offset (baseline)
+  - 100.0       # Small offset
+  # - 500.0       # Medium offset
+  # - 1000.0      # Large offset
+
+# Validation thresholds
+validation:
+  # Frame Error Rate thresholds
+  fer_threshold_good: 0.01    # FER < 1% is good
+  fer_threshold_acceptable: 0.10  # FER < 10% is acceptable
+  
+  # Audio quality thresholds
+  dc_offset_max: 0.01         # Maximum DC offset (fraction)
+  clipping_max_fraction: 0.001 # Maximum clipping (1% of samples)
+  dynamic_range_min: 0.5      # Minimum dynamic range
+  snr_audio_min_db: 20.0      # Minimum audio SNR (dB)
+  
+  # WARP-Q audio quality thresholds
+  warpq_max_raw_score: 2.0    # Maximum acceptable raw WARP-Q score (lower is better)
+  warpq_min_normalized: 0.4   # Minimum normalized WARP-Q score (higher is better, 0-1 scale)
+  
+  # Performance thresholds
+  processing_rate_min: 1000.0  # Minimum samples/second
+

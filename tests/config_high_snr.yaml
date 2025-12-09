@@ -1,0 +1,21 @@
+audio_samp_rate: 8000.0
+auth_matrix_file: ../ldpc_matrices/ldpc_auth_768_256.alist
+channel_types:
+- AWGN
+crypto_modes:
+- none
+freq_offsets:
+- 0.0
+fsk_deviation: 2400.0
+modulations:
+- 4FSK
+rf_samp_rate: 48000.0
+rx_callsign: TESTRX
+snr_range:
+  end: 20
+  start: 20
+  step: 1
+symbol_rate: 4800.0
+test_duration: 2.0
+tx_callsign: TESTTX
+voice_matrix_file: ../ldpc_matrices/ldpc_voice_576_384.alist

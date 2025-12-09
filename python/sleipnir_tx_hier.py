@@ -158,26 +158,46 @@ class sleipnir_tx_hier(gr.hier_block2):
             application="audio"  # "audio" for VOIP application
         )
         # Store reference to prevent garbage collection
+        # Note: Storing as instance variable may cause recursion issues in some gr-opus versions
+        # but is necessary to prevent garbage collection
         self._opus_encoder = opus_encoder
+        # Try to set buffer sizes if available to help with threading issues
+        try:
+            if hasattr(opus_encoder, 'set_min_output_buffer'):
+                opus_encoder.set_min_output_buffer(1024)  # Reasonable buffer size
+        except:
+            pass  # Buffer setting may not be available
 
-        # 3. Stream to PDU for superframe assembler
-        # Opus encoder outputs char (uint8), need to convert to PDU
-        # Opus frame size: ~40 bytes at 20ms frame size
-        # For 8kHz: 20ms = 160 samples, but Opus produces variable size frames
-        # Use a reasonable packet size that matches Opus output
-        opus_frame_size = 160  # Typical Opus frame size at 8kHz (20ms)
+        # 3. Packetize Opus frames and convert to PDU for superframe assembler
+        # Opus encoder outputs variable-size frames (~23-29 bytes at 9600 bps)
+        # We need fixed-size 40-byte frames for the superframe assembler
+        from python.opus_frame_packetizer import opus_frame_packetizer
+        opus_frame_size = 40  # Fixed frame size expected by superframe assembler
+        opus_packetizer = opus_frame_packetizer(frame_size_bytes=opus_frame_size)
+        # Store reference to prevent garbage collection
+        self._opus_packetizer = opus_packetizer
+        
+        # Stream to tagged stream for PDU conversion
         stream_to_tagged = blocks.stream_to_tagged_stream(
             itemsize=1,  # uint8 (char)
             vlen=1,
             packet_len=opus_frame_size,
             len_tag_key="packet_len"
         )
+        # Set buffer sizes to prevent forecast issues that might cause recursion
+        try:
+            stream_to_tagged.set_min_output_buffer(opus_frame_size * 4)
+            stream_to_tagged.set_max_output_buffer(opus_frame_size * 16)
+        except:
+            pass  # Buffer setting methods may not be available in all GNU Radio versions
         
         # Convert tagged stream to PDU
-        # tagged_stream_to_pdu(sizeof_char) expects itemsize 2, so convert char to short
+        # tagged_stream_to_pdu expects itemsize matching the stream
+        # Since stream_to_tagged outputs char (itemsize 1), we need to convert to short (itemsize 2)
+        # because tagged_stream_to_pdu(sizeof_char) actually expects short input
         from gnuradio import pdu
         from gnuradio.gr import sizeof_char
-        char_to_short = blocks.char_to_short(1)
+        char_to_short_pdu = blocks.char_to_short(1)
         tagged_to_pdu = pdu.tagged_stream_to_pdu(sizeof_char, "packet_len")
 
         # 4. Superframe assembler (PDU-based)
@@ -192,20 +212,23 @@ class sleipnir_tx_hier(gr.hier_block2):
         )
 
         # 5. FEC LDPC encoder (using GNU Radio-generated matrices)
-        # Voice frames: 49 bytes (386 bits) input -> 72 bytes (576 bits) output
-        # FEC LDPC encoder - temporarily disabled to debug crash
+        # Voice frames: 48 bytes (384 bits) input -> 72 bytes (576 bits) output
+        # Auth frames: 32 bytes (256 bits) input -> 96 bytes (768 bits) output
         ldpc_encoder = None
         encoder_obj = None
-        frame_input_bytes = 49  # Default: 49 bytes (386 bits) for voice matrix
+        frame_input_bytes = 48  # Default: 48 bytes (384 bits) for voice matrix
         
-        # Temporarily disable FEC to debug forecast crash
-        USE_FEC = False  # Set to True once crash is fixed
+        # Temporarily disable FEC to debug segmentation fault
+        # TODO: Fix FEC decoder integration - forecast crash still occurring
+        USE_FEC = False
         
         if USE_FEC and FEC_AVAILABLE and os.path.exists(voice_matrix_file):
             encoder_obj = fec.ldpc_encoder_make(voice_matrix_file)
-            # Get actual frame size from encoder
-            frame_input_bytes = (encoder_obj.get_input_size() + 7) // 8
+            # Get actual frame size from encoder (should be 384 bits = 48 bytes)
+            frame_input_bits = encoder_obj.get_input_size()
+            frame_input_bytes = (frame_input_bits + 7) // 8
             # Wrap encoder object to make it a proper GNU Radio block
+            # Using tagged stream ensures proper buffer forecasting
             ldpc_encoder = fec.encoder(encoder_obj, gr.sizeof_char, gr.sizeof_char)
         
         # Convert PDU to stream for FEC encoder
@@ -216,7 +239,7 @@ class sleipnir_tx_hier(gr.hier_block2):
         short_to_char = blocks.short_to_char(1)
         
         # Split concatenated superframe into individual frames for FEC encoding
-        # Each frame is frame_input_bytes long (49 bytes for voice matrix)
+        # Each frame is frame_input_bytes long (48 bytes for voice matrix)
         # Only create frame_splitter if FEC is enabled
         frame_splitter = None
         if ldpc_encoder:
@@ -266,13 +289,15 @@ class sleipnir_tx_hier(gr.hier_block2):
 
         # Store references to Python blocks to prevent garbage collection
         self._superframe_assembler = superframe_assembler
+        self._superframe_pdu_to_stream = superframe_pdu_to_stream
         if ldpc_encoder:
             self._ldpc_encoder = ldpc_encoder
         
         # Connect the chain
         self.connect(self, audio_lpf, opus_encoder)
-        self.connect(opus_encoder, stream_to_tagged)
-        self.connect(stream_to_tagged, char_to_short, tagged_to_pdu)
+        self.connect(opus_encoder, opus_packetizer)
+        self.connect(opus_packetizer, stream_to_tagged)
+        self.connect(stream_to_tagged, char_to_short_pdu, tagged_to_pdu)
         self.msg_connect(tagged_to_pdu, "pdus", superframe_assembler, "in")
         
         # Superframe assembler outputs PDU with concatenated frames
