@@ -1,0 +1,73 @@
+id: sleipnir_framer
+label: Sleipnir Superframe Assembler
+category: '[gr-sleipnir]'
+
+parameters:
+- id: callsign
+  label: Callsign
+  dtype: string
+  default: '"N0CALL"'
+  hide: none
+
+- id: enable_signing
+  label: Enable Signing
+  dtype: bool
+  default: 'False'
+  hide: none
+
+- id: enable_encryption
+  label: Enable Encryption
+  dtype: bool
+  default: 'False'
+  hide: none
+
+- id: private_key_path
+  label: Private Key Path
+  dtype: file_open
+  default: 'None'
+  hide: part
+
+- id: mac_key
+  label: MAC Key (bytes)
+  dtype: raw
+  default: 'None'
+  hide: part
+
+- id: enable_sync_frames
+  label: Enable Sync Frames
+  dtype: bool
+  default: 'True'
+  hide: none
+
+- id: sync_frame_interval
+  label: Sync Frame Interval
+  dtype: int
+  default: '5'
+  hide: none
+
+templates:
+  imports: |-
+    from gnuradio import sleipnir
+  make: |-
+    sleipnir.make_sleipnir_superframe_assembler(
+        callsign=${callsign},
+        enable_signing=${enable_signing},
+        enable_encryption=${enable_encryption},
+        private_key_path=${private_key_path},
+        mac_key=${mac_key},
+        enable_sync_frames=${enable_sync_frames},
+        sync_frame_interval=${sync_frame_interval}
+    )
+
+inputs:
+- domain: message
+  id: in
+  optional: true
+
+outputs:
+- domain: message
+  id: out
+  optional: true
+
+file_format: 1
+

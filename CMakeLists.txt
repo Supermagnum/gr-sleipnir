@@ -37,15 +37,22 @@ if(NOT GR_PYTHON_DIR)
 endif()
 set(GR_PYTHON_DIR ${GR_PYTHON_DIR} CACHE PATH "Directory for Python modules")
 
+# Try to find GRC blocks directory
+# Prefer system directory, fall back to user directory
 if(NOT GRC_BLOCKS_DIR)
-    execute_process(
-        COMMAND ${Python3_EXECUTABLE} -c "import os; print(os.path.join(os.path.expanduser('~'), '.gnuradio', 'grc', 'blocks'))"
-        OUTPUT_VARIABLE GRC_BLOCKS_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
+    set(GRC_BLOCKS_DIR_SYSTEM "/usr/share/gnuradio/grc/blocks")
+    if(EXISTS "${GRC_BLOCKS_DIR_SYSTEM}")
+        set(GRC_BLOCKS_DIR "${GRC_BLOCKS_DIR_SYSTEM}")
+    else()
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} -c "import os; print(os.path.join(os.path.expanduser('~'), '.gnuradio', 'grc', 'blocks'))"
+            OUTPUT_VARIABLE GRC_BLOCKS_DIR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    endif()
 endif()
-set(GRC_BLOCKS_DIR ${GRC_BLOCKS_DIR} CACHE PATH "Directory for GRC block definitions")
+set(GRC_BLOCKS_DIR "${GRC_BLOCKS_DIR}" CACHE PATH "Directory for GRC block definitions")
 
 # Add subdirectories
 add_subdirectory(python)

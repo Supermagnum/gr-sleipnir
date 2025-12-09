@@ -174,6 +174,18 @@ The `sleipnir_tx_hier` block integrates crypto blocks as follows:
 4. **LDPC Encoder** encodes frames
 5. **Modulator** modulates to RF
 
+**Message Ports**:
+- `audio_in`: Audio input (stream)
+- `ctrl`: Control messages (PMT dict) - for configuration updates
+- `key_source`: Key source messages (PMT dict) - receives keys from `gr-linux-crypto` blocks
+- `rf_out`: RF output (stream)
+
+**Key Loading Flow**:
+1. `kernel_keyring_source` or `nitrokey_interface` block outputs keys via message port
+2. Keys received on `key_source` message port
+3. Keys forwarded to internal blocks via `ctrl` message port
+4. Internal blocks (superframe_assembler) apply keys
+
 ### RX Hierarchical Block
 
 The `sleipnir_rx_hier` block integrates crypto blocks as follows:
@@ -184,6 +196,20 @@ The `sleipnir_rx_hier` block integrates crypto blocks as follows:
 4. **ECDSA Verify Block** verifies signature (if present)
 5. **ChaCha20-Poly1305 Decrypt Block** decrypts voice frames (if encrypted)
 6. **Opus Decoder** decodes audio
+
+**Message Ports**:
+- `rf_in`: RF input (stream)
+- `ctrl`: Control messages (PMT dict) - for configuration updates
+- `key_source`: Key source messages (PMT dict) - receives keys from `gr-linux-crypto` blocks
+- `audio_out`: Audio output (stream)
+- `status`: Status messages (PMT dict) - signature/decryption status
+- `audio_pdu`: Audio PDUs (PMT blob) - decoded audio frames
+
+**Key Loading Flow**:
+1. `kernel_keyring_source` or `nitrokey_interface` block outputs keys via message port
+2. Keys received on `key_source` message port
+3. Keys forwarded to internal blocks via `ctrl` message port
+4. Internal blocks (superframe_parser) apply keys for verification/decryption
 
 ## Fallback Behavior
 
@@ -196,26 +222,65 @@ This ensures the system continues to function even without the GNU Radio crypto 
 
 ## Key Management
 
+### Key Sources
+
+Keys can be loaded from multiple sources:
+
+1. **File-based keys** (traditional):
+   - Private keys: PEM/DER files specified via `private_key_path` parameter
+   - Public keys: Directory structure with `{callsign}.pem` files
+
+2. **Dynamic key loading via message ports** (recommended):
+   - `key_source` message port: Receives keys from `gr-linux-crypto` blocks
+   - Keys are forwarded to internal blocks via `ctrl` message port
+   - Supports `kernel_keyring_source` and `nitrokey_interface` blocks
+
 ### Private Keys
 
-Private keys are stored as PEM files:
+**File-based**:
 ```
 /path/to/private_key.pem
 ```
-
 Format: ECDSA private key, BrainpoolP256r1 curve
+
+**Dynamic loading**:
+- Connect `kernel_keyring_source.message_out` → `sleipnir_tx_hier.key_source`
+- Or connect `nitrokey_interface.message_out` → `sleipnir_tx_hier.key_source`
+- Keys are provided as PMT dict with `private_key` field (u8vector of PEM/DER bytes)
 
 ### Public Keys
 
-Public keys are stored in a directory structure:
+**File-based**:
 ```
 /public_key_store/
     ├── CALL1.pem
     ├── CALL2.pem
     └── CALL3.pem
 ```
-
 Each file contains the public key for the corresponding callsign.
+
+**Dynamic loading**:
+- Connect `kernel_keyring_source.message_out` → `sleipnir_rx_hier.key_source`
+- Keys are provided as PMT dict with `public_key` field (u8vector of PEM/DER bytes)
+- Optional `key_id` field for key identification
+
+### MAC Keys (Symmetric Encryption)
+
+**Pre-shared keys**:
+- Can be passed as `mac_key` parameter (32 bytes)
+- Or sent via `key_source` message port as PMT dict with `mac_key` field (u8vector, 32 bytes)
+- Keys are forwarded to internal blocks via `ctrl` message port
+- Supports key rotation mid-transmission
+
+**Message Format**:
+```python
+{
+    "mac_key": <u8vector of 32 bytes>,
+    "private_key": <u8vector of PEM/DER bytes>,  # Optional
+    "public_key": <u8vector of PEM/DER bytes>,   # Optional (RX only)
+    "key_id": <symbol string>                     # Optional identifier
+}
+```
 
 ## Performance Considerations
 

@@ -1,0 +1,62 @@
+id: sleipnir_deframer
+label: Sleipnir Superframe Parser
+category: '[gr-sleipnir]'
+
+parameters:
+- id: local_callsign
+  label: Local Callsign
+  dtype: string
+  default: '"N0CALL"'
+  hide: none
+
+- id: private_key_path
+  label: Private Key Path
+  dtype: file_open
+  default: 'None'
+  hide: part
+
+- id: require_signatures
+  label: Require Signatures
+  dtype: bool
+  default: 'False'
+  hide: none
+
+- id: public_key_store_path
+  label: Public Key Store Path
+  dtype: file_open
+  default: 'None'
+  hide: part
+
+- id: enable_sync_detection
+  label: Enable Sync Detection
+  dtype: bool
+  default: 'True'
+  hide: none
+
+templates:
+  imports: |-
+    from gnuradio import sleipnir
+  make: |-
+    sleipnir.make_sleipnir_superframe_parser(
+        local_callsign=${local_callsign},
+        private_key_path=${private_key_path},
+        require_signatures=${require_signatures},
+        public_key_store_path=${public_key_store_path},
+        enable_sync_detection=${enable_sync_detection}
+    )
+
+inputs:
+- domain: message
+  id: in
+  optional: true
+
+outputs:
+- domain: message
+  id: out
+  optional: true
+- domain: message
+  id: status
+  optional: true
+
+file_format: 1
+

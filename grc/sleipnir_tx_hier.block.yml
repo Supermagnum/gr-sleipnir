@@ -100,6 +100,12 @@ inputs:
   dtype: float
   vlen: 1
   name: audio_in
+- domain: message
+  id: ctrl
+  optional: true
+- domain: message
+  id: key_source
+  optional: true
 
 outputs:
 - domain: stream

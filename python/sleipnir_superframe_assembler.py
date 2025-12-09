@@ -103,12 +103,40 @@ class sleipnir_superframe_assembler(gr.sync_block):
                     pmt.dict_ref(msg, pmt.intern("enable_signing"), pmt.PMT_F)
                 )
 
+            # Handle private key from key_source (gr-linux-crypto blocks)
+            if pmt.dict_has_key(msg, pmt.intern("private_key")):
+                key_pmt = pmt.dict_ref(msg, pmt.intern("private_key"), pmt.PMT_NIL)
+                if pmt.is_u8vector(key_pmt):
+                    key_bytes = bytes(pmt.u8vector_elements(key_pmt))
+                    try:
+                        from cryptography.hazmat.primitives import serialization
+                        from cryptography.hazmat.backends import default_backend
+                        try:
+                            self.private_key = serialization.load_pem_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                            self.enable_signing = True
+                        except:
+                            self.private_key = serialization.load_der_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                            self.enable_signing = True
+                    except Exception as e:
+                        print(f"Warning: Could not load private key from control message: {e}")
+
             if pmt.dict_has_key(msg, pmt.intern("mac_key")):
                 mac_key_pmt = pmt.dict_ref(msg, pmt.intern("mac_key"), pmt.PMT_NIL)
-                if pmt.is_blob(mac_key_pmt):
+                if pmt.is_u8vector(mac_key_pmt):
+                    mac_key_bytes = bytes(pmt.u8vector_elements(mac_key_pmt))
+                    if len(mac_key_bytes) == 32:
+                        self.mac_key = mac_key_bytes
+                        self.frame_builder.mac_key = self.mac_key
+                        self.frame_builder.enable_mac = True
+                elif pmt.is_blob(mac_key_pmt):
                     self.mac_key = pmt.to_python(mac_key_pmt)
-                    self.frame_builder.mac_key = self.mac_key
-                    self.frame_builder.enable_mac = True
+                    if len(self.mac_key) == 32:
+                        self.frame_builder.mac_key = self.mac_key
+                        self.frame_builder.enable_mac = True
 
             if pmt.dict_has_key(msg, pmt.intern("callsign")):
                 self.callsign = pmt.symbol_to_string(

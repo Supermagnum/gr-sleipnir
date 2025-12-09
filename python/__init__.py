@@ -31,6 +31,18 @@ except ImportError:
     from python.sleipnir_superframe_assembler import sleipnir_superframe_assembler, make_sleipnir_superframe_assembler
     from python.sleipnir_superframe_parser import sleipnir_superframe_parser, make_sleipnir_superframe_parser
 
+# Export LDPC encoder/decoder blocks
+try:
+    from .frame_aware_ldpc import (
+        frame_aware_ldpc_encoder, make_frame_aware_ldpc_encoder,
+        frame_aware_ldpc_decoder, make_frame_aware_ldpc_decoder
+    )
+except ImportError:
+    from python.frame_aware_ldpc import (
+        frame_aware_ldpc_encoder, make_frame_aware_ldpc_encoder,
+        frame_aware_ldpc_decoder, make_frame_aware_ldpc_decoder
+    )
+
 # Export PTT blocks
 try:
     from .ptt_gpio import ptt_gpio, make_ptt_gpio
@@ -76,6 +88,11 @@ __all__ = [
     'make_sleipnir_superframe_assembler',
     'sleipnir_superframe_parser',
     'make_sleipnir_superframe_parser',
+    # LDPC encoder/decoder blocks
+    'frame_aware_ldpc_encoder',
+    'make_frame_aware_ldpc_encoder',
+    'frame_aware_ldpc_decoder',
+    'make_frame_aware_ldpc_decoder',
     # PTT blocks
     'ptt_gpio',
     'make_ptt_gpio',

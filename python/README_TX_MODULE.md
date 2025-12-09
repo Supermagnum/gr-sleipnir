@@ -22,15 +22,36 @@ tx = make_sleipnir_tx_hier(
 
 ## Inputs
 
-- **Audio**: `float32`, 8 kHz sample rate
-- **Control**: PMT dict message port
+- **Audio**: `float32`, 8 kHz sample rate (stream)
+- **ctrl**: Control messages (PMT dict, optional) - configuration updates
+- **key_source**: Key source messages (PMT dict, optional) - keys from `gr-linux-crypto` blocks
 
 ## Outputs
 
-- **RF**: `complex64`, RF sample rate
+- **RF**: `complex64`, RF sample rate (stream)
 
-## Control Message Format
+## Message Ports
 
-PMT dictionary with fields: `enable_signing`, `enable_encryption`, `recipient`, `message_type`, `mac_key`, etc.
+### ctrl Message Port
+
+PMT dictionary with fields:
+- `enable_signing`: Enable/disable ECDSA signing
+- `enable_encryption`: Enable/disable encryption
+- `recipient`: Recipient callsign(s)
+- `message_type`: Message type
+- `mac_key`: MAC key (32 bytes, u8vector)
+- `callsign`: Update callsign
+- `private_key`: Private key (PEM/DER bytes, u8vector)
+
+### key_source Message Port
+
+Receives keys from `gr-linux-crypto` blocks (`kernel_keyring_source`, `nitrokey_interface`).
+
+PMT dictionary with fields:
+- `private_key`: Private key (PEM/DER bytes, u8vector)
+- `mac_key`: MAC key (32 bytes, u8vector)
+- `key_id`: Key identifier (symbol, optional)
+
+Keys received on `key_source` are automatically forwarded to internal blocks via `ctrl` message port.
 
 For detailed documentation, see [examples/SLEIPNIR_TX_MODULE.md](../examples/SLEIPNIR_TX_MODULE.md).

@@ -12,8 +12,9 @@ Complete RX chain combining:
 - Status reporting
 """
 
-from gnuradio import gr
+from gnuradio import gr, blocks
 from gnuradio.gr import sizeof_gr_complex, sizeof_float
+import pmt
 
 # Import our custom blocks
 import sys
@@ -96,11 +97,18 @@ class sleipnir_rx_hier(gr.hier_block2):
         # 7. Audio output
 
         # Message ports
+        self.message_port_register_hier_in("ctrl")
+        self.message_port_register_hier_in("key_source")
+        # Note: Message handler will be connected in flowgraph
+        # For now, store handler reference
+        self._key_source_handler = self.handle_key_source_msg
+        
         self.message_port_register_hier_out("status")
         self.message_port_register_hier_out("audio_pdu")
-
-        # Control port
-        self.message_port_register_hier_in("ctrl")
+        
+        # Key source state
+        self.key_source_private_key = None
+        self.key_source_public_keys = {}
 
     def set_local_callsign(self, callsign: str):
         """Update local callsign."""
@@ -115,6 +123,95 @@ class sleipnir_rx_hier(gr.hier_block2):
         """Update private key path."""
         # Update parser
         pass
+    
+    def handle_key_source_msg(self, msg):
+        """Handle key source messages from gr-linux-crypto blocks (kernel_keyring_source, nitrokey_interface)."""
+        import pmt
+        
+        if not pmt.is_dict(msg):
+            return
+        
+        try:
+            # Extract private key if present (for decryption)
+            if pmt.dict_has_key(msg, pmt.intern("private_key")):
+                key_pmt = pmt.dict_ref(msg, pmt.intern("private_key"), pmt.PMT_NIL)
+                if pmt.is_u8vector(key_pmt):
+                    key_bytes = bytes(pmt.u8vector_elements(key_pmt))
+                    # Load private key from bytes (PEM or DER format)
+                    try:
+                        from cryptography.hazmat.primitives import serialization
+                        from cryptography.hazmat.backends import default_backend
+                        # Try PEM format first
+                        try:
+                            self.key_source_private_key = serialization.load_pem_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                        except:
+                            # Try DER format
+                            self.key_source_private_key = serialization.load_der_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                        
+                        # Forward private key to internal blocks via ctrl message
+                        key_serialized = self.key_source_private_key.private_bytes(
+                            encoding=serialization.Encoding.PEM,
+                            format=serialization.PrivateFormat.PKCS8,
+                            encryption_algorithm=serialization.NoEncryption()
+                        )
+                        ctrl_msg = pmt.make_dict()
+                        ctrl_msg = pmt.dict_add(ctrl_msg, pmt.intern("private_key"), 
+                                                pmt.init_u8vector(len(key_serialized), list(key_serialized)))
+                        self.message_port_pub(pmt.intern("ctrl"), ctrl_msg)
+                    except Exception as e:
+                        print(f"Warning: Could not load private key from key_source: {e}")
+            
+            # Extract public key if present (for signature verification)
+            if pmt.dict_has_key(msg, pmt.intern("public_key")):
+                key_pmt = pmt.dict_ref(msg, pmt.intern("public_key"), pmt.PMT_NIL)
+                key_id_pmt = pmt.dict_ref(msg, pmt.intern("key_id"), pmt.PMT_NIL) if pmt.dict_has_key(msg, pmt.intern("key_id")) else pmt.intern("default")
+                key_id = pmt.symbol_to_string(key_id_pmt) if pmt.is_symbol(key_id_pmt) else "default"
+                
+                if pmt.is_u8vector(key_pmt):
+                    key_bytes = bytes(pmt.u8vector_elements(key_pmt))
+                    # Load public key from bytes (PEM or DER format)
+                    try:
+                        from cryptography.hazmat.primitives import serialization
+                        from cryptography.hazmat.backends import default_backend
+                        # Try PEM format first
+                        try:
+                            public_key = serialization.load_pem_public_key(
+                                key_bytes, backend=default_backend()
+                            )
+                            self.key_source_public_keys[key_id] = public_key
+                        except:
+                            # Try DER format
+                            public_key = serialization.load_der_public_key(
+                                key_bytes, backend=default_backend()
+                            )
+                            self.key_source_public_keys[key_id] = public_key
+                        
+                        # Forward public key to internal blocks via ctrl message
+                        key_serialized = public_key.public_bytes(
+                            encoding=serialization.Encoding.PEM,
+                            format=serialization.PublicFormat.SubjectPublicKeyInfo
+                        )
+                        ctrl_msg = pmt.make_dict()
+                        ctrl_msg = pmt.dict_add(ctrl_msg, pmt.intern("public_key"), 
+                                               pmt.init_u8vector(len(key_serialized), list(key_serialized)))
+                        ctrl_msg = pmt.dict_add(ctrl_msg, pmt.intern("key_id"), pmt.intern(key_id))
+                        self.message_port_pub(pmt.intern("ctrl"), ctrl_msg)
+                    except Exception as e:
+                        print(f"Warning: Could not load public key from key_source: {e}")
+            
+            # Extract key ID or other metadata
+            if pmt.dict_has_key(msg, pmt.intern("key_id")):
+                key_id = pmt.symbol_to_string(
+                    pmt.dict_ref(msg, pmt.intern("key_id"), pmt.PMT_NIL)
+                )
+                print(f"Received key from source: {key_id}")
+        
+        except Exception as e:
+            print(f"Error handling key_source message: {e}")
 
 
 def make_sleipnir_rx_hier(

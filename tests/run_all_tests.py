@@ -19,6 +19,7 @@ TESTS = [
     ("Backward Compatibility", "test_backward_compatibility.py"),
     ("Recipient Checking", "test_recipient_checking.py"),
     ("Latency Measurement", "test_latency_measurement.py"),
+    ("Crypto Key Sources", "test_crypto_key_sources.py"),
 ]
 
 

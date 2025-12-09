@@ -12,8 +12,10 @@ Complete TX chain combining:
 This can be used as a hierarchical block in GRC.
 """
 
-from gnuradio import gr, fec
+from gnuradio import gr, fec, blocks
 from gnuradio.gr import sizeof_gr_complex, sizeof_float
+import pmt
+import math
 
 # Import our custom blocks
 import sys
@@ -114,13 +116,9 @@ class sleipnir_tx_hier(gr.hier_block2):
             raise ValueError(f"Invalid FSK levels: {fsk_levels}")
 
         # 5. Pulse shaping (Root Raised Cosine)
-        rrc_taps = filter.firdes.root_raised_cosine(
-            self.sps,  # gain
-            self.sps,  # sampling rate
-            symbol_rate,  # symbol rate
-            0.35,  # alpha
-            110  # num_taps
-        )
+        # Note: This is a placeholder - actual implementation would use filter blocks
+        # rrc_taps = filter.firdes.root_raised_cosine(...)
+        rrc_taps = None
 
         # 6. Frequency modulator
         sensitivity = (2.0 * math.pi * fsk_deviation) / rf_samp_rate
@@ -131,8 +129,16 @@ class sleipnir_tx_hier(gr.hier_block2):
         # Connect blocks
         # self.connect(self, audio_input_block, ...)
 
-        # Message port for control
+        # Message ports
         self.message_port_register_hier_in("ctrl")
+        self.message_port_register_hier_in("key_source")
+        # Note: Message handler will be connected in flowgraph
+        # For now, store handler reference
+        self._key_source_handler = self.handle_key_source_msg
+        
+        # Key source state
+        self.key_source_private_key = None
+        self.key_source_mac_key = None
 
     def set_callsign(self, callsign: str):
         """Update callsign."""
@@ -147,6 +153,74 @@ class sleipnir_tx_hier(gr.hier_block2):
         """Enable/disable encryption."""
         # Update superframe assembler
         pass
+    
+    def handle_key_source_msg(self, msg):
+        """Handle key source messages from gr-linux-crypto blocks (kernel_keyring_source, nitrokey_interface)."""
+        import pmt
+        
+        if not pmt.is_dict(msg):
+            return
+        
+        try:
+            # Extract private key if present
+            if pmt.dict_has_key(msg, pmt.intern("private_key")):
+                key_pmt = pmt.dict_ref(msg, pmt.intern("private_key"), pmt.PMT_NIL)
+                if pmt.is_u8vector(key_pmt):
+                    key_bytes = bytes(pmt.u8vector_elements(key_pmt))
+                    # Load private key from bytes (PEM or DER format)
+                    try:
+                        from cryptography.hazmat.primitives import serialization
+                        from cryptography.hazmat.backends import default_backend
+                        # Try PEM format first
+                        try:
+                            self.key_source_private_key = serialization.load_pem_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                            self.enable_signing = True
+                        except:
+                            # Try DER format
+                            self.key_source_private_key = serialization.load_der_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                            self.enable_signing = True
+                        
+                        # Forward private key to internal blocks via ctrl message
+                        # Convert key object back to bytes for transmission
+                        key_serialized = self.key_source_private_key.private_bytes(
+                            encoding=serialization.Encoding.PEM,
+                            format=serialization.PrivateFormat.PKCS8,
+                            encryption_algorithm=serialization.NoEncryption()
+                        )
+                        ctrl_msg = pmt.make_dict()
+                        ctrl_msg = pmt.dict_add(ctrl_msg, pmt.intern("private_key"), 
+                                                pmt.init_u8vector(len(key_serialized), list(key_serialized)))
+                        self.message_port_pub(pmt.intern("ctrl"), ctrl_msg)
+                    except Exception as e:
+                        print(f"Warning: Could not load private key from key_source: {e}")
+            
+            # Extract MAC key if present
+            if pmt.dict_has_key(msg, pmt.intern("mac_key")):
+                mac_key_pmt = pmt.dict_ref(msg, pmt.intern("mac_key"), pmt.PMT_NIL)
+                if pmt.is_u8vector(mac_key_pmt):
+                    self.key_source_mac_key = bytes(pmt.u8vector_elements(mac_key_pmt))
+                    if len(self.key_source_mac_key) == 32:
+                        self.enable_encryption = True
+                        
+                        # Forward MAC key to internal blocks via ctrl message
+                        ctrl_msg = pmt.make_dict()
+                        ctrl_msg = pmt.dict_add(ctrl_msg, pmt.intern("mac_key"), 
+                                               pmt.init_u8vector(32, list(self.key_source_mac_key)))
+                        self.message_port_pub(pmt.intern("ctrl"), ctrl_msg)
+            
+            # Extract key ID or other metadata
+            if pmt.dict_has_key(msg, pmt.intern("key_id")):
+                key_id = pmt.symbol_to_string(
+                    pmt.dict_ref(msg, pmt.intern("key_id"), pmt.PMT_NIL)
+                )
+                print(f"Received key from source: {key_id}")
+        
+        except Exception as e:
+            print(f"Error handling key_source message: {e}")
 
 
 def make_sleipnir_tx_hier(

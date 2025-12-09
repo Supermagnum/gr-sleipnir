@@ -304,3 +304,13 @@ class frame_aware_ldpc_decoder(gr.sync_block):
 
         return output_idx
 
+
+def make_frame_aware_ldpc_encoder(auth_matrix_file, voice_matrix_file, superframe_size=25):
+    """Factory function for GRC."""
+    return frame_aware_ldpc_encoder(auth_matrix_file, voice_matrix_file, superframe_size)
+
+
+def make_frame_aware_ldpc_decoder(auth_matrix_file, voice_matrix_file, superframe_size=25, max_iter=20):
+    """Factory function for GRC."""
+    return frame_aware_ldpc_decoder(auth_matrix_file, voice_matrix_file, superframe_size, max_iter)
+

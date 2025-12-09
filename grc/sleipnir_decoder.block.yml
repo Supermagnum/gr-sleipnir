@@ -1,0 +1,54 @@
+id: sleipnir_decoder
+label: Sleipnir LDPC Decoder
+category: '[gr-sleipnir]'
+
+parameters:
+- id: auth_matrix_file
+  label: Auth LDPC Matrix File
+  dtype: file_open
+  default: '"../ldpc_matrices/ldpc_auth_768_256.alist"'
+  hide: none
+
+- id: voice_matrix_file
+  label: Voice LDPC Matrix File
+  dtype: file_open
+  default: '"../ldpc_matrices/ldpc_voice_576_384.alist"'
+  hide: none
+
+- id: superframe_size
+  label: Superframe Size
+  dtype: int
+  default: '25'
+  hide: none
+
+- id: max_iter
+  label: Max LDPC Iterations
+  dtype: int
+  default: '20'
+  hide: none
+
+templates:
+  imports: |-
+    from gnuradio import sleipnir
+  make: |-
+    sleipnir.make_frame_aware_ldpc_decoder(
+        auth_matrix_file=${auth_matrix_file},
+        voice_matrix_file=${voice_matrix_file},
+        superframe_size=${superframe_size},
+        max_iter=${max_iter}
+    )
+
+inputs:
+- domain: stream
+  dtype: float
+  vlen: 1
+  name: in
+
+outputs:
+- domain: stream
+  dtype: byte
+  vlen: 1
+  name: out
+
+file_format: 1
+

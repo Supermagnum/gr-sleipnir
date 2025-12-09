@@ -121,6 +121,49 @@ class sleipnir_superframe_parser(gr.sync_block):
                     pmt.dict_ref(msg, pmt.intern("require_signatures"), pmt.PMT_F)
                 )
 
+            # Handle private key from key_source (gr-linux-crypto blocks)
+            if pmt.dict_has_key(msg, pmt.intern("private_key")):
+                key_pmt = pmt.dict_ref(msg, pmt.intern("private_key"), pmt.PMT_NIL)
+                if pmt.is_u8vector(key_pmt):
+                    key_bytes = bytes(pmt.u8vector_elements(key_pmt))
+                    try:
+                        from cryptography.hazmat.primitives import serialization
+                        from cryptography.hazmat.backends import default_backend
+                        try:
+                            self.private_key = serialization.load_pem_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                        except:
+                            self.private_key = serialization.load_der_private_key(
+                                key_bytes, password=None, backend=default_backend()
+                            )
+                    except Exception as e:
+                        print(f"Warning: Could not load private key from control message: {e}")
+
+            # Handle public key from key_source (gr-linux-crypto blocks)
+            if pmt.dict_has_key(msg, pmt.intern("public_key")):
+                key_pmt = pmt.dict_ref(msg, pmt.intern("public_key"), pmt.PMT_NIL)
+                key_id_pmt = pmt.dict_ref(msg, pmt.intern("key_id"), pmt.PMT_NIL) if pmt.dict_has_key(msg, pmt.intern("key_id")) else pmt.intern("default")
+                key_id = pmt.symbol_to_string(key_id_pmt) if pmt.is_symbol(key_id_pmt) else "default"
+                
+                if pmt.is_u8vector(key_pmt):
+                    key_bytes = bytes(pmt.u8vector_elements(key_pmt))
+                    try:
+                        from cryptography.hazmat.primitives import serialization
+                        from cryptography.hazmat.backends import default_backend
+                        try:
+                            public_key = serialization.load_pem_public_key(
+                                key_bytes, backend=default_backend()
+                            )
+                        except:
+                            public_key = serialization.load_der_public_key(
+                                key_bytes, backend=default_backend()
+                            )
+                        # Store public key (could be used for signature verification)
+                        # Note: This would need integration with the signature verification logic
+                    except Exception as e:
+                        print(f"Warning: Could not load public key from control message: {e}")
+
         except Exception as e:
             print(f"Error handling control message: {e}")
 

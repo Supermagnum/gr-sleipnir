@@ -93,12 +93,24 @@ inputs:
   dtype: complex
   vlen: 1
   name: rf_in
+- domain: message
+  id: ctrl
+  optional: true
+- domain: message
+  id: key_source
+  optional: true
 
 outputs:
 - domain: stream
   dtype: float
   vlen: 1
   name: audio_out
+- domain: message
+  id: status
+  optional: true
+- domain: message
+  id: audio_pdu
+  optional: true
 
 file_format: 1
 
