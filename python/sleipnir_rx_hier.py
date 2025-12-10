@@ -70,7 +70,7 @@ class sleipnir_rx_hier(gr.hier_block2):
         symbol_rate: float = 4800.0,
         fsk_deviation: float = 2400.0,
         fsk_levels: int = 4,  # 4 for 4FSK, 8 for 8FSK
-        auth_matrix_file: str = "../ldpc_matrices/ldpc_auth_768_256.alist",
+        auth_matrix_file: str = "../ldpc_matrices/ldpc_auth_1536_512.alist",
         voice_matrix_file: str = "../ldpc_matrices/ldpc_voice_576_384.alist",
         private_key_path: str = None,
         require_signatures: bool = False,
@@ -162,27 +162,32 @@ class sleipnir_rx_hier(gr.hier_block2):
         # For FSK, we use a simple approach: just use the symbol sync with basic parameters
         # Note: symbol_sync_ff may not be ideal for FSK, but we'll use it for now
         # Alternative: use a simple decimating FIR filter or polyphase clock sync
-        try:
-            # Try to create symbol sync - if it fails, use a simpler approach
-            constellation = digital.constellation_bpsk()
-            symbol_sync = digital.symbol_sync_ff(
-                digital.TED_MUELLER_AND_MULLER,
-                self.sps,
-                0.045,  # loop bandwidth
-                1.0,  # damping factor
-                1.0,  # TED gain
-                1.5,  # max deviation
-                1,  # osps
-                constellation.base(),  # slicer
-                digital.IR_MMSE_8TAP,  # interp_type
-                128,  # n_filters
-                []  # taps
-            )
-        except Exception as e:
-            # Fallback: use simple decimation for symbol timing
-            logger.warning(f"Could not create symbol_sync, using simple decimation: {e}")
-            # Simple decimation by sps
+        # For 8FSK, use simpler decimation to avoid memory allocation issues with constellation
+        if fsk_levels == 8:
+            # For 8FSK, use simple decimation to avoid std::bad_alloc with symbol_sync
+            # logger.info("Using simple decimation for 8FSK symbol timing")  # Commented out - logger not available in __init__
             symbol_sync = filter.rational_resampler_fff(1, self.sps)
+        else:
+            # For 4FSK, try symbol sync with BPSK constellation
+            try:
+                constellation = digital.constellation_bpsk()
+                symbol_sync = digital.symbol_sync_ff(
+                    digital.TED_MUELLER_AND_MULLER,
+                    self.sps,
+                    0.045,  # loop bandwidth
+                    1.0,  # damping factor
+                    1.0,  # TED gain
+                    1.5,  # max deviation
+                    1,  # osps
+                    constellation.base(),  # slicer
+                    digital.IR_MMSE_8TAP,  # interp_type
+                    128,  # n_filters
+                    []  # taps
+                )
+            except Exception as e:
+                # Fallback: use simple decimation for symbol timing
+                logger.warning(f"Could not create symbol_sync, using simple decimation: {e}")
+                symbol_sync = filter.rational_resampler_fff(1, self.sps)
 
         # 5. Symbol slicing (convert to bits)
         # Add offset to center symbols
@@ -190,50 +195,81 @@ class sleipnir_rx_hier(gr.hier_block2):
         multiply_const = blocks.multiply_const_vff([0.5])  # Scale
         float_to_uchar = blocks.float_to_uchar(1, 1.0)
         
+        # Set buffer sizes for upstream blocks to ensure continuous data flow
+        # Decoder needs 18 float32 items before producing output, so we need
+        # sufficient buffering upstream to prevent stalls
+        try:
+            # Buffer sizes: enough for multiple decoder frames (18 items each)
+            buffer_size = int(18 * 10)  # 10 frames worth
+            add_const.set_min_output_buffer(buffer_size)
+            multiply_const.set_min_output_buffer(buffer_size)
+            float_to_uchar.set_min_output_buffer(buffer_size)
+        except:
+            pass  # Buffer setting methods may not be available in all GNU Radio versions
+        
         # 6. Convert to float for processing
         # When FEC is disabled: convert to bytes for hard decision
         # When FEC is enabled: keep as float for soft decision decoding
         uchar_to_float = blocks.uchar_to_float()
+        
+        # Set buffer size for uchar_to_float to ensure decoder receives enough input
+        try:
+            uchar_to_float.set_min_output_buffer(int(18 * 10))  # 10 frames worth
+        except:
+            pass
 
         # 8. FEC LDPC decoder (using GNU Radio-generated matrices)
         # Voice frames: 576 soft bits (float32) input -> 48 bytes (384 bits) output
-        # Auth frames: 768 soft bits (float32) input -> 32 bytes (256 bits) output
-        ldpc_decoder = None
-        USE_FEC = False  # Temporarily disabled - segmentation fault needs investigation
+        # Auth frames: 1536 soft bits (float32) input -> 64 bytes (512 bits) output
+        # Use frame-aware decoder router that routes to appropriate decoder based on frame number
+        ldpc_decoder_router = None
+        USE_FEC = True  # Re-enabled now that segfault is fixed
         
-        if USE_FEC and FEC_AVAILABLE and os.path.exists(voice_matrix_file):
-            decoder_obj = fec.ldpc_decoder_make(voice_matrix_file, 50)  # max_iterations as positional arg
-            # Wrap decoder object to make it a proper GNU Radio block
-            # Decoder takes float32 (soft decisions) input, outputs uint8
-            # Decoder handles frame boundaries internally based on matrix size
-            ldpc_decoder = fec.decoder(decoder_obj, gr.sizeof_float, gr.sizeof_char)
+        if USE_FEC and FEC_AVAILABLE and os.path.exists(voice_matrix_file) and os.path.exists(auth_matrix_file):
+            # Use frame-aware decoder router that handles both auth and voice frames
+            from python.frame_aware_ldpc_decoder_router import make_frame_aware_ldpc_decoder_router
+            ldpc_decoder_router = make_frame_aware_ldpc_decoder_router(
+                auth_matrix_file=auth_matrix_file,
+                voice_matrix_file=voice_matrix_file,
+                superframe_size=25,
+                max_iter=50
+            )
         
         # 9. Stream to PDU for superframe parser
         # When FEC is disabled: superframe assembler outputs 49-byte frames
-        # When FEC is enabled: LDPC decoder outputs 48 bytes (384 bits) for voice matrix
-        if USE_FEC and ldpc_decoder:
-            frame_size_bytes = 48  # 384 bits output from voice LDPC decoder
+        # When FEC is enabled: LDPC decoder router outputs variable sizes (64 bytes for auth, 48 bytes for voice)
+        ldpc_decoder_to_pdu_block = None
+        ldpc_stream_to_tagged = None
+        char_to_short_ldpc = None
+        ldpc_tagged_to_pdu = None
+        
+        if USE_FEC and ldpc_decoder_router:
+            # Use frame-aware decoder-to-PDU block that handles variable frame sizes
+            # Frame 0: 64 bytes (auth), Frames 1-24: 48 bytes (voice)
+            from python.frame_aware_ldpc_decoder_to_pdu import make_frame_aware_ldpc_decoder_to_pdu
+            ldpc_decoder_to_pdu_block = make_frame_aware_ldpc_decoder_to_pdu(superframe_size=25)
         else:
             frame_size_bytes = 49  # 49 bytes from superframe assembler (no FEC)
-        
-        # Create stream_to_tagged_stream with proper buffer configuration
-        # Set minimum output buffer to prevent forecast issues
-        ldpc_stream_to_tagged = blocks.stream_to_tagged_stream(
-            itemsize=1,  # uint8
-            vlen=1,
-            packet_len=frame_size_bytes,
-            len_tag_key="packet_len"
-        )
-        # Set buffer sizes to help with forecasting
-        try:
-            ldpc_stream_to_tagged.set_min_output_buffer(frame_size_bytes * 4)
-            ldpc_stream_to_tagged.set_max_output_buffer(frame_size_bytes * 16)
-        except:
-            pass  # Buffer setting methods may not be available in all GNU Radio versions
-        from gnuradio import pdu
-        from gnuradio.gr import sizeof_char
-        ldpc_tagged_to_pdu = pdu.tagged_stream_to_pdu(sizeof_char, "packet_len")
-        char_to_short_ldpc = blocks.char_to_short(1)
+            # Create stream_to_tagged_stream with proper buffer configuration
+            # Set minimum output buffer to prevent forecast issues
+            ldpc_stream_to_tagged = blocks.stream_to_tagged_stream(
+                itemsize=1,  # uint8
+                vlen=1,
+                packet_len=frame_size_bytes,
+                len_tag_key="packet_len"
+            )
+            # Set buffer sizes to help with forecasting
+            try:
+                ldpc_stream_to_tagged.set_min_output_buffer(frame_size_bytes * 4)
+                ldpc_stream_to_tagged.set_max_output_buffer(frame_size_bytes * 16)
+            except:
+                pass  # Buffer setting methods may not be available in all GNU Radio versions
+            from gnuradio import pdu
+            from gnuradio.gr import sizeof_char
+            # tagged_stream_to_pdu(sizeof_char) actually expects short (itemsize 2) input
+            # This is a GNU Radio quirk - we need to convert char to short first
+            char_to_short_ldpc = blocks.char_to_short(1)
+            ldpc_tagged_to_pdu = pdu.tagged_stream_to_pdu(sizeof_char, "packet_len")
 
         # 10. Superframe parser (PDU-based)
         superframe_parser = make_sleipnir_superframe_parser(
@@ -246,8 +282,10 @@ class sleipnir_rx_hier(gr.hier_block2):
         
         # Store references to Python blocks to prevent garbage collection
         self._superframe_parser = superframe_parser
-        if ldpc_decoder:
-            self._ldpc_decoder = ldpc_decoder
+        if ldpc_decoder_router:
+            self._ldpc_decoder_router = ldpc_decoder_router
+        if ldpc_decoder_to_pdu_block:
+            self._ldpc_decoder_to_pdu = ldpc_decoder_to_pdu_block
 
         # 11. PDU to stream for Opus decoder
         # Opus decoder expects stream of bytes
@@ -280,20 +318,23 @@ class sleipnir_rx_hier(gr.hier_block2):
         self.connect(rrc_filter, symbol_sync)
         self.connect(symbol_sync, add_const, multiply_const, float_to_uchar)
         self.connect(float_to_uchar, uchar_to_float)
-        # LDPC decoder is stream-based (float32 input, uint8 output)
-        # Decoder handles frame boundaries internally - no tagged stream needed on input
-        if ldpc_decoder:
-            self.connect(uchar_to_float, ldpc_decoder)
-            # Convert LDPC decoder output (stream) to PDU for superframe parser
-            self.connect(ldpc_decoder, ldpc_stream_to_tagged)
+        # Frame-aware LDPC decoder router: routes soft decisions to appropriate decoder
+        # Frame 0: 1536 soft bits -> auth decoder -> 64 bytes
+        # Frames 1-24: 576 soft bits -> voice decoder -> 48 bytes
+        if ldpc_decoder_router:
+            self.connect(uchar_to_float, ldpc_decoder_router)
+            # Convert LDPC decoder router output (stream) to PDU for superframe parser
+            # Use frame-aware block that handles variable frame sizes (64 bytes for auth, 48 bytes for voice)
+            self.connect(ldpc_decoder_router, ldpc_decoder_to_pdu_block)
+            self.msg_connect(ldpc_decoder_to_pdu_block, "pdus", superframe_parser, "in")
         else:
             # No FEC, pass through (hard decision)
             # Convert float to uchar, then uchar to char (uint8)
             float_to_uchar2 = blocks.float_to_uchar(1, 1.0)
             # uchar is already uint8, so we can use it directly with stream_to_tagged_stream
             self.connect(uchar_to_float, float_to_uchar2, ldpc_stream_to_tagged)
-        self.connect(ldpc_stream_to_tagged, char_to_short_ldpc, ldpc_tagged_to_pdu)
-        self.msg_connect(ldpc_tagged_to_pdu, "pdus", superframe_parser, "in")
+            self.connect(ldpc_stream_to_tagged, char_to_short_ldpc, ldpc_tagged_to_pdu)
+            self.msg_connect(ldpc_tagged_to_pdu, "pdus", superframe_parser, "in")
         self.msg_connect(superframe_parser, "out", pdu_to_stream, "pdus")
         self.connect(pdu_to_stream, short_to_char_opus, opus_decoder)
         self.connect(opus_decoder, audio_lpf, self)
@@ -323,6 +364,40 @@ class sleipnir_rx_hier(gr.hier_block2):
         # Key source state
         self.key_source_private_key = None
         self.key_source_public_keys = {}
+    
+    def __del__(self):
+        """Cleanup method to release resources and disconnect connections."""
+        try:
+            # Disconnect all connections in the hierarchical block
+            # This helps release C++ resources held by GNU Radio blocks
+            try:
+                self.disconnect_all()
+            except:
+                pass
+            
+            # Clear references to Python blocks
+            if hasattr(self, '_superframe_parser'):
+                try:
+                    del self._superframe_parser
+                except:
+                    pass
+            if hasattr(self, '_ldpc_decoder_router'):
+                try:
+                    del self._ldpc_decoder_router
+                except:
+                    pass
+            if hasattr(self, '_ldpc_decoder_to_pdu'):
+                try:
+                    del self._ldpc_decoder_to_pdu
+                except:
+                    pass
+            if hasattr(self, '_opus_decoder'):
+                try:
+                    del self._opus_decoder
+                except:
+                    pass
+        except:
+            pass
 
     def set_local_callsign(self, callsign: str):
         """Update local callsign."""

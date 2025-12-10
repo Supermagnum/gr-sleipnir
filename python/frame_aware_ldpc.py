@@ -3,8 +3,8 @@
 Frame-aware LDPC encoder/decoder for gr-sleipnir superframe structure.
 
 Switches between LDPC matrices based on frame number:
-- Frame 0: Authentication frame (rate 1/3, 768 bits)
-- Frames 1-24: Voice frames (rate 2/3, 576 bits)
+- Frame 0: Authentication frame (rate 1/3, 1536 bits output, 512 bits input = 64 bytes)
+- Frames 1-24: Voice frames (rate 2/3, 576 bits output, 384 bits input = 48 bytes)
 """
 
 import numpy as np
@@ -110,7 +110,7 @@ class frame_aware_ldpc_encoder(gr.sync_block):
         input_consumed = 0
 
         # Determine frame type and encode
-        # Frame 0: 256 bits (32 bytes) -> 768 bits (96 bytes) with rate 1/3
+        # Frame 0: 512 bits (64 bytes) -> 1536 bits (192 bytes) with rate 1/3
         # Frames 1-24: 384 bits (48 bytes) -> 576 bits (72 bytes) with rate 2/3
         # For sync_block, we need 1:1 input/output ratio
         # So we'll process only what we can output
@@ -118,14 +118,14 @@ class frame_aware_ldpc_encoder(gr.sync_block):
         while output_idx < noutput and len(self.frame_buffer) > 0:
             if self.frame_counter == 0:
                 # Authentication frame
-                if len(self.frame_buffer) < 32:  # Need 256 bits = 32 bytes
+                if len(self.frame_buffer) < 64:  # Need 512 bits = 64 bytes
                     break
                 
                 # Ensure encoder is created
                 self._ensure_auth_encoder()
 
-                frame_data = bytes(self.frame_buffer[:32])
-                self.frame_buffer = self.frame_buffer[32:]
+                frame_data = bytes(self.frame_buffer[:64])
+                self.frame_buffer = self.frame_buffer[64:]
 
                 # FEC encoder is a GNU Radio block, not a callable
                 # For now, pass through without encoding (will be fixed in architecture)
@@ -268,26 +268,26 @@ class frame_aware_ldpc_decoder(gr.sync_block):
         output_idx = 0
 
         # Determine frame type and decode
-        # Frame 0: 768 bits (96 bytes) -> 256 bits (32 bytes) with rate 1/3
+        # Frame 0: 1536 bits (192 bytes) -> 512 bits (64 bytes) with rate 1/3
         # Frames 1-24: 576 bits (72 bytes) -> 384 bits (48 bytes) with rate 2/3
 
         while output_idx < noutput and len(self.frame_buffer) > 0:
             if self.frame_counter == 0:
-                # Authentication frame - need 768 soft bits
-                if len(self.frame_buffer) < 768:
+                # Authentication frame - need 1536 soft bits
+                if len(self.frame_buffer) < 1536:
                     break
                 
                 # Ensure decoder is created
                 self._ensure_auth_decoder()
 
-                soft_bits = np.array(self.frame_buffer[:768], dtype=np.float32)
-                self.frame_buffer = self.frame_buffer[768:]
+                soft_bits = np.array(self.frame_buffer[:1536], dtype=np.float32)
+                self.frame_buffer = self.frame_buffer[1536:]
 
                 # FEC decoder is a GNU Radio block, not a callable
                 # For now, use hard decision (will be fixed in architecture)
                 # TODO: Integrate FEC blocks properly in hierarchical flowgraph
                 hard_bits = (soft_bits > 0).astype(np.uint8)
-                decoded = hard_bits[:32].tobytes()
+                decoded = hard_bits[:512].tobytes()  # 64 bytes = 512 bits
                 if output_idx + len(decoded) <= len(out):
                     out[output_idx:output_idx + len(decoded)] = np.frombuffer(decoded, dtype=np.uint8)
                     output_idx += len(decoded)

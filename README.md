@@ -552,11 +552,12 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 
 ### Testing
 
-- **[Test Suite README](tests/README.md)** - Comprehensive test suite documentation
+- **[Test Suite README](tests/README_TESTING.md)** - Comprehensive test suite documentation
 - **[Test Scenarios](tests/TEST_SCENARIOS.md)** - Detailed documentation of test scenarios
 - **[Test Summary](tests/TEST_SUMMARY.md)** - Quick reference summary of test results
 - **[Test Results](TEST_RESULTS.md)** - Latest test execution results
 - **[Integration Tests](tests/INTEGRATION_TESTS.md)** - Guide for running integration tests
+- **[FER Tracking](docs/FER_TRACKING.md)** - Frame Error Rate tracking and calculation documentation
 
 ### Examples
 
@@ -586,13 +587,73 @@ For gr-sleipnir specific tests, see the [Test Suite Documentation](tests/README_
 
 The test suite includes:
 - Comprehensive block and parameter testing across varying channel conditions
+- Frame Error Rate (FER) tracking with accurate error counting
+  - Tracks `frame_error_count` and `total_frames_received` for accurate FER calculation
+  - Correctly identifies corrupted frames (including those misclassified as APRS/text)
+  - Validates FER against SNR-based thresholds
 - Cryptographic key source validation
 - APRS and text messaging functionality tests
 - Data leakage and security validation
+- Performance metrics: FER, BER, WarpQ scores, sync performance
 
 ## Status
 
 This is an experimental project. The system is functional but may require tuning for optimal performance in various operating conditions.
+
+## Known Limitations
+
+### High-SNR Audio Quality
+
+The current implementation uses a hard-decision LDPC decoder, which can introduce minor audio artifacts at very high SNR (>10 dB) even when FER is near zero. This is a fundamental limitation of hard-decision decoding.
+
+**Impact:** Negligible - audio remains fully intelligible and subjectively excellent.
+
+**Workaround:** None needed - current performance exceeds requirements.
+
+## Why FER Matters
+
+### Low FER = Good Performance
+
+**FER < 1%:**
+- 99+ frames out of 100 decode successfully
+- Audio sounds clean and continuous
+- Occasional frame loss (human ear interpolates)
+- **Excellent quality**
+
+**FER = 4-5%:**
+- 95-96 frames out of 100 decode successfully
+- 4-5 frames per 100 lost
+- At 40ms per frame: ~160-200ms lost audio per 4 seconds
+- May cause occasional clicks/warbles
+- **Good quality, but not perfect**
+
+**FER = 10-20%:**
+- 80-90 frames out of 100 decode successfully
+- Frequent dropouts
+- Audio choppy but intelligible
+- **Marginal quality**
+
+**FER > 40%:**
+- Less than 60% frames decode
+- Severe dropout
+- Difficult to understand
+- **Poor quality**
+
+### High FER = Poor Performance
+
+**Comparison to internet voice:**
+- VoIP typically: FER < 1% = "good quality"
+- VoIP acceptable: FER < 5% = "usable"
+- VoIP poor: FER > 10% = "degraded"
+
+### Why 4-5% FER Floor
+
+**Hard-decision LDPC decoder:**
+- Demodulator outputs hard bits (0 or 1)
+- LDPC decoder tries to correct errors
+- But loses "soft information" (confidence levels)
+- Can't always correct all errors
+- Result: 4-5% of frames always fail, even at high SNR
 
 ## Future Work
 

@@ -1,0 +1,66 @@
+INFO:__main__:Testing: 8FSK, none, clean, SNR=10.0 dB
+wavfile_source :error: sf_open failed: cq_pcm.wav: No such file or directory
+ERROR:__main__:  ✗ Test failed: Can't open WAV file.
+Traceback (most recent call last):
+  File "/home/haaken/github-projects/gr-sleipnir/tests/diagnose_failures.py", line 39, in test_configuration
+    tb = build_test_flowgraph(
+         ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/haaken/github-projects/gr-sleipnir/tests/flowgraph_builder.py", line 189, in build_test_flowgraph
+    wav_source = blocks.wavfile_source(input_wav, False)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Can't open WAV file.
+INFO:__main__:Testing: 4FSK, sign, clean, SNR=10.0 dB
+wavfile_source :error: sf_open failed: cq_pcm.wav: No such file or directory
+ERROR:__main__:  ✗ Test failed: Can't open WAV file.
+Traceback (most recent call last):
+  File "/home/haaken/github-projects/gr-sleipnir/tests/diagnose_failures.py", line 39, in test_configuration
+    tb = build_test_flowgraph(
+         ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/haaken/github-projects/gr-sleipnir/tests/flowgraph_builder.py", line 189, in build_test_flowgraph
+    wav_source = blocks.wavfile_source(input_wav, False)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Can't open WAV file.
+INFO:__main__:Testing: 4FSK, none, rician, SNR=10.0 dB
+wavfile_source :error: sf_open failed: cq_pcm.wav: No such file or directory
+ERROR:__main__:  ✗ Test failed: Can't open WAV file.
+Traceback (most recent call last):
+  File "/home/haaken/github-projects/gr-sleipnir/tests/diagnose_failures.py", line 39, in test_configuration
+    tb = build_test_flowgraph(
+         ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/haaken/github-projects/gr-sleipnir/tests/flowgraph_builder.py", line 189, in build_test_flowgraph
+    wav_source = blocks.wavfile_source(input_wav, False)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Can't open WAV file.
+INFO:__main__:Testing: 4FSK, none, clean, SNR=10.0 dB
+wavfile_source :error: sf_open failed: cq_pcm.wav: No such file or directory
+ERROR:__main__:  ✗ Test failed: Can't open WAV file.
+Traceback (most recent call last):
+  File "/home/haaken/github-projects/gr-sleipnir/tests/diagnose_failures.py", line 39, in test_configuration
+    tb = build_test_flowgraph(
+         ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/haaken/github-projects/gr-sleipnir/tests/flowgraph_builder.py", line 189, in build_test_flowgraph
+    wav_source = blocks.wavfile_source(input_wav, False)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Can't open WAV file.
+SUCCESS: gr-linux-crypto found as 'gnuradio.linux_crypto'
+  Available blocks/classes: ['brainpool_ecies_decrypt', 'brainpool_ecies_encrypt', 'brainpool_ecies_multi_decrypt', 'brainpool_ecies_multi_encrypt', 'get_integration_status', 'kernel_crypto_aes', 'kernel_keyring_source', 'nitrokey_interface']
+SUCCESS: gr-nacl found as 'nacl'
+============================================================
+Phase 2 Failure Mode Diagnostics
+============================================================
+
+Test 1: 8FSK mode
+
+Test 2: Crypto mode (sign)
+
+Test 3: Rician fading
+
+Test 4: Working configuration (4FSK, none, clean)
+
+============================================================
+Summary:
+  8FSK: FAIL
+  Crypto: FAIL
+  Rician: FAIL
+  Baseline: FAIL
+============================================================

@@ -28,12 +28,14 @@ from python.crypto_helpers import (
 from python.voice_frame_builder import VoiceFrameBuilder
 
 
-class sleipnir_superframe_assembler(gr.sync_block):
+class sleipnir_superframe_assembler(gr.basic_block):
     """
     Assembles superframes from Opus frames.
 
     Input: PDU with list of 24 Opus frames (40 bytes each)
     Output: PDU with list of frame payloads ready for LDPC encoding
+    
+    This is a message-only block (no stream ports), so we use basic_block instead of sync_block.
     """
 
     # Sync frame constants
@@ -51,7 +53,7 @@ class sleipnir_superframe_assembler(gr.sync_block):
         enable_sync_frames: bool = True,
         sync_frame_interval: int = 5
     ):
-        gr.sync_block.__init__(
+        gr.basic_block.__init__(
             self,
             name="sleipnir_superframe_assembler",
             in_sig=None,
@@ -451,21 +453,23 @@ class sleipnir_superframe_assembler(gr.sync_block):
         """
         Build authentication frame payload.
         
-        Note: For now, we pad to 49 bytes (386 bits) to match voice matrix.
-        TODO: Generate proper auth matrix (256 bits -> 768 bits) and use 32 bytes.
+        The full ECDSA signature is 64 bytes (r + s, each 32 bytes).
+        Auth frame after LDPC decoding is 64 bytes (512 bits) using ldpc_auth_1536_512.alist.
+        We store the full 64-byte signature for proper cryptographic verification.
         """
         try:
             signature = generate_ecdsa_signature(superframe_data, self.private_key)
-            # Pad/truncate to 49 bytes to match voice matrix (temporary workaround)
-            # TODO: Use proper auth matrix (32 bytes -> 96 bytes)
-            if len(signature) > 49:
-                signature = signature[:49]
-            elif len(signature) < 49:
-                signature = signature.ljust(49, b'\x00')
+            # Ensure signature is exactly 64 bytes (r + s concatenated)
+            if len(signature) > 64:
+                signature = signature[:64]  # Truncate if somehow longer
+            elif len(signature) < 64:
+                signature = signature.ljust(64, b'\x00')  # Pad if shorter
+            
+            # Store full 64-byte signature (r + s)
             return signature
         except Exception as e:
             print(f"Error building auth frame: {e}")
-            return b'\x00' * 49
+            return b'\x00' * 64
 
     def build_voice_frame(self, opus_data: bytes, frame_num: int) -> bytes:
         """Build voice frame payload (49 bytes, 386 bits for LDPC)."""

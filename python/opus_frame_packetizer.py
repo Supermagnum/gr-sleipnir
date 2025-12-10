@@ -104,6 +104,12 @@ class opus_frame_packetizer(gr.sync_block):
     
     def __del__(self):
         """Cleanup method to release resources"""
+        # Clear buffer to free memory
+        try:
+            self.buffer = bytearray()
+        except:
+            pass
+        
         # Remove from class instances list
         if hasattr(type(self), '_instances'):
             try:

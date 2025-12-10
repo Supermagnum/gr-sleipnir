@@ -1,395 +1,226 @@
 # gr-sleipnir Comprehensive Test Suite
 
-This test suite provides automated testing of all gr-sleipnir blocks and parameters across varying channel conditions.
-
 ## Overview
 
-The test suite exercises:
-- All modulation modes (4FSK, 8FSK)
-- All FEC rates
-- All cryptographic modes (none, signing, encryption, both)
-- Various channel conditions (clean, AWGN, fading, frequency offset)
-- SNR range from -5 dB to 20 dB
-
-## Files
-
-- `test_sleipnir.py` - Main test script
-- `test_crypto_key_sources.py` - Cryptographic key sources and security validation tests
-- `test_aprs_text_messaging.py` - APRS and text messaging functionality tests
-- `config.yaml` - Test configuration
-- `analyze_results.py` - Results analysis and plotting
-- `README_TESTING.md` - This file
-
-## Requirements
-
-### Python Packages
-- numpy
-- matplotlib
-- pyyaml
-- GNU Radio 3.10+ with Python API
-- gr-sleipnir (installed)
-- gr-opus (for Opus encoding/decoding)
-
-### Input Files
-- WAV file for testing (default: `../wav/cq_pcm.wav`)
-- Optional: Private key file for encryption testing
-- Optional: MAC key for encryption testing
+The comprehensive test suite exercises all gr-sleipnir blocks and parameters across varying channel conditions, modulation modes, crypto configurations, and data modes.
 
 ## Quick Start
 
-### 1. Basic Test Run
-
-Run a single test with default configuration:
+### Run Phase 1 Tests (Baseline)
 
 ```bash
-cd tests
-python test_sleipnir.py --single --wav ../wav/cq_pcm.wav
+cd /home/haaken/github-projects/gr-sleipnir
+python3 tests/test_comprehensive.py --config tests/config_comprehensive.yaml --phase 1
 ```
 
-### 2. Full Test Suite
-
-Run the complete test suite (may take several hours):
+### Run All Tests
 
 ```bash
-python test_sleipnir.py --wav ../wav/cq_pcm.wav --output test_results
+python3 tests/test_comprehensive.py --config tests/config_comprehensive.yaml
 ```
 
-### 3. Analyze Results
-
-After running tests, analyze and plot results:
+### Dry Run (Validate Configuration)
 
 ```bash
-python analyze_results.py --results test_results --output analysis_output
+python3 tests/test_comprehensive.py --config tests/config_comprehensive.yaml --dry-run
 ```
 
 ## Configuration
 
-Edit `config.yaml` to customize test parameters:
+Edit `tests/config_comprehensive.yaml` to customize test parameters:
 
-```yaml
-# SNR sweep range
-snr_range:
-  start: -5
-  end: 20
-  step: 1
+- **Modulation modes**: 4FSK, 8FSK
+- **Crypto modes**: none, sign, encrypt, both
+- **Channel conditions**: clean, AWGN, fading, frequency offset
+- **SNR range**: Start, stop, and step values
+- **Test duration**: Duration per test scenario
 
-# Modulation modes to test
-modulations:
-  - "4FSK"
-  - "8FSK"
+## Test Phases
 
-# Crypto modes to test
-crypto_modes:
-  - "none"
-  - "sign"
-  - "encrypt"
-  - "both"
+### Phase 1: Critical Path
+- Baseline tests (clean channel, no crypto)
+- AWGN sweep with coarser SNR steps
+- Quick validation of core functionality
 
-# Channel conditions
-channel_types:
-  - "clean"
-  - "AWGN"
-  - "rayleigh"
-  - "rician"
-```
+### Phase 2: Full Coverage
+- All modulation modes (4FSK, 8FSK)
+- All crypto combinations
+- Full SNR sweep
+- Fading channels
 
-### Quick Test Configuration
+### Phase 3: Edge Cases
+- Frequency offset scenarios
+- Key rotation tests
+- Sync loss/recovery
+- Boundary conditions
 
-For faster testing, use the `quick_test` section in `config.yaml`:
+## Output Files
 
-```yaml
-quick_test:
-  snr_range:
-    start: 0
-    end: 15
-    step: 5
-  modulations:
-    - "4FSK"
-  crypto_modes:
-    - "none"
-  channel_types:
-    - "AWGN"
-```
-
-## Test Flow
-
-The test flowgraph follows this structure:
+### Results Directory Structure
 
 ```
-WAV File Source
-    ↓
-[Resample if needed]
-    ↓
-gr-opus Encoder (9600 bps)
-    ↓
-sleipnir_framer
-    ↓
-sleipnir_encoder
-    ↓
-Channel Model (variable SNR/impairments)
-    ↓
-sleipnir_decoder
-    ↓
-sleipnir_deframer
-    ↓
-gr-opus Decoder
-    ↓
-WAV File Sink
+test_results_comprehensive/
+├── results.json              # Full test results
+├── summary.json              # Summary statistics
+├── summary_table.md          # Summary table
+├── report.md                 # Comprehensive report
+├── audio/                    # Decoded audio files
+│   └── output_*_snr*.wav
+└── plots/                    # Performance curves
+    ├── fer_vs_snr.png
+    ├── warpq_vs_snr.png
+    └── ber_vs_snr.png
 ```
 
 ## Metrics Collected
 
-### Performance Metrics
-- **Frame Error Rate (FER)** - Percentage of frames with errors
-- **Bit Error Rate (BER)** - If measurable
-- **Successful decode count** - Number of successfully decoded frames
-- **Processing time/latency** - Time to process test duration
+### Protocol Metrics
+- **Frame Error Rate (FER)**: Percentage of frames that failed to decode
+  - Calculation: `FER = frame_error_count / total_frames_received`
+  - `frame_error_count`: Cumulative count of frames that were received but failed to decode
+    - Includes frames that failed to parse
+    - Includes frames with corrupted MACs
+    - Includes corrupted frames misclassified as APRS/text (for voice-only tests)
+  - `total_frames_received`: Cumulative count of all frames received from the channel
+  - For voice-only tests, only Opus frames are counted as successful; APRS/text frames are treated as corrupted voice frames
+  - **Note**: FER tracking was fixed to correctly identify corrupted frames that were previously misclassified
+- **Frame Count**: Total number of Opus frames successfully decoded
+- **Frame Error Count**: Cumulative count of frames that failed to decode
+- **Total Frames Received**: Cumulative count of all frames received (for accurate FER calculation)
+- Bit Error Rate (BER)
+- Superframe decode success rate
+- LDPC decoder iterations/convergence
 
-### Cryptographic Metrics
-- **Signature verification success rate** - When signing enabled
-- **Decryption success rate** - When encryption enabled
-- **Crypto rejection rate** - Invalid signatures/keys rejected correctly
+### Audio Quality
+- WarpQ scores
+- SNR/PSNR
+- Subjective quality assessment
 
-### Audio Quality Metrics
-- **DC offset** - Check for DC bias in output
-- **Dynamic range** - Preserved audio dynamic range
-- **Clipping artifacts** - Detection of clipping
-- **Sample rate match** - Input/output sample rate consistency
-- **Audio SNR** - Signal-to-noise ratio of decoded audio
-- **WARP-Q score** - Speech quality metric (if warpq available)
+### Crypto Validation
+- Signature verification success rate
+- Decryption success rate
+- MAC verification success rate
 
-## APRS and Text Messaging Testing
+### Sync Performance
+- Sync acquisition time
+- Sync state transitions
+- Sync loss recovery time
 
-The `test_aprs_text_messaging.py` test suite provides comprehensive testing of APRS and text messaging functionality:
+## Analyzing Results
 
-### Test Scenarios
+### Generate Performance Curves
 
-- **Voice + APRS Simultaneous**: Verifies APRS packets don't corrupt voice frames
-- **Voice + Text Messaging**: Verifies text messages don't impact voice quality
-- **APRS-Only Mode**: Pure APRS beacon testing
-- **Text-Only Mode**: Pure text messaging
-- **Mixed Mode Stress Test**: Voice + APRS + text simultaneously
-- **Data Leakage Validation**: Ensures APRS/text never appear in audio output
-
-### Critical Validations
-
-- APRS packets must NOT appear in audio output
-- Text messages must NOT appear in audio output
-- Callsign metadata correctly embedded/extracted
-- Frame type identification works correctly
-- No cross-contamination between data types
-
-Run the APRS and text messaging tests:
 ```bash
-python tests/test_aprs_text_messaging.py
+python3 tests/analyze_results.py \
+    --input test_results_comprehensive/results.json \
+    --plots-dir test_results_comprehensive/plots
 ```
 
-Expected results: All 6 tests should pass, verifying proper frame type identification, data separation, and no cross-contamination.
+### Generate Summary Table
 
-For detailed documentation, see [docs/APRS_TEXT_MESSAGING.md](../docs/APRS_TEXT_MESSAGING.md).
-
-## Cryptographic Key Sources Testing
-
-The `test_crypto_key_sources.py` test suite provides comprehensive testing of:
-
-### Kernel Keyring Integration
-- Load test keys via `kernel_keyring_source` block
-- Generate signed/encrypted frames
-- Verify decoder can authenticate/decrypt
-- Full automation possible
-
-### Nitrokey Integration (Conditional)
-- Detect if Nitrokey present (`nitrokey --list`)
-- If present, run hardware crypto tests
-- If absent, skip with clear log message
-- Prevents test failures in CI without hardware
-
-### MAC Key Testing
-- Test with various pre-shared keys via message ports
-- Verify wrong MAC key causes decrypt failure
-- Test key rotation (update MAC key mid-stream)
-- Test MAC key forwarding from `key_source` to `ctrl` port
-- Test invalid key handling (wrong length, malformed)
-- Test message port saturation (rapid updates)
-- Test ctrl multiplexing (multiple message types)
-
-### Security Validation
-- Unsigned frame rejected when signing enabled
-- Wrong signature detected and rejected
-- Encrypted frame without correct MAC key produces silence/error
-- No plaintext leakage checks
-
-Run the cryptographic key sources tests:
 ```bash
-python tests/test_crypto_key_sources.py
+python3 tests/analyze_results.py \
+    --input test_results_comprehensive/results.json \
+    --summary-table test_results_comprehensive/summary_table.md
 ```
 
-## Validation Checks
+### Generate Report
 
-The test suite includes comprehensive validation:
-
-### Data Leakage Prevention
-- Verify audio output contains only decoded voice, no framing data
-- Check for metadata bleeding into audio stream
-- Validate silence during frame sync loss (not random noise/data)
-
-### Boundary Condition Tests
-- Empty frames
-- Maximum-length frames
-- Truncated/corrupted frames
-- Out-of-sequence frames
-- Invalid crypto signatures (should reject cleanly, not crash)
-
-### State Machine Validation
-- Proper initialization from cold start
-- Recovery after sync loss
-- Handling of incomplete superframes
-- Graceful degradation when FEC can't correct errors
-
-### Crypto Sanity Checks
-- Unsigned frames rejected when signature verification enabled
-- Encrypted frames produce silence/error (not garbled audio) without proper keys
-- No plaintext leakage when encryption enabled
-
-### Audio Quality Guards
-- Output sample rate matches input
-- No DC offset in decoded audio
-- Dynamic range preserved
-- No clipping artifacts
-
-## Output Files
-
-### Test Results
-- `all_results.json` - Complete test results in JSON format
-- `results_summary.csv` - Summary in CSV format
-- `test_XXXX/result.json` - Individual test results
-- `test_XXXX/output_snrXX.X.wav` - Decoded audio for each test
-
-### Analysis Output
-- `fer_vs_snr_*.png` - FER vs SNR plots
-- `comparison_*.png` - Comparison plots
-- `summary.md` - Summary statistics table
-- `test_report.md` - Comprehensive test report
-
-## Performance Curves
-
-The analysis script generates performance curves showing:
-- FER vs SNR for different modulation modes
-- FER vs SNR for different crypto modes
-- FER vs SNR for different channel conditions
-- Comparison plots at fixed SNR values
-
-## Pass/Fail Criteria
-
-Tests are evaluated against thresholds defined in `config.yaml`:
-
-```yaml
-validation:
-  fer_threshold_good: 0.01      # FER < 1% is good
-  fer_threshold_acceptable: 0.10 # FER < 10% is acceptable
-  dc_offset_max: 0.01           # Maximum DC offset
-  clipping_max_fraction: 0.001  # Maximum clipping (1% of samples)
-  dynamic_range_min: 0.5        # Minimum dynamic range
-  snr_audio_min_db: 20.0        # Minimum audio SNR (dB)
-```
-
-## Example Usage
-
-### Run Quick Test
 ```bash
-# Edit config.yaml to use quick_test parameters
-python test_sleipnir.py --wav ../wav/cq_pcm.wav --output quick_test_results
+python3 tests/analyze_results.py \
+    --input test_results_comprehensive/results.json \
+    --output test_results_comprehensive/report.md
 ```
 
-### Run Single Test with Specific Parameters
-```bash
-# Edit config.yaml with desired parameters
-python test_sleipnir.py --single --wav ../wav/cq_pcm.wav
-```
+## Pass Criteria
 
-### Analyze and Plot Results
-```bash
-python analyze_results.py --results test_results --output analysis
-```
+Tests are evaluated against pass criteria defined in `config_comprehensive.yaml`:
 
-### View Results
-```bash
-# View summary
-cat analysis/summary.md
-
-# View full report
-cat analysis/test_report.md
-
-# View plots
-ls analysis/*.png
-```
+- **FER < 1%** at SNR > 10 dB (4FSK)
+- **FER < 1%** at SNR > 13 dB (8FSK)
+- **WarpQ > 2.5** at operational SNR
+- **WarpQ > 3.0** at SNR > 10 dB
+- **100% crypto verification** when properly keyed
+- **Sync acquisition < 1 second**
+- **Sync recovery < 2 seconds**
 
 ## Troubleshooting
 
-### Test Fails to Start
-- Check that GNU Radio is properly installed
-- Verify gr-sleipnir is installed and accessible
-- Check that gr-opus is available
-- Verify WAV file exists and is readable
+### Missing Input File
 
-### No Frames Decoded
-- Check SNR is high enough (start with 10 dB)
-- Verify channel model is working correctly
-- Check that modulation parameters match between TX and RX
+Ensure `wav/cq_pcm.wav` exists or update `input_file` in config.
 
-### Audio Quality Issues
-- Check input WAV file quality
-- Verify sample rate conversion is working
-- Check for clipping in input audio
-- Verify Opus encoder/decoder settings
+### Missing Matrix Files
 
-### Crypto Tests Fail
-- Verify private key file exists and is valid
-- Check MAC key format (32 bytes)
-- Ensure crypto libraries are available
-- Check that key paths are correct
+Ensure LDPC matrix files exist:
+- `ldpc_matrices/ldpc_auth_768_256.alist`
+- `ldpc_matrices/ldpc_rate34.alist` (for 4FSK)
+- `ldpc_matrices/ldpc_rate23.alist` (for 8FSK)
 
-## Performance Expectations
+### Test Timeout
 
-Based on typical digital voice systems:
+Increase `test_duration` in config or check for flowgraph deadlocks.
 
-- **SNR > 10 dB**: Should achieve FER < 1%
-- **SNR 5-10 dB**: Should achieve FER < 10%
-- **SNR < 5 dB**: FER may be high, but system should not crash
-- **Processing rate**: Should be > 1000 samples/second
-- **Audio quality**: SNR > 20 dB for decoded audio
+### Memory Issues
 
-## Extending the Test Suite
+Reduce `max_tests` parameter or run tests in smaller batches.
 
-### Adding New Test Cases
+## Expected Runtime
 
-1. Edit `config.yaml` to add new parameter combinations
-2. Modify `TestFlowgraph` class to handle new parameters
-3. Update `MetricsCollector` to collect new metrics
-4. Add validation checks in `analyze_audio_quality()`
+- **Phase 1**: ~5-10 minutes
+- **Phase 2**: ~1-2 hours
+- **Phase 3**: ~30-60 minutes
+- **Full Suite**: ~2-4 hours
 
-### Adding New Channel Models
+## Advanced Usage
 
-1. Extend `ChannelModel` class in `test_sleipnir.py`
-2. Add new channel type to `config.yaml`
-3. Update test flowgraph generation
+### Run Specific Test Subset
 
-### Adding New Metrics
+```bash
+python3 tests/test_comprehensive.py \
+    --config tests/config_comprehensive.yaml \
+    --phase 1 \
+    --max-tests 10
+```
 
-1. Add metric collection in `MetricsCollector`
-2. Update `analyze_audio_quality()` for audio metrics
-3. Add plotting functions in `analyze_results.py`
+### Custom Configuration
 
-## Contributing
+Create a custom config file:
 
-When adding new tests or features:
-- Follow existing code style
-- Add documentation
-- Update this README
-- Include example configurations
-- Test with both quick and full test suites
+```yaml
+test_parameters:
+  input_file: "path/to/your/audio.wav"
+  modulation_modes: [4]
+  snr_range: [0, 15, 5]
+  # ... other parameters
+```
 
-## License
+Then run:
 
-Same as gr-sleipnir project.
+```bash
+python3 tests/test_comprehensive.py --config your_config.yaml
+```
 
+## Integration with CI/CD
+
+The test suite can be integrated into CI/CD pipelines:
+
+```bash
+# Run Phase 1 tests
+python3 tests/test_comprehensive.py --phase 1
+
+# Check pass rate
+python3 -c "
+import json
+with open('test_results_comprehensive/summary.json') as f:
+    summary = json.load(f)
+    exit(0 if summary['pass_rate'] > 0.9 else 1)
+"
+```
+
+## Documentation
+
+- **Configuration Schema**: See `config_comprehensive.yaml` comments
+- **Metrics Definitions**: See `metrics_collector.py`
+- **Flowgraph Builder**: See `flowgraph_builder.py`
+- **Results Format**: See `results.json` structure

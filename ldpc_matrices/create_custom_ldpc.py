@@ -115,8 +115,9 @@ def save_alist(H, filename):
     max_row_degree = int(np.max(row_degrees))
     
     with open(filename, 'w') as f:
-        # Header: nrows ncols (note: AList uses m n, not n m)
-        f.write(f"{m} {n}\n")
+        # Header: n m (codeword length, parity checks)
+        # GNU Radio LDPC decoder expects: n (codeword length) m (parity checks)
+        f.write(f"{n} {m}\n")
         f.write(f"{max_col_degree} {max_row_degree}\n")
         
         # Column degrees
@@ -157,16 +158,16 @@ def main():
     print("=" * 60)
     print()
     
-    # Code 1: Authentication frame (768, 256) Rate 1/3
-    print("Code 1: Authentication Frame - LDPC (768, 256) Rate 1/3")
+    # Code 1a: Authentication frame (768, 256) Rate 1/3 (32-byte signature, legacy)
+    print("Code 1a: Authentication Frame (Legacy) - LDPC (768, 256) Rate 1/3")
     print("-" * 60)
-    print("Purpose: Protect BrainpoolP256r1 signature")
+    print("Purpose: Protect BrainpoolP256r1 signature (32-byte truncated)")
     print("Block length: 768 bits")
-    print("Information bits: 256 bits")
+    print("Information bits: 256 bits (32 bytes)")
     print("Parity bits: 512 bits")
     print()
     
-    H_auth = create_protograph_ldpc(
+    H_auth_legacy = create_protograph_ldpc(
         n=768,
         k=256,
         column_weights=[3, 4, 5, 6],
@@ -174,7 +175,27 @@ def main():
         seed=42
     )
     
-    save_alist(H_auth, "ldpc_auth_768_256.alist")
+    save_alist(H_auth_legacy, "ldpc_auth_768_256.alist")
+    print()
+    
+    # Code 1b: Authentication frame (1536, 512) Rate 1/3 (64-byte full signature)
+    print("Code 1b: Authentication Frame (Full Signature) - LDPC (1536, 512) Rate 1/3")
+    print("-" * 60)
+    print("Purpose: Protect full ECDSA signature (64 bytes: r + s)")
+    print("Block length: 1536 bits")
+    print("Information bits: 512 bits (64 bytes)")
+    print("Parity bits: 1024 bits")
+    print()
+    
+    H_auth_full = create_protograph_ldpc(
+        n=1536,
+        k=512,
+        column_weights=[3, 4, 5, 6],
+        row_weights=[10, 11, 12, 13],
+        seed=44  # Different seed for new matrix
+    )
+    
+    save_alist(H_auth_full, "ldpc_auth_1536_512.alist")
     print()
     
     # Code 2: Voice frame (576, 384) Rate 2/3

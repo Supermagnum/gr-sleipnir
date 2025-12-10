@@ -68,7 +68,7 @@ class sleipnir_tx_hier(gr.hier_block2):
         symbol_rate: float = 4800.0,
         fsk_deviation: float = 2400.0,
         fsk_levels: int = 4,  # 4 for 4FSK, 8 for 8FSK
-        auth_matrix_file: str = "../ldpc_matrices/ldpc_auth_768_256.alist",
+        auth_matrix_file: str = "../ldpc_matrices/ldpc_auth_1536_512.alist",
         voice_matrix_file: str = "../ldpc_matrices/ldpc_voice_576_384.alist",
         enable_signing: bool = False,
         enable_encryption: bool = False,
@@ -213,14 +213,13 @@ class sleipnir_tx_hier(gr.hier_block2):
 
         # 5. FEC LDPC encoder (using GNU Radio-generated matrices)
         # Voice frames: 48 bytes (384 bits) input -> 72 bytes (576 bits) output
-        # Auth frames: 32 bytes (256 bits) input -> 96 bytes (768 bits) output
+        # Auth frames: 64 bytes (512 bits) input -> 192 bytes (1536 bits) output
         ldpc_encoder = None
         encoder_obj = None
         frame_input_bytes = 48  # Default: 48 bytes (384 bits) for voice matrix
         
-        # Temporarily disable FEC to debug segmentation fault
-        # TODO: Fix FEC decoder integration - forecast crash still occurring
-        USE_FEC = False
+        # Re-enable FEC now that we've fixed the block type issues
+        USE_FEC = True
         
         if USE_FEC and FEC_AVAILABLE and os.path.exists(voice_matrix_file):
             encoder_obj = fec.ldpc_encoder_make(voice_matrix_file)
@@ -337,6 +336,35 @@ class sleipnir_tx_hier(gr.hier_block2):
         # Key source state
         self.key_source_private_key = None
         self.key_source_mac_key = None
+    
+    def __del__(self):
+        """Cleanup method to release resources and disconnect connections."""
+        try:
+            # Disconnect all connections in the hierarchical block
+            # This helps release C++ resources held by GNU Radio blocks
+            try:
+                self.disconnect_all()
+            except:
+                pass
+            
+            # Clear references to Python blocks
+            if hasattr(self, '_superframe_assembler'):
+                try:
+                    del self._superframe_assembler
+                except:
+                    pass
+            if hasattr(self, '_superframe_pdu_to_stream'):
+                try:
+                    del self._superframe_pdu_to_stream
+                except:
+                    pass
+            if hasattr(self, '_ldpc_encoder'):
+                try:
+                    del self._ldpc_encoder
+                except:
+                    pass
+        except:
+            pass
 
     def set_callsign(self, callsign: str):
         """Update callsign."""
