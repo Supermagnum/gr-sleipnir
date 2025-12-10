@@ -204,6 +204,43 @@ The system supports two modulation modes optimized for different use cases:
 
 ## Performance
 
+### Phase 2 Test Results (832 tests, completed 2025-12-10)
+
+**Operational Performance:**
+- **Operational SNR (FER < 5%)**: 0-1 dB for 4FSK, -1 to 0 dB for 8FSK
+- **FER Floor**: 4.53% mean at high SNR (≥10 dB) - hard-decision decoder limitation
+- **Waterfall SNR (FER < 1%)**: Not achieved (limited by 4-5% FER floor)
+- **Pass Rate**: 91.3% (760/832 tests passed)
+
+**Channel Performance:**
+- **Clean Channel**: 5.15% mean FER, 94.2% pass rate
+- **AWGN Channel**: 5.11% mean FER, 91.3% pass rate
+- **Rayleigh Fading**: 6.14% mean FER, 91.3% pass rate (+1 dB penalty)
+- **Rician Fading**: 6.08% mean FER, 88.5% pass rate (+1 dB penalty)
+
+**Competitive Analysis:**
+- **vs M17**: ~4-5 dB advantage (M17: +5 dB waterfall, gr-sleipnir: 0-1 dB operational)
+- **Limitation**: 4-5% FER floor prevents achieving <1% FER (hard-decision decoder)
+
+**Detailed Analysis:**
+Comprehensive analysis reports available in `test-results-files/analysis/`:
+- Performance curves and publication-ready figures
+- Detailed statistics by SNR range
+- Audio quality (WarpQ) analysis
+- Waterfall characterization
+- FER floor analysis
+- Channel model validation
+- Comparative analysis vs M17
+
+**Performance Visualizations:**
+- [Performance Curves](test-results-files/analysis/performance_curves.png) - FER vs SNR plots for 4FSK and 8FSK
+- [Publication-Ready FER vs SNR (PNG)](test-results-files/analysis/publication_fer_vs_snr.png) - High-resolution performance plot
+- [Publication-Ready FER vs SNR (PDF)](test-results-files/analysis/publication_fer_vs_snr.pdf) - Vector format for publications
+
+See [Test Results](docs/TEST_RESULTS.md) for complete Phase 2 results and [Analysis Summary](test-results-files/analysis/ANALYSIS_SUMMARY.md) for detailed findings.
+
+### Performance Graph
+
 The following graph shows the performance of the system in dB versus the Shannon limit:
 
 ![Performance vs Shannon Limit](Pictures/performance.jpg)
@@ -567,6 +604,8 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 - **[FER Tracking](docs/FER_TRACKING.md)** - Frame Error Rate tracking and calculation documentation
 - **[Comprehensive Test Suite](tests/test_comprehensive.py)** - Automated test suite (Phase 1, 2, 3)
 - **[Results Analysis Tool](tests/analyze_results.py)** - Test results analysis, plotting, and reporting
+- **[Comprehensive Analysis Generator](tests/generate_comprehensive_analysis.py)** - Generate all analysis reports from test results
+- **[Phase 2 Analysis Summary](test-results-files/analysis/ANALYSIS_SUMMARY.md)** - Complete Phase 2 analysis overview
 
 ### Examples
 
@@ -624,9 +663,40 @@ The test suite includes three phases:
 - APRS and text messaging functionality tests
 - Data leakage and security validation
 - Performance metrics: FER, BER, WarpQ scores, sync performance
-- Crypto overhead analysis
-- Waterfall SNR detection
-- Comprehensive reporting and visualization
+
+### Understanding WarpQ Scores
+
+**WarpQ** (Warped-Quality) is an audio quality assessment metric used to evaluate the perceptual quality of decoded audio compared to the original reference audio.
+
+**What WarpQ Measures:**
+- Perceptual audio quality degradation
+- How well the decoded audio matches the original
+- Impact of transmission errors, codec artifacts, and channel impairments
+
+**WarpQ Score Scale (0-5):**
+- **5.0**: Perfect quality (no perceptible difference from reference)
+- **4.0-4.9**: Excellent quality (minimal artifacts, very good)
+- **3.0-3.9**: Good quality (acceptable, minor artifacts)
+- **2.0-2.9**: Fair quality (noticeable degradation, but intelligible)
+- **1.0-1.9**: Poor quality (significant artifacts, difficult to understand)
+- **0.0-0.9**: Very poor quality (severe degradation, barely intelligible)
+
+**Typical WarpQ Scores in gr-sleipnir:**
+- **High SNR (≥10 dB)**: 4.5-5.0 (excellent quality)
+- **Mid SNR (0-9 dB)**: 4.0-4.5 (good to excellent quality)
+- **Low SNR (<0 dB)**: 3.0-4.0 (fair to good quality, may have artifacts)
+
+**WarpQ vs FER:**
+- **FER (Frame Error Rate)**: Measures how many frames fail to decode correctly
+- **WarpQ**: Measures perceptual audio quality of successfully decoded frames
+- High FER can lead to lower WarpQ scores due to missing/corrupted frames
+- Even with low FER, WarpQ may be lower if decoded frames have artifacts
+
+**Why WarpQ Matters:**
+- Provides objective measure of audio quality beyond simple pass/fail
+- Helps identify subtle quality issues that FER alone doesn't capture
+- Useful for comparing different modulation modes, codec settings, or channel conditions
+- Validates that the system meets quality requirements for voice communication
 
 ## Status
 

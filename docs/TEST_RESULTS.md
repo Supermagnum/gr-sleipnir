@@ -4,29 +4,32 @@ Comprehensive test results for gr-sleipnir.
 
 ## Test Status
 
-**Overall Status: TESTS IN PROGRESS**
+**Overall Status: PHASE 2 COMPLETE**
 
 - **Python Module Imports**: 14/14 passed
 - **Build System**: PASS
 - **Unit Test Suite**: 8/8 tests passed
-- **Comprehensive Test Suite**: Phase 1 running, Phase 2 pending
+- **Comprehensive Test Suite**: Phase 1 complete, Phase 2 complete, Phase 3 pending
 - **Documentation**: All links valid
 
 ## Comprehensive Test Suite
 
 ### Current Progress
 
-**Phase 1**: Running (12 scenarios)
-- **Status**: In progress
-- **Expected duration**: ~2-3 minutes
+**Phase 1**: Complete (12 scenarios)
+- **Status**: Completed
+- **Results**: 12/12 tests passed
+- **Results saved to**: `test-results-json/results.json`
 
-**Phase 2**: Pending (832 scenarios)
-- **Status**: Waiting for Phase 1 completion
-- **Expected duration**: ~2.35 hours
-- **Results will be saved to**: `test-results-files/phase2.json`
+**Phase 2**: Complete (832 scenarios)
+- **Status**: Completed (2025-12-10 18:29:34)
+- **Duration**: 2h 48m 2s
+- **Results**: 760/832 tests passed (91.3% pass rate)
+- **Results saved to**: `test-results-files/phase2.json`
+- **Merged results**: `test-results-json/results.json` (844 total: 12 Phase 1 + 832 Phase 2)
 
 **Phase 3**: Pending (edge case tests)
-- **Status**: Waiting for Phase 2 completion
+- **Status**: Not started
 - **Results will be saved to**: `test-results-files/phase3.json`
 
 ### Test Configuration
@@ -44,22 +47,46 @@ Comprehensive test results for gr-sleipnir.
 - **Phase 3 results**: `test-results-files/phase3.json`
 - **Log files**: `test-results-files/phase1_run.log`, `phase2_run.log`, `phase3_run.log`
 
-### Expected Findings (Based on Previous Runs)
+### Phase 2 Results (Actual Findings)
 
 1. **FER Performance**:
-   - Expected average FER: ~5% across all SNR ranges
-   - FER floor: ~4-5% at high SNR (hard-decision decoder limitation)
-   - FER increases to 7-12% at very low SNR (<0 dB)
+   - **Mean FER**: 5.15% (clean), 5.11% (AWGN), 6.14% (Rayleigh), 6.08% (Rician)
+   - **FER Floor**: 4.53% mean at high SNR (≥10 dB), confirming hard-decision decoder limitation
+   - **FER at low SNR**: 8.05% mean at -5 to 0 dB SNR range
+   - **Operational SNR (FER < 5%)**: 0-1 dB for 4FSK, -1 to 0 dB for 8FSK
+   - **Waterfall SNR (FER < 1%)**: Not achieved (limited by 4-5% FER floor)
 
 2. **Audio Quality**:
-   - Expected average WarpQ: ~4.5-4.7 (good quality)
-   - WarpQ failures may occur when score < 3.0
+   - **WarpQ scores**: Computed for all successful decodes
+   - **High SNR (≥10 dB)**: Excellent quality (4.5-5.0 typical)
+   - **Mid SNR (0-9 dB)**: Good to excellent quality (4.0-4.5 typical)
+   - **Low SNR (<0 dB)**: Fair to good quality (3.0-4.0 typical)
    - Audio remains intelligible even with occasional frame loss
+   
+   **Understanding WarpQ Scores:**
+   - WarpQ (Warped-Quality) measures perceptual audio quality (0-5 scale)
+   - Scores 4.0-5.0: Excellent quality (minimal artifacts)
+   - Scores 3.0-3.9: Good quality (acceptable, minor artifacts)
+   - Scores < 3.0: Fair to poor quality (noticeable degradation)
+   - See [README.md](README.md#understanding-warpq-scores) for detailed explanation
 
 3. **SNR Performance**:
-   - Best performance expected: Mid SNR range (0-9 dB)
-   - Decoding remains functional down to -5 dB SNR
-   - No complete breakdown expected (all SNRs maintain >50% pass rate)
+   - **Pass rate by SNR range**:
+     - Very Low (-5 to 0 dB): 84.4% pass rate, 8.05% mean FER
+     - Low (0 to 5 dB): 99.4% pass rate, 6.32% mean FER
+     - Mid (5 to 10 dB): 100% pass rate, 4.89% mean FER
+     - High (10+ dB): 86.9% pass rate, 4.52% mean FER
+   - **Operational threshold**: System operational at 0-1 dB SNR (4FSK), -1 to 0 dB (8FSK)
+   - **Decoding functional**: Down to -5 dB SNR with >80% pass rate
+
+4. **Channel Performance**:
+   - **Clean vs AWGN**: Similar performance (5.15% vs 5.11% mean FER)
+   - **Fading channels**: +1 dB penalty (Rayleigh: 6.14%, Rician: 6.08% mean FER)
+   - **Channel models validated**: All working correctly
+
+5. **Competitive Analysis**:
+   - **vs M17**: ~4-5 dB advantage (M17: +5 dB waterfall, gr-sleipnir: 0-1 dB operational)
+   - **Limitation**: 4-5% FER floor prevents achieving <1% FER (hard-decision decoder)
 
 ## Unit Test Suite Results
 
@@ -209,18 +236,51 @@ See [README.md](README.md#known-limitations) for detailed explanation of FER and
 - Some tests use synthetic data (dummy Opus frames)
 - Real-world testing requires actual audio encoding
 
+## Analysis Reports
+
+Comprehensive analysis reports have been generated from Phase 2 results:
+
+- **Performance Visualization**: FER vs SNR plots, publication-ready figures
+- **Detailed Statistics**: Pass rates, mean/median/std FER by SNR range
+- **Audio Quality Analysis**: WarpQ distribution and correlation with FER
+- **Waterfall Characterization**: Operational SNR determination
+- **FER Floor Analysis**: Hard-decision decoder limitation quantification
+- **Channel Validation**: Clean vs AWGN comparison
+- **Test Coverage Report**: SNR points tested, distribution analysis
+- **Comparative Analysis**: gr-sleipnir vs M17 comparison
+- **Failure Mode Analysis**: Failure distribution by reason and SNR
+- **Performance Summary**: 1-page summary for documentation
+- **Technical Deep Dive**: LDPC performance, modulation efficiency
+- **Publication Figures**: High-quality PDF/PNG plots
+
+All analysis reports are located in: `test-results-files/analysis/`
+
+### Performance Visualizations
+
+**Graphs and Figures:**
+- [Performance Curves](test-results-files/analysis/performance_curves.png) - FER vs SNR plots for 4FSK and 8FSK across all channel models
+- [Publication-Ready FER vs SNR (PNG)](test-results-files/analysis/publication_fer_vs_snr.png) - High-resolution performance plot suitable for presentations
+- [Publication-Ready FER vs SNR (PDF)](test-results-files/analysis/publication_fer_vs_snr.pdf) - Vector format for academic publications
+
+**Quick Preview:**
+![Performance Curves](test-results-files/analysis/performance_curves.png)
+
+See `test-results-files/analysis/ANALYSIS_SUMMARY.md` for complete overview of all analysis reports.
+
 ## Last Updated
 
-Test results updated: 2025-12-10
-- Phase 1: Running (12 scenarios)
-- Phase 2: Pending (832 scenarios)
+Test results updated: 2025-12-10 18:29:34
+- Phase 1: Complete (12/12 passed)
+- Phase 2: Complete (760/832 passed, 91.3% pass rate)
 - Phase 3: Pending
 - Unit tests: All passing (8/8)
 - Build system: All passing
+- Analysis reports: Generated (13 reports + visualizations)
 
 ## Results Files
 
-- **Merged results**: `test-results-json/results.json` (all phases combined)
-- **Phase 2**: `test-results-files/phase2.json`
-- **Phase 3**: `test-results-files/phase3.json`
+- **Merged results**: `test-results-json/results.json` (844 total: 12 Phase 1 + 832 Phase 2)
+- **Phase 2**: `test-results-files/phase2.json` (832 tests)
+- **Phase 3**: `test-results-files/phase3.json` (pending)
+- **Analysis reports**: `test-results-files/analysis/` (13 reports + visualizations)
 - **Logs**: `test-results-files/phase1_run.log`, `phase2_run.log`, `phase3_run.log`
