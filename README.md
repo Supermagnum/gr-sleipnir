@@ -441,7 +441,6 @@ To test the system:
 gr-sleipnir/
 ├── README.md                      # This file
 ├── CMakeLists.txt                 # Root CMake configuration
-├── SUPERFRAME_IMPLEMENTATION.md   # Superframe implementation guide
 ├── TEST_RESULTS.md                # Latest test execution results
 ├── docs/                          # Additional documentation
 │   ├── CRYPTO_INTEGRATION.md      # Crypto integration guide
@@ -464,7 +463,6 @@ gr-sleipnir/
 │   ├── SLEIPNIR_TX_MODULE.md     # TX module guide
 │   ├── SLEIPNIR_RX_MODULE.md     # RX module guide
 │   ├── SUPERFRAME_FLOWGRAPHS.md  # Superframe flowgraph guide
-│   ├── SUPERFRAME_INTEGRATION.md # Superframe integration guide
 │   └── PTT_METHODS.md            # PTT control methods guide
 ├── ldpc_matrices/                 # LDPC FEC matrix files
 │   ├── ldpc_rate34.alist         # Rate 3/4 LDPC matrix (4FSK)
@@ -512,10 +510,8 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 
 ### Superframe System
 
-- **[Superframe Implementation Guide](SUPERFRAME_IMPLEMENTATION.md)** - Complete guide to implementing and using the superframe transmission system
 - **[Superframe Python API](python/README_SUPERFRAME.md)** - Python API documentation for superframe components
 - **[Superframe Flowgraphs](examples/SUPERFRAME_FLOWGRAPHS.md)** - Guide for modifying and creating GRC flowgraphs for superframe transmission
-- **[Superframe Integration](examples/SUPERFRAME_INTEGRATION.md)** - Integration guide for superframe system
 - **[Superframe LDPC Matrices](ldpc_matrices/SUPERFRAME_LDPC.md)** - Documentation for LDPC matrices used in superframe system
 
 ### TX/RX Modules
