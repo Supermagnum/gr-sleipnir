@@ -1,0 +1,16 @@
+2025-12-10 15:35:58,960 - __main__ - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-10 15:35:58,960 - __main__ - INFO - Generated 12 test scenarios
+2025-12-10 15:35:58,960 - __main__ - INFO - Starting test suite: 12 scenarios
+2025-12-10 15:35:58,960 - __main__ - INFO - Using process isolation: 50 tests per process
+2025-12-10 15:35:58,961 - __main__ - INFO - Running 12 tests in 1 batches (50 tests per batch)
+2025-12-10 15:35:58,961 - __main__ - INFO - Batch 1/1: Tests 1-12
+2025-12-10 15:38:24,095 - __main__ - INFO - Batch 1 completed successfully
+2025-12-10 15:38:24,096 - __main__ - INFO - Loading 12 results from batch 1
+2025-12-10 15:38:24,096 - __main__ - INFO - Total results after batch 1: 12
+2025-12-10 15:38:24,098 - __main__ - INFO - Phase 1 results saved to ./test-results-files/results_phase1.json (12 results)
+2025-12-10 15:38:24,099 - __main__ - INFO - All results saved to ./test-results-json/results.json (12 total results from all phases)
+2025-12-10 15:38:24,099 - __main__ - INFO - Summary: 12/12 tests passed (100.0%)
+2025-12-10 15:38:24,099 - __main__ - INFO - Test suite completed in 2m 25s
+SUCCESS: gr-linux-crypto found as 'gnuradio.linux_crypto'
+  Available blocks/classes: ['brainpool_ecies_decrypt', 'brainpool_ecies_encrypt', 'brainpool_ecies_multi_decrypt', 'brainpool_ecies_multi_encrypt', 'get_integration_status', 'kernel_crypto_aes', 'kernel_keyring_source', 'nitrokey_interface']
+SUCCESS: gr-nacl found as 'nacl'

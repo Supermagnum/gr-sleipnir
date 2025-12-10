@@ -75,8 +75,21 @@ class ComprehensiveTestSuite:
             console=log_config.get('console', True)
         )
         
-        # Results storage
+        # Results storage - load existing results to preserve previous phases
         self.all_results = []
+        self.current_phase = None  # Will be set when run_all_tests is called
+        results_file = self.output_config.get('results_json', 'test_results_comprehensive/results.json')
+        if os.path.exists(results_file):
+            try:
+                with open(results_file, 'r') as f:
+                    existing_results = json.load(f)
+                    if isinstance(existing_results, list):
+                        self.all_results = existing_results
+                        logger.info(f"Loaded {len(self.all_results)} existing results from {results_file}")
+            except Exception as e:
+                logger.warning(f"Could not load existing results: {e}")
+                self.all_results = []
+        
         self.start_time = None
         
         # Validate input file
@@ -112,6 +125,9 @@ class ComprehensiveTestSuite:
             if not phase_config.get('enabled', False):
                 continue
             
+            # Phase 3 uses standard scenario generation (performance analysis)
+            # No special handling needed - it's just focused on specific comparisons
+            
             # Get phase-specific parameters or use defaults
             modulation_modes = phase_config.get('modulation_modes', self.test_params['modulation_modes'])
             crypto_modes = phase_config.get('crypto_modes', self.test_params['crypto_modes'])
@@ -140,6 +156,126 @@ class ComprehensiveTestSuite:
                 scenarios.append(scenario)
         
         logger.info(f"Generated {len(scenarios)} test scenarios")
+        return scenarios
+    
+    def _generate_phase3_scenarios(self, phase_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Generate Phase 3 edge case test scenarios.
+        
+        Args:
+            phase_config: Phase 3 configuration dictionary
+            
+        Returns:
+            List of edge case test scenario dictionaries
+        """
+        scenarios = []
+        edge_case_tests = phase_config.get('edge_case_tests', {})
+        
+        # Base parameters
+        modulation_modes = phase_config.get('modulation_modes', [4])
+        crypto_modes = phase_config.get('crypto_modes', ['none'])
+        channel_conditions = phase_config.get('channel_conditions', ['clean'])
+        
+        # Find channel configs
+        channel_configs = {}
+        for ch_name in channel_conditions:
+            ch_config = next(
+                (c for c in self.test_params['channel_conditions'] if c['name'] == ch_name),
+                {'name': ch_name, 'type': 'clean'}
+            )
+            channel_configs[ch_name] = ch_config
+        
+        # 8. Boundary conditions
+        if edge_case_tests.get('boundary_conditions', {}).get('enabled', False):
+            boundary_tests = edge_case_tests['boundary_conditions'].get('tests', [])
+            for test in boundary_tests:
+                test_name = test.get('name', 'unknown')
+                for mod in modulation_modes:
+                    for crypto in crypto_modes:
+                        for ch_name in channel_conditions:
+                            scenario = {
+                                'modulation': mod,
+                                'crypto_mode': crypto,
+                                'channel': channel_configs[ch_name],
+                                'snr_db': test.get('snr_db', 10.0),
+                                'phase': 3,
+                                'edge_case_type': 'boundary_conditions',
+                                'edge_case_name': test_name,
+                                'description': test.get('description', ''),
+                                'test_duration': test.get('test_duration', self.test_params.get('test_duration', 10.0))
+                            }
+                            scenarios.append(scenario)
+        
+        # 9. Key rotation
+        if edge_case_tests.get('key_rotation', {}).get('enabled', False):
+            key_rotation_tests = edge_case_tests['key_rotation'].get('tests', [])
+            for test in key_rotation_tests:
+                test_name = test.get('name', 'unknown')
+                # Only test with crypto modes
+                crypto_modes_for_rotation = [c for c in crypto_modes if c != 'none']
+                for mod in modulation_modes:
+                    for crypto in crypto_modes_for_rotation:
+                        for ch_name in channel_conditions:
+                            scenario = {
+                                'modulation': mod,
+                                'crypto_mode': crypto,
+                                'channel': channel_configs[ch_name],
+                                'snr_db': 10.0,  # Use moderate SNR for key rotation tests
+                                'phase': 3,
+                                'edge_case_type': 'key_rotation',
+                                'edge_case_name': test_name,
+                                'description': test.get('description', ''),
+                                'rotation_point': test.get('rotation_point', 0.5),
+                                'rotation_count': test.get('rotation_count', 1)
+                            }
+                            scenarios.append(scenario)
+        
+        # 10. Sync loss/recovery
+        if edge_case_tests.get('sync_loss_recovery', {}).get('enabled', False):
+            sync_tests = edge_case_tests['sync_loss_recovery'].get('tests', [])
+            for test in sync_tests:
+                test_name = test.get('name', 'unknown')
+                for mod in modulation_modes:
+                    for crypto in crypto_modes:
+                        for ch_name in channel_conditions:
+                            scenario = {
+                                'modulation': mod,
+                                'crypto_mode': crypto,
+                                'channel': channel_configs[ch_name],
+                                'snr_db': 10.0,  # Use moderate SNR
+                                'phase': 3,
+                                'edge_case_type': 'sync_loss_recovery',
+                                'edge_case_name': test_name,
+                                'description': test.get('description', ''),
+                                'sync_loss_time': test.get('sync_loss_time', 2.0),
+                                'sync_recovery_time': test.get('sync_recovery_time', 4.0),
+                                'sync_loss_count': test.get('sync_loss_count', 1)
+                            }
+                            scenarios.append(scenario)
+        
+        # 11. Mixed mode stress tests
+        if edge_case_tests.get('mixed_mode_stress', {}).get('enabled', False):
+            mixed_mode_tests = edge_case_tests['mixed_mode_stress'].get('tests', [])
+            for test in mixed_mode_tests:
+                test_name = test.get('name', 'unknown')
+                for mod in modulation_modes:
+                    for crypto in crypto_modes:
+                        for ch_name in channel_conditions:
+                            scenario = {
+                                'modulation': mod,
+                                'crypto_mode': crypto,
+                                'channel': channel_configs[ch_name],
+                                'snr_db': 10.0,  # Use moderate SNR
+                                'phase': 3,
+                                'edge_case_type': 'mixed_mode_stress',
+                                'edge_case_name': test_name,
+                                'description': test.get('description', ''),
+                                'data_modes': test.get('data_modes', ['mixed']),
+                                'switch_interval': test.get('switch_interval', 0.5)
+                            }
+                            scenarios.append(scenario)
+        
+        logger.info(f"Generated {len(scenarios)} Phase 3 edge case scenarios")
         return scenarios
     
     def _run_tests_with_process_isolation(self, scenarios: List[Dict[str, Any]], batch_size: int):
@@ -692,6 +828,17 @@ with open(output_file, 'w') as f:
             phase: Test phase to run (1, 2, or 3). If None, run all enabled phases.
             max_tests: Maximum number of tests to run (for testing/debugging)
         """
+        self.current_phase = phase
+        
+        # Remove existing results for this phase if re-running
+        if phase is not None:
+            original_count = len(self.all_results)
+            self.all_results = [r for r in self.all_results 
+                              if r.get('scenario', {}).get('phase') != phase]
+            removed_count = original_count - len(self.all_results)
+            if removed_count > 0:
+                logger.info(f"Removed {removed_count} existing results for phase {phase} (re-running)")
+        
         self.start_time = time.time()
         
         scenarios = self.generate_test_scenarios(phase=phase)
@@ -749,10 +896,38 @@ with open(output_file, 'w') as f:
     
     def save_final_results(self):
         """Save final results and generate summary."""
-        # Save full results
+        # Save full results (merged with previous phases)
         results_file = self.output_config['results_json']
+        
+        # Also save phase-specific results to dedicated files
+        if self.current_phase is not None:
+            phase_results = [r for r in self.all_results 
+                            if r.get('scenario', {}).get('phase') == self.current_phase]
+            
+            # Save to phase-specific JSON file (phase2.json, phase3.json, etc.)
+            if self.current_phase == 2:
+                phase_file = os.path.join(
+                    self.output_config['results_dir'],
+                    'phase2.json'
+                )
+            elif self.current_phase == 3:
+                phase_file = os.path.join(
+                    self.output_config['results_dir'],
+                    'phase3.json'
+                )
+            else:
+                # For Phase 1 or other phases, use default naming
+                phase_file = os.path.join(
+                    self.output_config['results_dir'],
+                    f'results_phase{self.current_phase}.json'
+                )
+            
+            save_results(phase_results, phase_file)
+            logger.info(f"Phase {self.current_phase} results saved to {phase_file} ({len(phase_results)} results)")
+        
+        # Save merged results (all phases)
         save_results(self.all_results, results_file)
-        logger.info(f"Results saved to {results_file}")
+        logger.info(f"All results saved to {results_file} ({len(self.all_results)} total results from all phases)")
         
         # Generate summary
         self.generate_summary()

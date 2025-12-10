@@ -70,19 +70,19 @@ test_parameters:
 
 output:
   # Results directory
-  results_dir: "./test_results_comprehensive"
+  results_dir: "./test-results-files"
   
   # Audio output directory
-  audio_output_dir: "./test_results_comprehensive/audio"
+  audio_output_dir: "./output-wav"
   
   # Plots directory
-  plots_dir: "./test_results_comprehensive/plots"
+  plots_dir: "./test-results-files/plots"
   
   # Results JSON file
-  results_json: "./test_results_comprehensive/results.json"
+  results_json: "./test-results-json/results.json"
   
   # Report file
-  report_file: "./test_results_comprehensive/report.md"
+  report_file: "./test-results-files/report.md"
 
 pass_criteria:
   # Frame Error Rate thresholds
@@ -124,13 +124,20 @@ test_phases:
     channel_conditions: ["clean", "awgn", "rayleigh", "rician"]
     snr_range: [-5, 20, 1]
   
-  # Phase 3: Edge cases
+  # Phase 3: Performance Analysis and Validation
   phase3:
-    enabled: false
-    modulation_modes: [4, 8]
-    crypto_modes: ["sign", "encrypt", "both"]
-    channel_conditions: ["freq_offset_100hz", "freq_offset_500hz", "freq_offset_1khz"]
-    snr_range: [0, 15, 5]
+    enabled: true
+    # Phase 3 focuses on critical performance comparisons:
+    # 1. 8FSK Performance (waterfall SNR, FER floor, audio quality)
+    # 2. Crypto Overhead (NONE vs SIGN vs ENCRYPT vs BOTH)
+    # 3. Fading Channel Robustness (Rayleigh/Rician penalties)
+    # 4. Frequency Offset Tolerance
+    
+    # Focused test scenarios for performance analysis
+    modulation_modes: [4, 8]  # Compare 4FSK vs 8FSK
+    crypto_modes: ["none", "sign", "encrypt", "both"]  # Measure crypto overhead
+    channel_conditions: ["clean", "awgn", "rayleigh", "rician", "freq_offset_100hz", "freq_offset_500hz", "freq_offset_1khz"]
+    snr_range: [-2, 20, 1]  # Fine-grained SNR sweep for waterfall detection
 
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR

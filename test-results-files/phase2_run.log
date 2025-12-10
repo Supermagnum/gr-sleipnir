@@ -1,0 +1,7 @@
+2025-12-10 15:41:31,870 - __main__ - INFO - Loaded 12 existing results from ./test-results-json/results.json
+2025-12-10 15:41:31,870 - __main__ - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-10 15:41:31,871 - __main__ - INFO - Generated 832 test scenarios
+2025-12-10 15:41:31,871 - __main__ - INFO - Starting test suite: 832 scenarios
+2025-12-10 15:41:31,871 - __main__ - INFO - Using process isolation: 50 tests per process
+2025-12-10 15:41:31,872 - __main__ - INFO - Running 832 tests in 17 batches (50 tests per batch)
+2025-12-10 15:41:31,872 - __main__ - INFO - Batch 1/17: Tests 1-50

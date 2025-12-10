@@ -263,6 +263,123 @@ class ResultsAnalyzer:
             f.writelines(report_lines)
         
         logger.info(f"Report saved to {output_file}")
+    
+    def analyze_crypto_overhead(self):
+        """
+        Analyze crypto overhead by comparing crypto vs non-crypto performance.
+        
+        Returns:
+            Dict with crypto overhead analysis
+        """
+        # Group results by modulation, channel, and SNR
+        grouped = defaultdict(lambda: {'none': [], 'encrypt': [], 'sign': [], 'both': []})
+        
+        for result in self.results:
+            if 'scenario' not in result:
+                continue
+            
+            scenario = result['scenario']
+            mod = scenario['modulation']
+            channel_name = scenario['channel'].get('name', 'unknown') if isinstance(scenario['channel'], dict) else 'unknown'
+            snr = scenario['snr_db']
+            crypto = scenario['crypto_mode']
+            
+            key = (mod, channel_name, snr)
+            grouped[key][crypto].append(result)
+        
+        # Calculate overhead
+        overhead_data = []
+        
+        for (mod, channel, snr), crypto_results in grouped.items():
+            baseline = crypto_results.get('none', [])
+            encrypt_results = crypto_results.get('encrypt', [])
+            sign_results = crypto_results.get('sign', [])
+            
+            if baseline and (encrypt_results or sign_results):
+                baseline_fer = np.mean([r['metrics'].get('fer', 0) for r in baseline if 'metrics' in r])
+                baseline_warpq = np.mean([r['metrics'].get('audio_quality_score', 0) 
+                                         for r in baseline if 'metrics' in r and r['metrics'].get('audio_quality_score') is not None])
+                
+                if encrypt_results:
+                    encrypt_fer = np.mean([r['metrics'].get('fer', 0) for r in encrypt_results if 'metrics' in r])
+                    encrypt_warpq = np.mean([r['metrics'].get('audio_quality_score', 0) 
+                                            for r in encrypt_results if 'metrics' in r and r['metrics'].get('audio_quality_score') is not None])
+                    
+                    fer_overhead = encrypt_fer - baseline_fer
+                    warpq_overhead = encrypt_warpq - baseline_warpq if baseline_warpq and encrypt_warpq else None
+                    
+                    overhead_data.append({
+                        'modulation': mod,
+                        'channel': channel,
+                        'snr': snr,
+                        'mode': 'encrypt',
+                        'fer_overhead': fer_overhead,
+                        'warpq_overhead': warpq_overhead,
+                        'baseline_fer': baseline_fer,
+                        'baseline_warpq': baseline_warpq
+                    })
+                
+                if sign_results:
+                    sign_fer = np.mean([r['metrics'].get('fer', 0) for r in sign_results if 'metrics' in r])
+                    sign_warpq = np.mean([r['metrics'].get('audio_quality_score', 0) 
+                                        for r in sign_results if 'metrics' in r and r['metrics'].get('audio_quality_score') is not None])
+                    
+                    fer_overhead = sign_fer - baseline_fer
+                    warpq_overhead = sign_warpq - baseline_warpq if baseline_warpq and sign_warpq else None
+                    
+                    overhead_data.append({
+                        'modulation': mod,
+                        'channel': channel,
+                        'snr': snr,
+                        'mode': 'sign',
+                        'fer_overhead': fer_overhead,
+                        'warpq_overhead': warpq_overhead,
+                        'baseline_fer': baseline_fer,
+                        'baseline_warpq': baseline_warpq
+                    })
+        
+        # Print analysis
+        print(f"\n{'='*80}")
+        print(f"Crypto Overhead Analysis")
+        print(f"{'='*80}\n")
+        
+        if overhead_data:
+            # Group by mode
+            encrypt_overhead = [d for d in overhead_data if d['mode'] == 'encrypt']
+            sign_overhead = [d for d in overhead_data if d['mode'] == 'sign']
+            
+            if encrypt_overhead:
+                avg_fer_overhead_encrypt = np.mean([d['fer_overhead'] for d in encrypt_overhead])
+                avg_warpq_overhead_encrypt = np.mean([d['warpq_overhead'] for d in encrypt_overhead if d['warpq_overhead'] is not None])
+                
+                print(f"Encryption Mode:")
+                print(f"  Average FER overhead: {avg_fer_overhead_encrypt*100:.3f}%")
+                if not np.isnan(avg_warpq_overhead_encrypt):
+                    print(f"  Average WarpQ overhead: {avg_warpq_overhead_encrypt:.3f}")
+                print()
+            
+            if sign_overhead:
+                avg_fer_overhead_sign = np.mean([d['fer_overhead'] for d in sign_overhead])
+                avg_warpq_overhead_sign = np.mean([d['warpq_overhead'] for d in sign_overhead if d['warpq_overhead'] is not None])
+                
+                print(f"Signature Mode:")
+                print(f"  Average FER overhead: {avg_fer_overhead_sign*100:.3f}%")
+                if avg_warpq_overhead_sign:
+                    print(f"  Average WarpQ overhead: {avg_warpq_overhead_sign:.3f}")
+                print()
+            
+            # Show detailed breakdown by SNR
+            print(f"\nDetailed Breakdown (sample):")
+            print(f"{'Mod':<6} {'Channel':<10} {'SNR':<8} {'Mode':<10} {'FER Overhead':<15} {'WarpQ Overhead':<15}")
+            print(f"{'-'*80}")
+            for d in overhead_data[:20]:  # Show first 20
+                fer_oh = f"{d['fer_overhead']*100:+.3f}%" if d['fer_overhead'] is not None else "N/A"
+                warpq_oh = f"{d['warpq_overhead']:+.3f}" if d['warpq_overhead'] is not None else "N/A"
+                print(f"{d['modulation']}FSK  {d['channel']:<10} {d['snr']:>6.1f}  {d['mode']:<10} {fer_oh:<15} {warpq_oh:<15}")
+        else:
+            print("No crypto overhead data available (need both crypto and non-crypto results)")
+        
+        return overhead_data
 
 
 def main():
@@ -272,10 +389,14 @@ def main():
                        help='Input results JSON file')
     parser.add_argument('--output', type=str,
                        help='Output report file (Markdown)')
+    parser.add_argument('--report', type=str,
+                       help='Output report file (Markdown) - alias for --output')
     parser.add_argument('--plots-dir', type=str,
                        help='Output directory for plots')
     parser.add_argument('--summary-table', type=str,
                        help='Output file for summary table')
+    parser.add_argument('--crypto-overhead', action='store_true',
+                       help='Analyze crypto overhead')
     
     args = parser.parse_args()
     
@@ -289,8 +410,13 @@ def main():
     if args.summary_table:
         analyzer.generate_summary_table(args.summary_table)
     
-    if args.output:
-        analyzer.generate_report(args.output)
+    # Use --report if provided, otherwise --output
+    report_file = args.report or args.output
+    if report_file:
+        analyzer.generate_report(report_file)
+    
+    if args.crypto_overhead:
+        analyzer.analyze_crypto_overhead()
     
     return 0
 

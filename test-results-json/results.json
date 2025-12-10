@@ -1,0 +1,820 @@
+[
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "clean",
+        "type": "clean"
+      },
+      "snr_db": -5.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.07230769230769231,
+      "total_frames_received": 650,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.327610731124878,
+      "audio_quality_score": 4.3426483770887145,
+      "audio_snr_db": null,
+      "frame_count": 624,
+      "frame_error_count": 47,
+      "superframe_count": 26,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_clean_snr-5.0.wav",
+    "timestamp": "2025-12-10T15:36:11.168093"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "clean",
+        "type": "clean"
+      },
+      "snr_db": 0.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.05764705882352941,
+      "total_frames_received": 850,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.398239612579346,
+      "audio_quality_score": 5.0,
+      "audio_snr_db": null,
+      "frame_count": 816,
+      "frame_error_count": 49,
+      "superframe_count": 34,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_clean_snr0.0.wav",
+    "timestamp": "2025-12-10T15:36:23.267428"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "clean",
+        "type": "clean"
+      },
+      "snr_db": 5.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.04,
+      "total_frames_received": 550,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.337313652038574,
+      "audio_quality_score": 5.0,
+      "audio_snr_db": null,
+      "frame_count": 528,
+      "frame_error_count": 22,
+      "superframe_count": 22,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_clean_snr5.0.wav",
+    "timestamp": "2025-12-10T15:36:35.324302"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "clean",
+        "type": "clean"
+      },
+      "snr_db": 10.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.04,
+      "total_frames_received": 375,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.340205907821655,
+      "audio_quality_score": 4.969440889446671,
+      "audio_snr_db": null,
+      "frame_count": 360,
+      "frame_error_count": 15,
+      "superframe_count": 15,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_clean_snr10.0.wav",
+    "timestamp": "2025-12-10T15:36:47.382489"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "clean",
+        "type": "clean"
+      },
+      "snr_db": 15.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.041176470588235294,
+      "total_frames_received": 850,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.389011859893799,
+      "audio_quality_score": 4.947848998150704,
+      "audio_snr_db": null,
+      "frame_count": 816,
+      "frame_error_count": 35,
+      "superframe_count": 34,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_clean_snr15.0.wav",
+    "timestamp": "2025-12-10T15:36:59.495781"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "clean",
+        "type": "clean"
+      },
+      "snr_db": 20.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.04,
+      "total_frames_received": 550,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.326853275299072,
+      "audio_quality_score": 4.957557009202855,
+      "audio_snr_db": null,
+      "frame_count": 528,
+      "frame_error_count": 22,
+      "superframe_count": 22,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_clean_snr20.0.wav",
+    "timestamp": "2025-12-10T15:37:11.540021"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "awgn",
+        "type": "awgn"
+      },
+      "snr_db": -5.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.07542857142857143,
+      "total_frames_received": 875,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.329415321350098,
+      "audio_quality_score": null,
+      "audio_snr_db": null,
+      "frame_count": 840,
+      "frame_error_count": 66,
+      "superframe_count": 35,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": [
+          "WarpQ score not computed (audio quality cannot be validated)"
+        ]
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_awgn_snr-5.0.wav",
+    "timestamp": "2025-12-10T15:37:23.581350"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "awgn",
+        "type": "awgn"
+      },
+      "snr_db": 0.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.05028571428571429,
+      "total_frames_received": 875,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.347962856292725,
+      "audio_quality_score": 5.0,
+      "audio_snr_db": null,
+      "frame_count": 840,
+      "frame_error_count": 44,
+      "superframe_count": 35,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_awgn_snr0.0.wav",
+    "timestamp": "2025-12-10T15:37:35.673509"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "awgn",
+        "type": "awgn"
+      },
+      "snr_db": 5.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.04,
+      "total_frames_received": 550,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.381033420562744,
+      "audio_quality_score": 4.958584119093969,
+      "audio_snr_db": null,
+      "frame_count": 528,
+      "frame_error_count": 22,
+      "superframe_count": 22,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_awgn_snr5.0.wav",
+    "timestamp": "2025-12-10T15:37:47.766945"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "awgn",
+        "type": "awgn"
+      },
+      "snr_db": 10.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.04,
+      "total_frames_received": 375,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.37516474723816,
+      "audio_quality_score": 4.99114832945468,
+      "audio_snr_db": null,
+      "frame_count": 360,
+      "frame_error_count": 15,
+      "superframe_count": 15,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_awgn_snr10.0.wav",
+    "timestamp": "2025-12-10T15:37:59.871305"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "awgn",
+        "type": "awgn"
+      },
+      "snr_db": 15.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.04,
+      "total_frames_received": 925,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.340982913970947,
+      "audio_quality_score": 4.943709373216797,
+      "audio_snr_db": null,
+      "frame_count": 888,
+      "frame_error_count": 37,
+      "superframe_count": 37,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_awgn_snr15.0.wav",
+    "timestamp": "2025-12-10T15:38:11.935655"
+  },
+  {
+    "scenario": {
+      "modulation": 4,
+      "crypto_mode": "none",
+      "channel": {
+        "name": "awgn",
+        "type": "awgn"
+      },
+      "snr_db": 20.0,
+      "phase": 1
+    },
+    "metrics": {
+      "fer": 0.04,
+      "total_frames_received": 925,
+      "ber": null,
+      "superframe_fer": 0.0,
+      "ldpc_mean_iterations": null,
+      "ldpc_max_iterations": null,
+      "ldpc_convergence_rate": null,
+      "signature_verification_rate": 1.0,
+      "decrypt_success_rate": null,
+      "mac_verification_rate": null,
+      "sync_acquisition_time": null,
+      "sync_loss_count": 0,
+      "sync_recovery_time_mean": null,
+      "sync_recovery_time_max": null,
+      "aprs_packets_received": 0,
+      "aprs_packets_corrupted": 0,
+      "text_messages_received": 0,
+      "text_messages_corrupted": 0,
+      "total_processing_time": 11.334330320358276,
+      "audio_quality_score": 4.935024173613494,
+      "audio_snr_db": null,
+      "frame_count": 888,
+      "frame_error_count": 37,
+      "superframe_count": 37,
+      "superframe_error_count": 0
+    },
+    "validation": {
+      "audio_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "crypto_security": {
+        "pass": true,
+        "issues": []
+      },
+      "data_integrity": {
+        "pass": true,
+        "issues": []
+      },
+      "state_machine": {
+        "pass": true,
+        "issues": []
+      },
+      "boundary_conditions": {
+        "pass": true,
+        "issues": []
+      },
+      "audio_quality": {
+        "pass": true,
+        "issues": []
+      },
+      "overall_pass": true
+    },
+    "output_wav": "./output-wav/output_4FSK_none_awgn_snr20.0.wav",
+    "timestamp": "2025-12-10T15:38:23.983820"
+  }
+]

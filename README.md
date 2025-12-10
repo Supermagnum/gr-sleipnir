@@ -353,7 +353,7 @@ The sleipnir module should be installed in `gnuradio/sleipnir/` within that dire
 
 #### Troubleshooting Installation
 
-**Issue: "getcwd: Fila eller mappa finnes ikke" when using sudo**
+**Issue: "getcwd: File or folder not found" when using sudo**
 
 This error occurs when `sudo` loses the current working directory context. **Solution: Use absolute path with `-C` flag:**
 
@@ -362,7 +362,7 @@ This error occurs when `sudo` loses the current working directory context. **Sol
 sudo make -C $(pwd)/build install
 
 # Or with explicit absolute path
-sudo make -C /home/haaken/github-projects/gr-sleipnir/build install
+sudo make -C /home/yourusername/github-projects/gr-sleipnir/build install
 ```
 
 **Alternative: Test installation without sudo (using DESTDIR):**
@@ -441,13 +441,16 @@ To test the system:
 gr-sleipnir/
 ├── README.md                      # This file
 ├── CMakeLists.txt                 # Root CMake configuration
-├── TEST_RESULTS.md                # Latest test execution results
 ├── docs/                          # Additional documentation
+│   ├── APRS_TEXT_MESSAGING.md     # APRS and text messaging guide
+│   ├── CONTRIBUTING.md            # Contributing guidelines
 │   ├── CRYPTO_INTEGRATION.md      # Crypto integration guide
 │   ├── CRYPTO_WIRING.md           # Crypto block wiring guide
+│   ├── FER_TRACKING.md            # Frame Error Rate tracking documentation
 │   ├── GR_LINUX_CRYPTO_VERIFICATION.md  # gr-linux-crypto verification
 │   ├── SYNC_FRAME_ANALYSIS.md     # Sync frame analysis
-│   └── SYNC_FRAME_IMPLEMENTATION.md  # Sync frame implementation
+│   ├── SYNC_FRAME_IMPLEMENTATION.md  # Sync frame implementation
+│   └── TEST_RESULTS.md            # Latest test execution results
 ├── examples/                      # Example flowgraphs and documentation
 │   ├── sleipnir_tx_basic.grc     # Basic TX example
 │   ├── sleipnir_rx_basic.grc     # Basic RX example
@@ -495,9 +498,13 @@ gr-sleipnir/
 │   └── README_RX_MODULE.md       # RX module quick reference
 ├── tests/                        # Test suite
 │   ├── README.md                 # Test suite documentation
+│   ├── README_TESTING.md         # Comprehensive test suite documentation
 │   ├── TEST_SCENARIOS.md         # Test scenarios documentation
 │   ├── TEST_SUMMARY.md           # Test summary
 │   ├── INTEGRATION_TESTS.md      # Integration test guide
+│   ├── test_comprehensive.py     # Comprehensive automated test suite (Phase 1, 2, 3)
+│   ├── analyze_results.py        # Test results analysis and reporting tool
+│   ├── config_comprehensive.yaml # Comprehensive test configuration
 │   ├── run_all_tests.py          # Test runner
 │   └── test_*.py                 # Individual test files
 └── Pictures/                     # Images and graphics
@@ -531,6 +538,10 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 
 - **[APRS and Text Messaging Guide](docs/APRS_TEXT_MESSAGING.md)** - Comprehensive guide to APRS packet and text message transmission/reception, frame type multiplexing, and integration examples
 
+### FER Tracking
+
+- **[FER Tracking Documentation](docs/FER_TRACKING.md)** - Frame Error Rate tracking and calculation documentation, including accurate error counting and validation
+
 ### Sync Frames
 
 - **[Sync Frame Analysis](docs/SYNC_FRAME_ANALYSIS.md)** - Analysis of sync frame requirements for receiver acquisition
@@ -551,9 +562,11 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 - **[Test Suite README](tests/README_TESTING.md)** - Comprehensive test suite documentation
 - **[Test Scenarios](tests/TEST_SCENARIOS.md)** - Detailed documentation of test scenarios
 - **[Test Summary](tests/TEST_SUMMARY.md)** - Quick reference summary of test results
-- **[Test Results](TEST_RESULTS.md)** - Latest test execution results
+- **[Test Results](docs/TEST_RESULTS.md)** - Latest test execution results
 - **[Integration Tests](tests/INTEGRATION_TESTS.md)** - Guide for running integration tests
 - **[FER Tracking](docs/FER_TRACKING.md)** - Frame Error Rate tracking and calculation documentation
+- **[Comprehensive Test Suite](tests/test_comprehensive.py)** - Automated test suite (Phase 1, 2, 3)
+- **[Results Analysis Tool](tests/analyze_results.py)** - Test results analysis, plotting, and reporting
 
 ### Examples
 
@@ -581,8 +594,28 @@ The gr-opus module includes comprehensive tests. See the [gr-opus repository](ht
 
 For gr-sleipnir specific tests, see the [Test Suite Documentation](tests/README_TESTING.md).
 
-The test suite includes:
-- Comprehensive block and parameter testing across varying channel conditions
+The test suite includes three phases:
+
+**Phase 1: Critical Path** - Baseline tests for core functionality
+- Clean channel and AWGN conditions
+- Coarser SNR steps for quick validation
+- No crypto modes (baseline performance)
+
+**Phase 2: Full Coverage** - Comprehensive testing across all configurations
+- All modulation modes (4FSK, 8FSK)
+- All crypto combinations (none, sign, encrypt, both)
+- Full SNR sweep (-5 dB to +20 dB in 1 dB steps)
+- Multiple channel models (clean, AWGN, Rayleigh, Rician)
+- 832 test scenarios total
+
+**Phase 3: Edge Cases** - Stress testing and boundary conditions
+- Boundary conditions (zero frames, extreme SNR, rapid frame rate)
+- Key rotation tests (mid-stream key changes)
+- Sync loss/recovery scenarios
+- Mixed mode stress tests (voice + APRS + text simultaneously)
+- 120 edge case scenarios
+
+**Test Features:**
 - Frame Error Rate (FER) tracking with accurate error counting
   - Tracks `frame_error_count` and `total_frames_received` for accurate FER calculation
   - Correctly identifies corrupted frames (including those misclassified as APRS/text)
@@ -591,6 +624,9 @@ The test suite includes:
 - APRS and text messaging functionality tests
 - Data leakage and security validation
 - Performance metrics: FER, BER, WarpQ scores, sync performance
+- Crypto overhead analysis
+- Waterfall SNR detection
+- Comprehensive reporting and visualization
 
 ## Status
 
