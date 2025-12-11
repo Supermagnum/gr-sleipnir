@@ -270,7 +270,7 @@ See [Test Results](docs/TEST_RESULTS.md) for complete Phase 2 results and [Analy
 
 ### gr-sleipnir Performance Validation
 
-Comprehensive GNU Radio simulation testing of gr-sleipnir (7,728 test scenarios completed December 11, 2025 at 15:00) demonstrates **-1 dB SNR waterfall for 4FSK mode** and **0-1 dB SNR for 8FSK mode**. Testing methodology employed systematic SNR sweeps (-2 to +20 dB in 1 dB steps) across multiple channel conditions (clean, AWGN, Rayleigh/Rician fading, frequency offset ±100/±500/±1000 Hz) with automated FER and WarpQ audio quality measurements.
+Comprehensive GNU Radio simulation testing of gr-sleipnir demonstrates **-1 dB SNR waterfall for 4FSK mode** and **0-1 dB SNR for 8FSK mode** (Phase 2: 832 test scenarios completed December 10, 2025; Phase 3: 1,288+ test scenarios completed as of December 11, 2025, testing ongoing). Testing methodology employed systematic SNR sweeps (-2 to +20 dB in 1 dB steps) across multiple channel conditions (clean, AWGN, Rayleigh/Rician fading, frequency offset ±100/±500/±1000 Hz) with automated FER and WarpQ audio quality measurements.
 
 **Simulation Results:**
 - **SNR Advantage**: Approximately **6 dB SNR advantage over M17** (specification: +5 dB waterfall) and **6-8 dB advantage over DMR** (measured ~7 dB requirement)
@@ -329,7 +329,7 @@ Comprehensive GNU Radio simulation testing of gr-sleipnir (7,728 test scenarios 
 **Important: All performance figures reported are from GNU Radio software simulations, not on-air measurements.**
 
 **Simulation Results Summary:**
-- **Total Test Scenarios**: 8,560+ validated test scenarios across 3 phases
+- **Total Test Scenarios**: 2,132+ validated test scenarios completed (Phase 1: 12, Phase 2: 832, Phase 3: 1,288+ in progress; Phase 3 target: 7,728)
 - **4FSK Waterfall SNR**: -1 dB (simulated, FER < 1% threshold)
 - **8FSK Waterfall SNR**: 0 to +1 dB (simulated, FER < 1% threshold)
 - **4FSK Operational SNR**: 0-1 dB (simulated, FER < 5% threshold)
