@@ -63,7 +63,8 @@ class sleipnir_superframe_parser(gr.basic_block):
         private_key_path: Optional[str] = None,
         require_signatures: bool = False,
         public_key_store_path: Optional[str] = None,
-        enable_sync_detection: bool = True
+        enable_sync_detection: bool = True,
+        mac_key: Optional[bytes] = None
     ):
         """
         Initialize superframe parser.
@@ -73,6 +74,8 @@ class sleipnir_superframe_parser(gr.basic_block):
             private_key_path: Path to private key for decryption
             require_signatures: Require valid signatures
             public_key_store_path: Path to public key store directory
+            enable_sync_detection: Enable sync detection
+            mac_key: MAC key for ChaCha20-Poly1305 verification (32 bytes)
         """
         gr.basic_block.__init__(
             self,
@@ -86,6 +89,7 @@ class sleipnir_superframe_parser(gr.basic_block):
         self.private_key_path = private_key_path
         self.public_key_store_path = public_key_store_path
         self.enable_sync_detection = enable_sync_detection
+        self.mac_key = mac_key
 
         # Load private key if provided
         self.private_key = None
@@ -95,11 +99,11 @@ class sleipnir_superframe_parser(gr.basic_block):
             except Exception as e:
                 print(f"Warning: Could not load private key: {e}")
 
-        # Frame builder for parsing
+        # Frame builder for parsing (with MAC key for verification)
         self.frame_builder = VoiceFrameBuilder(
             callsign=local_callsign,
-            mac_key=None,
-            enable_mac=False
+            mac_key=mac_key,
+            enable_mac=(mac_key is not None)
         )
 
         # Store reference to self to prevent garbage collection issues
@@ -720,11 +724,11 @@ class sleipnir_superframe_parser(gr.basic_block):
                 signature_valid = self.verify_signature(signature, superframe_data, sender_callsign)
                 print(f"Signature verification result: {signature_valid}")
                 if not signature_valid:
-                    print("Warning: Signature verification failed - this may be due to hard-decision decoding errors")
-                    print("For now, allowing frames to be processed despite signature failure (testing mode)")
-                    # TODO: Once full LDPC decoding is integrated, signature verification should work
-                    # For now, we'll allow processing to continue for testing
-                    signature_valid = True  # Temporarily allow for testing
+                    print("Warning: Signature verification failed")
+                    # Note: This may be due to hard-decision decoding errors corrupting the data
+                    # However, we report the actual verification result, not a fake pass
+                    # If require_signatures is False, we allow processing to continue for analysis
+                    # If require_signatures is True, the frame will be rejected below
             else:
                 print("Warning: No sender callsign extracted, cannot verify signature")
                 signature_valid = False
@@ -762,6 +766,8 @@ class sleipnir_superframe_parser(gr.basic_block):
         message_type = "voice"
         encrypted = False
         decrypted_successfully = False
+        frames_with_valid_mac = 0
+        frames_with_encryption = 0
 
         frames_failed_to_parse = 0
         frames_failed_mac = 0
@@ -782,22 +788,58 @@ class sleipnir_superframe_parser(gr.basic_block):
             frame_type = parsed.get('frame_type', self.frame_builder.FRAME_TYPE_VOICE)
             mac = parsed.get('mac', b'\x00' * 8)
             frame_callsign = parsed.get('callsign', '').strip()
-            frame_counter = parsed.get('frame_counter', 0)
+            # Use frame index as frame_counter (matches TX side frame_num 1-24)
+            frame_counter = i
+            
+            # Extract data based on frame type
+            if frame_type == self.frame_builder.FRAME_TYPE_VOICE:
+                frame_data = parsed.get('opus_data', b'')
+            elif frame_type == self.frame_builder.FRAME_TYPE_APRS:
+                frame_data = parsed.get('aprs_data', b'')
+            elif frame_type == self.frame_builder.FRAME_TYPE_TEXT:
+                frame_data = parsed.get('text_data', b'')
+            else:
+                frame_data = parsed.get('data', b'')
 
-            # Check MAC for corruption detection
+            # Verify MAC if present and MAC key is available
             mac_valid = True
+            frame_encrypted = False
             if mac != b'\x00' * len(mac):
-                # MAC present - verify it to detect corruption
-                # Note: We need the MAC key to verify, but we can still check if MAC looks valid
-                # For now, if MAC is non-zero, we'll assume it should be verified
-                # In a real implementation, verify_mac() would be called here
-                # For testing purposes, we'll use a heuristic: if MAC is all zeros or all 0xFF, likely corrupted
-                if mac == b'\x00' * len(mac) or mac == b'\xFF' * len(mac):
-                    # Suspicious MAC pattern - likely corrupted
-                    frames_failed_mac += 1
-                    mac_valid = False
-                encrypted = True
-                # TODO: Add proper MAC verification when MAC key is available
+                encrypted = True  # At least one frame has encryption
+                frame_encrypted = True
+                frames_with_encryption += 1
+                # MAC present - verify it using MAC key
+                if self.mac_key and len(self.mac_key) == 32:
+                    # Recompute MAC using same data as TX side
+                    # MAC covers: frame_type + data[:39] + callsign + frame_counter
+                    # Ensure frame_data is exactly 39 bytes (pad/truncate if needed)
+                    mac_frame_data = frame_data[:39] if len(frame_data) >= 39 else frame_data.ljust(39, b'\x00')
+                    mac_data = (
+                        bytes([frame_type]) +
+                        mac_frame_data +  # First 39 bytes of data (matches TX side)
+                        get_callsign_bytes(frame_callsign) +
+                        bytes([frame_counter])
+                    )
+                    # Verify MAC
+                    try:
+                        mac_valid = verify_chacha20_mac(mac_data, mac, self.mac_key)
+                        if mac_valid:
+                            frames_with_valid_mac += 1
+                        else:
+                            frames_failed_mac += 1
+                            print(f"Warning: Frame {i} MAC verification failed")
+                    except Exception as e:
+                        print(f"Warning: Error verifying MAC for frame {i}: {e}")
+                        mac_valid = False
+                        frames_failed_mac += 1
+                else:
+                    # MAC present but no key - use heuristic check
+                    if mac == b'\x00' * len(mac) or mac == b'\xFF' * len(mac):
+                        frames_failed_mac += 1
+                        mac_valid = False
+                    else:
+                        # MAC looks valid but can't verify without key
+                        frames_with_valid_mac += 1
 
             # Skip corrupted frames (failed MAC check)
             if not mac_valid:
@@ -990,7 +1032,8 @@ def make_sleipnir_superframe_parser(
     private_key_path: Optional[str] = None,
     require_signatures: bool = False,
     public_key_store_path: Optional[str] = None,
-    enable_sync_detection: bool = True
+    enable_sync_detection: bool = True,
+    mac_key: Optional[bytes] = None
 ):
     """Factory function for GRC."""
     return sleipnir_superframe_parser(
@@ -998,6 +1041,7 @@ def make_sleipnir_superframe_parser(
         private_key_path=private_key_path,
         require_signatures=require_signatures,
         public_key_store_path=public_key_store_path,
-        enable_sync_detection=enable_sync_detection
+        enable_sync_detection=enable_sync_detection,
+        mac_key=mac_key
     )
 

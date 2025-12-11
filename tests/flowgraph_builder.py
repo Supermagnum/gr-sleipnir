@@ -315,7 +315,8 @@ def build_test_flowgraph(
         voice_matrix_file=voice_matrix_file,
         private_key_path=private_key_path,
         require_signatures=enable_signing,
-        public_key_store_path=public_key_store_path
+        public_key_store_path=public_key_store_path,
+        mac_key=mac_key
     )
     
     # 4.5. Metrics collector block (passes through audio, collects status messages)

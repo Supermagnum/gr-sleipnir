@@ -74,7 +74,8 @@ class sleipnir_rx_hier(gr.hier_block2):
         voice_matrix_file: str = "../ldpc_matrices/ldpc_voice_576_384.alist",
         private_key_path: str = None,
         require_signatures: bool = False,
-        public_key_store_path: str = None
+        public_key_store_path: str = None,
+        mac_key: bytes = None
     ):
         """
         Initialize sleipnir RX hierarchical block.
@@ -277,7 +278,8 @@ class sleipnir_rx_hier(gr.hier_block2):
             private_key_path=private_key_path,
             require_signatures=require_signatures,
             public_key_store_path=public_key_store_path,
-            enable_sync_detection=True
+            enable_sync_detection=True,
+            mac_key=mac_key
         )
         
         # Store references to Python blocks to prevent garbage collection
@@ -510,7 +512,8 @@ def make_sleipnir_rx_hier(
     voice_matrix_file: str = "../ldpc_matrices/ldpc_voice_576_384.alist",
     private_key_path: str = None,
     require_signatures: bool = False,
-    public_key_store_path: str = None
+    public_key_store_path: str = None,
+    mac_key: bytes = None
 ):
     """Factory function for GRC."""
     return sleipnir_rx_hier(
@@ -524,5 +527,6 @@ def make_sleipnir_rx_hier(
         voice_matrix_file=voice_matrix_file,
         private_key_path=private_key_path,
         require_signatures=require_signatures,
-        public_key_store_path=public_key_store_path
+        public_key_store_path=public_key_store_path,
+        mac_key=mac_key
     )

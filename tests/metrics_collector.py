@@ -411,6 +411,23 @@ class MetricsCollector:
                 else:
                     self.signature_failed += 1
             
+            # Extract decryption success
+            if pmt.dict_has_key(msg, pmt.intern("decrypted_successfully")):
+                decrypt_success = pmt.to_bool(
+                    pmt.dict_ref(msg, pmt.intern("decrypted_successfully"), pmt.PMT_F)
+                )
+                if decrypt_success:
+                    self.decrypt_success += 1
+                else:
+                    # Only count as failed if encryption was expected
+                    # Check if encrypted flag is present and True
+                    if pmt.dict_has_key(msg, pmt.intern("encrypted")):
+                        encrypted = pmt.to_bool(
+                            pmt.dict_ref(msg, pmt.intern("encrypted"), pmt.PMT_F)
+                        )
+                        if encrypted:
+                            self.decrypt_failed += 1
+            
             # Extract sync state
             if pmt.dict_has_key(msg, pmt.intern("sync_state")):
                 sync_state = pmt.symbol_to_string(
