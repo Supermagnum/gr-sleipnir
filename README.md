@@ -2,6 +2,32 @@
 
 A Experimental GNU Radio-based digital voice mode designed for amateur radio narrowband FM (NFM) channel spacing, utilizing modern audio codecs for superior voice quality compared to traditional codec2 implementations.
 
+## Disclaimer and Liability
+
+**Software Provided "As Is"**: This software is provided "as is," without any guarantees, warranties, or representations regarding its performance, reliability, functionality, or fitness for any particular purpose. The software may contain errors, bugs, or limitations that could affect its operation.
+
+**Liability Limitations**: The authors, contributors, and distributors of this software are not liable for any damages, losses, or consequences resulting from the use, misuse, or inability to use this software. This includes, but is not limited to:
+- Direct damages
+- Indirect damages
+- Incidental damages
+- Consequential damages
+- Loss of data
+- Loss of profits
+- Business interruption
+- Personal injury or property damage
+
+**User Responsibility**: Users are solely responsible for:
+- Assessing the software's suitability for their intended use
+- Verifying results against other reliable sources
+- Ensuring compliance with all applicable laws and regulations
+- **Cryptographic Operations**: Users must verify that signing, verification, encryption, and decryption operations comply with applicable laws and regulations in their jurisdiction. The use of encryption may be restricted or prohibited in certain jurisdictions or on certain frequency bands. Users are 100% responsible for legal compliance with all cryptographic operations.
+- Understanding and accepting the risks associated with using experimental software
+- Taking appropriate precautions and backups before using the software
+
+**No Warranty**: This software is distributed without warranty of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement.
+
+By using this software, you acknowledge that you have read, understood, and agree to these terms. If you do not agree with these terms, do not use this software.
+
 ## Table of Contents
 
 - [About the Name](#about-the-name)
@@ -692,6 +718,7 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 
 ### TX/RX Modules
 
+- **[Block Usage Guide](docs/BLOCK_USAGE_GUIDE.md)** - **Complete reference** for TX and RX blocks: all parameters, inputs, outputs, cryptographic operations, and legal information
 - **[TX Module Documentation](python/README_TX_MODULE.md)** - Quick reference for the TX module
 - **[TX Module Guide](examples/SLEIPNIR_TX_MODULE.md)** - Complete guide to the sleipnir_tx_hier module
 - **[RX Module Documentation](python/README_RX_MODULE.md)** - Quick reference for the RX module
