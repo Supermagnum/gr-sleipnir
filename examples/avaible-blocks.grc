@@ -1,0 +1,184 @@
+options:
+  parameters:
+    author: ''
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
+    comment: ''
+    copyright: ''
+    description: ''
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: avaible-blocks
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: Not titled yet
+    window_size: (1000,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 8]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '32000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 12]
+    rotation: 0
+    state: enabled
+- name: sleipnir_decoder_0
+  id: sleipnir_decoder
+  parameters:
+    affinity: ''
+    alias: ''
+    auth_matrix_file: '"../ldpc_matrices/ldpc_auth_768_256.alist"'
+    comment: ''
+    max_iter: '20'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    superframe_size: '25'
+    voice_matrix_file: '"../ldpc_matrices/ldpc_voice_576_384.alist"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [528, 128.0]
+    rotation: 0
+    state: enabled
+- name: sleipnir_deframer_0
+  id: sleipnir_deframer
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    enable_sync_detection: 'True'
+    local_callsign: '"N0CALL"'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    private_key_path: None
+    public_key_store_path: None
+    require_signatures: 'False'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 296.0]
+    rotation: 0
+    state: enabled
+- name: sleipnir_encoder_0
+  id: sleipnir_encoder
+  parameters:
+    affinity: ''
+    alias: ''
+    auth_matrix_file: '"../ldpc_matrices/ldpc_auth_768_256.alist"'
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    superframe_size: '25'
+    voice_matrix_file: '"../ldpc_matrices/ldpc_voice_576_384.alist"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [528, 248.0]
+    rotation: 0
+    state: enabled
+- name: sleipnir_framer_0
+  id: sleipnir_framer
+  parameters:
+    affinity: ''
+    alias: ''
+    callsign: '"N0CALL"'
+    comment: ''
+    enable_encryption: 'False'
+    enable_signing: 'False'
+    enable_sync_frames: 'True'
+    mac_key: None
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    private_key_path: None
+    sync_frame_interval: '5'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [192, 128.0]
+    rotation: 0
+    state: enabled
+- name: sleipnir_rx_hier_0
+  id: sleipnir_rx_hier
+  parameters:
+    affinity: ''
+    alias: ''
+    audio_samp_rate: '8000.0'
+    auth_matrix_file: '"../ldpc_matrices/ldpc_auth_768_256.alist"'
+    comment: ''
+    fsk_deviation: '2400.0'
+    fsk_levels: '4'
+    local_callsign: '"N0CALL"'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    private_key_path: None
+    public_key_store_path: None
+    require_signatures: 'False'
+    rf_samp_rate: '48000.0'
+    symbol_rate: '4800.0'
+    voice_matrix_file: '"../ldpc_matrices/ldpc_voice_576_384.alist"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [512, 356.0]
+    rotation: 0
+    state: enabled
+- name: sleipnir_tx_hier_0
+  id: sleipnir_tx_hier
+  parameters:
+    affinity: ''
+    alias: ''
+    audio_samp_rate: '8000.0'
+    auth_matrix_file: '"../ldpc_matrices/ldpc_auth_768_256.alist"'
+    callsign: '"N0CALL"'
+    comment: ''
+    enable_encryption: 'False'
+    enable_signing: 'False'
+    fsk_deviation: '2400.0'
+    fsk_levels: '4'
+    mac_key: None
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    private_key_path: None
+    rf_samp_rate: '48000.0'
+    symbol_rate: '4800.0'
+    voice_matrix_file: '"../ldpc_matrices/ldpc_voice_576_384.alist"'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [512, 564.0]
+    rotation: 0
+    state: enabled
+connections: []
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0
