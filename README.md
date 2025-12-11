@@ -20,7 +20,9 @@ A Experimental GNU Radio-based digital voice mode designed for amateur radio nar
 - Assessing the software's suitability for their intended use
 - Verifying results against other reliable sources
 - Ensuring compliance with all applicable laws and regulations
-- **Cryptographic Operations**: Users must verify that signing, verification, encryption, and decryption operations comply with applicable laws and regulations in their jurisdiction. The use of encryption may be restricted or prohibited in certain jurisdictions or on certain frequency bands. Users are 100% responsible for legal compliance with all cryptographic operations.
+- **Cryptographic Operations**: 
+  - **Signing and Verification (NOT Encryption)**: Digital signing and signature verification do NOT obscure message content and are generally permitted in amateur radio. These operations provide authentication and integrity verification without hiding the message content.
+  - **Encryption and Decryption**: Encryption DOES obscure message content and may be restricted or prohibited in certain jurisdictions or on certain frequency bands. Users must verify that encryption and decryption operations comply with applicable laws and regulations in their jurisdiction. Users are 100% responsible for legal compliance with all encryption operations.
 - Understanding and accepting the risks associated with using experimental software
 - Taking appropriate precautions and backups before using the software
 
