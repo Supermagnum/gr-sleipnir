@@ -220,21 +220,31 @@ The system supports two modulation modes optimized for different use cases:
 
 **Competitive Analysis:**
 
-| Mode | Waterfall SNR | Operational SNR (FER<5%) | Audio Codec | Bitrate | Bandwidth | Advantage vs gr-sleipnir |
-|------|---------------|---------------------------|-------------|---------|------------|--------------------------|
-| **gr-sleipnir (8FSK)** | 0 to +1 dB | 0-1 dB | Opus 8 kbps | 14,400 bps | ~11-12 kHz | Baseline |
-| **gr-sleipnir (4FSK)** | -1 dB | 0-1 dB | Opus 6 kbps | 9,600 bps | ~9-10 kHz | Baseline |
-| **M17** | +5 dB | +5-6 dB | Codec2 3.2 kbps | 9,600 bps | ~9 kHz | **+4-5 dB better** |
-| **DMR** | +3 to +5 dB | +4-6 dB | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+3-4 dB better** |
-| **FreeDV** | +3 to +6 dB | +4-7 dB | Codec2 1.3-3.2 kbps | Varies | Varies | **+3-5 dB better** |
-| **D-STAR** | +4 to +6 dB | +5-7 dB | AMBE+ 2.45 kbps | 4,800 bps | 6.25 kHz | **+4-5 dB better** |
-| **Fusion (C4FM)** | +3 to +5 dB | +4-6 dB | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+3-4 dB better** |
-| **P25** | +4 to +6 dB | +5-7 dB | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+4-5 dB better** |
+| Mode | Waterfall SNR | Operational SNR (FER<5%) | Audio Codec | Bitrate | Bandwidth | Advantage vs gr-sleipnir | Notes |
+|------|---------------|---------------------------|-------------|---------|------------|--------------------------|-------|
+| **gr-sleipnir (8FSK)** | 0 to +1 dB | 0-1 dB | Opus 8 kbps | 14,400 bps | ~11-12 kHz | Baseline | Measured |
+| **gr-sleipnir (4FSK)** | -1 dB | 0-1 dB | Opus 6 kbps | 9,600 bps | ~9-10 kHz | Baseline | Measured |
+| **M17** | +5 dB | +5-6 dB | Codec2 3.2 kbps | 9,600 bps | ~9 kHz | **+4-5 dB better** | Documented |
+| **DMR** | +5 to +7 dB | +6-8 dB | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+5-6 dB better** | Estimated |
+| **FreeDV 700D** | -2 to -3 dB | -1 to 0 dB | Codec2 0.7 kbps | 2,400 bps | ~1.2 kHz | **2-3 dB better SNR** | Very low audio quality (0.7 kbps) |
+| **FreeDV 2020** | +2 to +5 dB | +3-6 dB | Codec2 1.3 kbps | 4,800 bps | ~2.4 kHz | **+2-4 dB better** | |
+| **FreeDV 1600** | +2 dB | +3-4 dB | Codec2 1.6 kbps | 4,800 bps | ~2.4 kHz | **+2-3 dB better** | |
+| **D-STAR** | +4 to +6 dB* | +5-7 dB* | AMBE+ 2.45 kbps | 4,800 bps | 6.25 kHz | **+4-5 dB better*** | *Estimated, needs verification |
+| **Fusion (C4FM)** | +5 to +7 dB* | +6-8 dB* | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+5-6 dB better*** | *Estimated, similar to DMR |
+| **P25** | +4 to +6 dB* | +5-7 dB* | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+4-5 dB better*** | *Estimated, needs verification |
+
+**Notes on Competitive Analysis:**
+- **Measured values**: gr-sleipnir and M17 have documented/tested waterfall SNR values
+- **Estimated values** (marked with *): D-STAR, Fusion, and P25 values are estimates based on technical specifications and similar systems; specific waterfall measurements not found in public literature
+- **FreeDV modes**: FreeDV 700D actually outperforms gr-sleipnir on SNR (-2 to -3 dB vs 0 to +1 dB) but uses very low bitrate Codec2 (0.7 kbps) resulting in lower audio quality. FreeDV 2020 and 1600 modes are closer to gr-sleipnir performance
+- **DMR**: Based on documented ~7 dB SNR requirement for reliable operation
+- **Audio quality trade-off**: Lower SNR modes (FreeDV 700D) sacrifice audio quality for sensitivity; gr-sleipnir prioritizes audio quality (Opus 6-8 kbps) while maintaining competitive SNR performance
 
 **Key Advantages of gr-sleipnir:**
-- **Superior SNR performance**: 3-5 dB better than commercial/proprietary modes
-- **Modern audio codec**: Opus provides superior quality vs AMBE+2/Codec2
-- **Higher audio bitrate**: 6-8 kbps Opus vs 2.45-3.2 kbps for other modes
+- **Competitive SNR performance**: 3-6 dB better than most commercial/proprietary modes (M17, DMR, D-STAR, Fusion, P25)
+- **Superior audio quality**: Modern Opus codec (6-8 kbps) provides excellent quality vs AMBE+2/Codec2 (2.45-3.2 kbps)
+- **Balanced performance**: Unlike FreeDV 700D (which achieves -2 to -3 dB SNR but with very low quality 0.7 kbps audio), gr-sleipnir maintains competitive SNR (0 to +1 dB) while delivering high-quality audio
+- **Higher audio bitrate**: 6-8 kbps Opus vs 2.45-3.2 kbps for most other modes
 - **Open source**: Full transparency and customization vs proprietary systems
 - **Flexible bandwidth**: 9-12 kHz fits standard NFM spacing
 
