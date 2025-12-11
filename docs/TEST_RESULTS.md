@@ -258,12 +258,12 @@ All analysis reports are located in: `test-results-files/analysis/`
 ### Performance Visualizations
 
 **Graphs and Figures:**
-- [Performance Curves](test-results-files/analysis/performance_curves.png) - FER vs SNR plots for 4FSK and 8FSK across all channel models
-- [Publication-Ready FER vs SNR (PNG)](test-results-files/analysis/publication_fer_vs_snr.png) - High-resolution performance plot suitable for presentations
-- [Publication-Ready FER vs SNR (PDF)](test-results-files/analysis/publication_fer_vs_snr.pdf) - Vector format for academic publications
+- [Performance Curves](https://raw.githubusercontent.com/Supermagnum/gr-sleipnir/main/test-results-files/analysis/performance_curves.png) - FER vs SNR plots for 4FSK and 8FSK across all channel models
+- [Publication-Ready FER vs SNR (PNG)](https://raw.githubusercontent.com/Supermagnum/gr-sleipnir/main/test-results-files/analysis/publication_fer_vs_snr.png) - High-resolution performance plot suitable for presentations
+- [Publication-Ready FER vs SNR (PDF)](https://raw.githubusercontent.com/Supermagnum/gr-sleipnir/main/test-results-files/analysis/publication_fer_vs_snr.pdf) - Vector format for academic publications
 
 **Quick Preview:**
-![Performance Curves](test-results-files/analysis/performance_curves.png)
+![Performance Curves](https://raw.githubusercontent.com/Supermagnum/gr-sleipnir/main/test-results-files/analysis/performance_curves.png)
 
 See `test-results-files/analysis/ANALYSIS_SUMMARY.md` for complete overview of all analysis reports.
 
