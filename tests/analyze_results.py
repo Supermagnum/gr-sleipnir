@@ -380,6 +380,137 @@ class ResultsAnalyzer:
             print("No crypto overhead data available (need both crypto and non-crypto results)")
         
         return overhead_data
+    
+    def compare_data_modes(self):
+        """
+        Compare performance between different data modes (voice vs voice_text).
+        
+        Returns:
+            Dict with data mode comparison analysis
+        """
+        # Group results by modulation, crypto, channel, SNR, and data_mode
+        grouped = defaultdict(lambda: {'voice': [], 'voice_text': []})
+        
+        for result in self.results:
+            if 'scenario' not in result:
+                continue
+            
+            scenario = result['scenario']
+            mod = scenario['modulation']
+            crypto = scenario['crypto_mode']
+            channel_name = scenario['channel'].get('name', 'unknown') if isinstance(scenario['channel'], dict) else 'unknown'
+            snr = scenario['snr_db']
+            data_mode = scenario.get('data_mode', 'voice')
+            
+            # Only compare voice and voice_text modes
+            if data_mode not in ['voice', 'voice_text']:
+                continue
+            
+            key = (mod, crypto, channel_name, snr)
+            grouped[key][data_mode].append(result)
+        
+        # Calculate comparison metrics
+        comparison_data = []
+        
+        for (mod, crypto, channel, snr), mode_results in grouped.items():
+            voice_results = mode_results.get('voice', [])
+            voice_text_results = mode_results.get('voice_text', [])
+            
+            if voice_results and voice_text_results:
+                # Calculate averages
+                voice_fer = np.mean([r['metrics'].get('fer', 0) for r in voice_results if 'metrics' in r])
+                voice_warpq = np.mean([r['metrics'].get('audio_quality_score', 0) 
+                                     for r in voice_results if 'metrics' in r and r['metrics'].get('audio_quality_score') is not None])
+                
+                voice_text_fer = np.mean([r['metrics'].get('fer', 0) for r in voice_text_results if 'metrics' in r])
+                voice_text_warpq = np.mean([r['metrics'].get('audio_quality_score', 0) 
+                                          for r in voice_text_results if 'metrics' in r and r['metrics'].get('audio_quality_score') is not None])
+                
+                # Calculate differences
+                fer_diff = voice_text_fer - voice_fer
+                warpq_diff = voice_text_warpq - voice_warpq if voice_warpq and voice_text_warpq else None
+                
+                comparison_data.append({
+                    'modulation': mod,
+                    'crypto_mode': crypto,
+                    'channel': channel,
+                    'snr': snr,
+                    'voice_fer': voice_fer,
+                    'voice_text_fer': voice_text_fer,
+                    'fer_diff': fer_diff,
+                    'voice_warpq': voice_warpq,
+                    'voice_text_warpq': voice_text_warpq,
+                    'warpq_diff': warpq_diff
+                })
+        
+        # Print analysis
+        print(f"\n{'='*80}")
+        print(f"Data Mode Comparison Analysis")
+        print(f"{'='*80}\n")
+        
+        if comparison_data:
+            # Overall statistics
+            avg_fer_diff = np.mean([d['fer_diff'] for d in comparison_data])
+            avg_warpq_diff = np.mean([d['warpq_diff'] for d in comparison_data if d['warpq_diff'] is not None])
+            
+            print(f"Overall Statistics:")
+            print(f"  Average FER difference (voice_text - voice): {avg_fer_diff*100:+.3f}%")
+            if not np.isnan(avg_warpq_diff):
+                print(f"  Average WarpQ difference (voice_text - voice): {avg_warpq_diff:+.3f}")
+            print()
+            
+            # Group by modulation
+            for mod in [4, 8]:
+                mod_data = [d for d in comparison_data if d['modulation'] == mod]
+                if mod_data:
+                    mod_fer_diff = np.mean([d['fer_diff'] for d in mod_data])
+                    mod_warpq_diff = np.mean([d['warpq_diff'] for d in mod_data if d['warpq_diff'] is not None])
+                    
+                    print(f"{mod}FSK Mode:")
+                    print(f"  Average FER difference: {mod_fer_diff*100:+.3f}%")
+                    if not np.isnan(mod_warpq_diff):
+                        print(f"  Average WarpQ difference: {mod_warpq_diff:+.3f}")
+                    print(f"  Tests compared: {len(mod_data)}")
+                    print()
+            
+            # Group by crypto mode
+            for crypto in ['none', 'sign', 'encrypt', 'both']:
+                crypto_data = [d for d in comparison_data if d['crypto_mode'] == crypto]
+                if crypto_data:
+                    crypto_fer_diff = np.mean([d['fer_diff'] for d in crypto_data])
+                    crypto_warpq_diff = np.mean([d['warpq_diff'] for d in crypto_data if d['warpq_diff'] is not None])
+                    
+                    print(f"Crypto Mode '{crypto}':")
+                    print(f"  Average FER difference: {crypto_fer_diff*100:+.3f}%")
+                    if not np.isnan(crypto_warpq_diff):
+                        print(f"  Average WarpQ difference: {crypto_warpq_diff:+.3f}")
+                    print(f"  Tests compared: {len(crypto_data)}")
+                    print()
+            
+            # Show detailed breakdown
+            print(f"\nDetailed Breakdown (sample):")
+            print(f"{'Mod':<6} {'Crypto':<10} {'Channel':<15} {'SNR':<8} {'Voice FER':<12} {'Voice+Text FER':<15} {'FER Diff':<12} {'Voice WarpQ':<13} {'Voice+Text WarpQ':<16} {'WarpQ Diff':<12}")
+            print(f"{'-'*120}")
+            for d in comparison_data[:30]:  # Show first 30
+                fer_diff_str = f"{d['fer_diff']*100:+.3f}%" if d['fer_diff'] is not None else "N/A"
+                warpq_diff_str = f"{d['warpq_diff']:+.3f}" if d['warpq_diff'] is not None else "N/A"
+                voice_warpq_str = f"{d['voice_warpq']:.2f}" if d['voice_warpq'] else "N/A"
+                voice_text_warpq_str = f"{d['voice_text_warpq']:.2f}" if d['voice_text_warpq'] else "N/A"
+                
+                print(f"{d['modulation']}FSK  {d['crypto_mode']:<10} {d['channel']:<15} {d['snr']:>6.1f}  "
+                      f"{d['voice_fer']*100:>10.3f}%  {d['voice_text_fer']*100:>13.3f}%  {fer_diff_str:<12} "
+                      f"{voice_warpq_str:<13} {voice_text_warpq_str:<16} {warpq_diff_str:<12}")
+        else:
+            print("No data mode comparison available (need both 'voice' and 'voice_text' results)")
+            print(f"Available data modes in results:")
+            data_modes = set()
+            for result in self.results:
+                if 'scenario' in result:
+                    dm = result['scenario'].get('data_mode', 'voice')
+                    data_modes.add(dm)
+            print(f"  {', '.join(sorted(data_modes))}")
+        
+        return comparison_data
 
 
 def main():
@@ -397,6 +528,8 @@ def main():
                        help='Output file for summary table')
     parser.add_argument('--crypto-overhead', action='store_true',
                        help='Analyze crypto overhead')
+    parser.add_argument('--compare-data-modes', action='store_true',
+                       help='Compare performance between data modes (voice vs voice_text)')
     
     args = parser.parse_args()
     
@@ -417,6 +550,9 @@ def main():
     
     if args.crypto_overhead:
         analyzer.analyze_crypto_overhead()
+    
+    if args.compare_data_modes:
+        analyzer.compare_data_modes()
     
     return 0
 

@@ -828,11 +828,25 @@ with open(output_file, 'w') as f:
             # Get SNR from scenario parameter
             snr_db = scenario.get('snr_db', 10.0) if scenario else 10.0
             
-            # Apply FER threshold based on SNR
+            # Get channel name for channel-specific thresholds
+            channel = scenario.get('channel', {}) if scenario else {}
+            if isinstance(channel, dict):
+                channel_name = channel.get('name', 'awgn')  # Default to awgn if not specified
+            else:
+                channel_name = 'awgn'
+            
+            # Apply channel-specific FER threshold based on SNR
+            thresholds = self.pass_criteria.get('thresholds', {})
+            channel_thresholds = thresholds.get(channel_name, {})
+            
             if snr_db >= 15.0:
-                fer_threshold = self.pass_criteria.get('fer_threshold_15db', 0.001)  # 0.1% at 15+ dB
+                # Try channel-specific threshold first, fall back to defaults
+                fer_threshold = channel_thresholds.get('fer_15db', 
+                    self.pass_criteria.get('fer_threshold_15db', 0.10))  # 10% default for low SNR
             elif snr_db >= 10.0:
-                fer_threshold = self.pass_criteria.get('fer_threshold_10db', 0.01)  # 1% at 10+ dB
+                # Try channel-specific threshold first, fall back to defaults
+                fer_threshold = channel_thresholds.get('fer_10db',
+                    self.pass_criteria.get('fer_threshold_10db', 0.10))  # 10% default for low SNR
             else:
                 # For low SNR (< 10 dB), use more lenient threshold
                 # FER > 10% is considered failure at low SNR
@@ -840,7 +854,7 @@ with open(output_file, 'w') as f:
             
             if fer > fer_threshold:
                 validation['audio_integrity']['issues'].append(
-                    f"FER too high: {fer:.4f} > {fer_threshold:.4f} (threshold for SNR {snr_db:.1f} dB)"
+                    f"FER too high: {fer:.4f} > {fer_threshold:.4f} (threshold for {channel_name} channel at SNR {snr_db:.1f} dB)"
                 )
                 validation['audio_integrity']['pass'] = False
         

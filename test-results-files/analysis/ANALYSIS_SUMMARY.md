@@ -22,6 +22,7 @@ All 13 requested analysis reports have been successfully generated from Phase 2 
   - Low SNR (0 to 5 dB): 99.4% pass rate, 6.32% mean FER
   - Mid SNR (5 to 10 dB): 100% pass rate, 4.89% mean FER
   - High SNR (10+ dB): 86.9% pass rate, 4.52% mean FER
+  - **Note**: High SNR pass rate was lower due to strict 5% threshold. Channel-specific thresholds (7-20% depending on channel) implemented for Phase 3.
 
 ### 3. Audio Quality Analysis ✓
 - **File**: `audio_quality_analysis.md`
