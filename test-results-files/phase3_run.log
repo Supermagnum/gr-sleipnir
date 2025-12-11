@@ -430,3 +430,7 @@
 2025-12-11 14:19:15,067 - __main__ - INFO - Loading 50 results from batch 106
 2025-12-11 14:19:15,067 - __main__ - INFO - Total results after batch 106: 6144
 2025-12-11 14:19:15,375 - __main__ - INFO - Batch 107/155: Tests 5301-5350
+2025-12-11 14:29:35,928 - __main__ - INFO - Batch 107 completed successfully
+2025-12-11 14:29:35,929 - __main__ - INFO - Loading 50 results from batch 107
+2025-12-11 14:29:35,929 - __main__ - INFO - Total results after batch 107: 6194
+2025-12-11 14:29:36,259 - __main__ - INFO - Batch 108/155: Tests 5351-5400
