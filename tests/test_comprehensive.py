@@ -126,7 +126,7 @@ class ComprehensiveTestSuite:
                 continue
             
             # Phase 3 uses standard scenario generation (performance analysis)
-            # No special handling needed - it's just focused on specific comparisons
+            # Includes text messaging and recipient addressing
             
             # Get phase-specific parameters or use defaults
             modulation_modes = phase_config.get('modulation_modes', self.test_params['modulation_modes'])
@@ -134,24 +134,57 @@ class ComprehensiveTestSuite:
             channel_conditions = phase_config.get('channel_conditions', [c['name'] for c in self.test_params['channel_conditions']])
             snr_range_config = phase_config.get('snr_range', self.test_params['snr_range'])
             
+            # Get data modes and recipient scenarios for Phase 3
+            data_modes = phase_config.get('data_modes', ['voice'])  # Default to voice only if not specified
+            recipient_scenarios = phase_config.get('recipient_scenarios', ['single'])  # Default to single if not specified
+            encryption_recipient_tests = phase_config.get('encryption_recipient_tests', False)
+            
             # Generate SNR range
             snr_start, snr_stop, snr_step = snr_range_config
             snr_values = list(range(snr_start, snr_stop + 1, snr_step))
             
             # Generate all combinations
-            for mod, crypto, channel_name, snr in product(modulation_modes, crypto_modes, channel_conditions, snr_values):
+            for mod, crypto, channel_name, snr, data_mode, recipient in product(
+                modulation_modes, crypto_modes, channel_conditions, snr_values, data_modes, recipient_scenarios
+            ):
                 # Find channel configuration
                 channel_config = next(
                     (c for c in self.test_params['channel_conditions'] if c['name'] == channel_name),
                     {'type': 'clean'}
                 )
                 
+                # Determine recipients based on scenario
+                # For encrypted modes, test multi-recipient encryption
+                if encryption_recipient_tests and crypto in ['encrypt', 'both']:
+                    # Test encryption with multiple recipients
+                    if recipient == 'single':
+                        recipients = ['TEST1']  # Single recipient
+                    elif recipient == 'two':
+                        recipients = ['TEST1', 'TEST2']  # Two recipients (encryption to 2 keys)
+                    elif recipient == 'multi':
+                        recipients = ['TEST1', 'TEST2', 'TEST3']  # Multi-recipient group (3+ recipients)
+                    else:
+                        recipients = ['TEST1']  # Default to single
+                else:
+                    # For non-encrypted modes, use simpler recipient scenarios
+                    if recipient == 'single':
+                        recipients = ['TEST1']  # Single recipient
+                    elif recipient == 'two':
+                        recipients = ['TEST1', 'TEST2']  # Two recipients
+                    elif recipient == 'multi':
+                        recipients = ['TEST1', 'TEST2', 'TEST3']  # Multi-recipient (3 recipients)
+                    else:
+                        recipients = ['TEST1']  # Default to single
+                
                 scenario = {
                     'modulation': mod,
                     'crypto_mode': crypto,
                     'channel': channel_config,
                     'snr_db': float(snr),
-                    'phase': phase_num
+                    'phase': phase_num,
+                    'data_mode': data_mode,
+                    'recipients': recipients,
+                    'recipient_scenario': recipient
                 }
                 scenarios.append(scenario)
         
@@ -471,7 +504,9 @@ with open(output_file, 'w') as f:
         channel = scenario['channel']
         snr_db = scenario['snr_db']
         
-        logger.info(f"Running test: {mod}FSK, {crypto_mode}, {channel['name']}, SNR={snr_db} dB")
+        data_mode = scenario.get('data_mode', 'voice')
+        recipients = scenario.get('recipients', ['TEST1'])
+        logger.info(f"Running test: {mod}FSK, {crypto_mode}, {channel['name']}, SNR={snr_db} dB, data_mode={data_mode}, recipients={recipients}")
         
         # Generate output filename
         output_wav = os.path.join(
@@ -517,7 +552,9 @@ with open(output_file, 'w') as f:
                 fsk_deviation=self.test_params['fsk_deviation'],
                 auth_matrix_file=auth_matrix,
                 voice_matrix_file=voice_matrix,
-                test_duration=self.test_params['test_duration']
+                test_duration=self.test_params['test_duration'],
+                data_mode=data_mode,
+                recipients=recipients
             )
             
             # Get metrics block from flowgraph (created in build_test_flowgraph)
@@ -529,6 +566,31 @@ with open(output_file, 'w') as f:
             
             # Run flowgraph
             tb.start()
+            
+            # Send recipient control message if set
+            if hasattr(tb, '_recipient_msg'):
+                import time as time_module
+                time_module.sleep(0.1)  # Small delay to ensure flowgraph is running
+                tx_block = tb._tx_block if hasattr(tb, '_tx_block') else None
+                if tx_block:
+                    try:
+                        tx_block.message_port_pub(pmt.intern("ctrl"), tb._recipient_msg)
+                        logger.debug(f"Set recipients: {recipients}")
+                    except Exception as e:
+                        logger.warning(f"Could not set recipients: {e}")
+            
+            # Send text message if set
+            if hasattr(tb, '_text_msg'):
+                import time as time_module
+                time_module.sleep(0.2)  # Small delay after recipient message
+                tx_block = tb._tx_block if hasattr(tb, '_tx_block') else None
+                if tx_block:
+                    try:
+                        tx_block.message_port_pub(pmt.intern("text_in"), tb._text_msg)
+                        logger.debug(f"Sent text message for data_mode: {data_mode}")
+                    except Exception as e:
+                        logger.warning(f"Could not send text message: {e}")
+            
             time.sleep(self.test_params['test_duration'] + 1.0)  # Add buffer
             tb.stop()
             tb.wait()

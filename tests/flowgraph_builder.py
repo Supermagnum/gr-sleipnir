@@ -203,7 +203,9 @@ def build_test_flowgraph(
     voice_matrix_file: str = None,
     private_key_path: str = None,
     mac_key: bytes = None,
-    test_duration: float = 5.0
+    test_duration: float = 5.0,
+    data_mode: str = "voice",
+    recipients: list = None
 ) -> gr.top_block:
     """
     Build test flowgraph.
@@ -338,6 +340,23 @@ def build_test_flowgraph(
     
     # Connect flowgraph
     tb.connect(wav_source, head_block, tx_block)
+    
+    # Set recipients if provided
+    if recipients:
+        recipient_str = ','.join(recipients)
+        ctrl_msg = pmt.make_dict()
+        ctrl_msg = pmt.dict_add(ctrl_msg, pmt.intern("recipient"), pmt.intern(recipient_str))
+        # Send control message to set recipients (will be sent after flowgraph starts)
+        tb._recipient_msg = ctrl_msg
+    
+    # Inject text message if data_mode includes text
+    if data_mode == "voice_text" or data_mode == "text_only":
+        text_message = b"Phase 3 test message"
+        text_pmt = pmt.init_u8vector(len(text_message), list(text_message))
+        text_meta = pmt.make_dict()
+        text_msg = pmt.cons(text_meta, text_pmt)
+        # Store text message to send after flowgraph starts
+        tb._text_msg = text_msg
     
     # Add channel model between TX and RX
     channel_model.add_to_flowgraph(tb, tx_block, rx_block)

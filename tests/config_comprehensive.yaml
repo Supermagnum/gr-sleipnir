@@ -124,7 +124,7 @@ test_phases:
     channel_conditions: ["clean", "awgn", "rayleigh", "rician"]
     snr_range: [-5, 20, 1]
   
-  # Phase 3: Performance Analysis and Validation
+  # Phase 3: Performance Analysis and Validation + Text Messaging + Recipient Addressing
   phase3:
     enabled: true
     # Phase 3 focuses on critical performance comparisons:
@@ -132,12 +132,24 @@ test_phases:
     # 2. Crypto Overhead (NONE vs SIGN vs ENCRYPT vs BOTH)
     # 3. Fading Channel Robustness (Rayleigh/Rician penalties)
     # 4. Frequency Offset Tolerance
+    # 5. Text Messaging (voice + text, text-only)
+    # 6. Recipient Addressing (single recipient, multi-recipient)
     
     # Focused test scenarios for performance analysis
     modulation_modes: [4, 8]  # Compare 4FSK vs 8FSK
     crypto_modes: ["none", "sign", "encrypt", "both"]  # Measure crypto overhead
     channel_conditions: ["clean", "awgn", "rayleigh", "rician", "freq_offset_100hz", "freq_offset_500hz", "freq_offset_1khz"]
     snr_range: [-2, 20, 1]  # Fine-grained SNR sweep for waterfall detection
+    
+    # Data modes to test
+    data_modes: ["voice", "voice_text"]  # Voice only, and voice + text messaging
+    
+    # Recipient addressing scenarios
+    recipient_scenarios: ["single", "two", "multi"]  # Single recipient, two recipients, multi-recipient (3+ recipients)
+    
+    # Encryption recipient scenarios (for encrypted modes)
+    # When encryption is enabled, test with multiple recipients to verify multi-recipient encryption
+    encryption_recipient_tests: true  # Enable encryption tests with multiple recipients
 
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR
