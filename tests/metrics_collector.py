@@ -81,6 +81,10 @@ class MetricsCollectorBlock(gr.sync_block):
                 'frame_error_count': 0,
                 'total_frames_received': 0,
                 'superframe_count': 0,
+                'signature_verified': 0,
+                'signature_failed': 0,
+                'decrypt_success': 0,
+                'decrypt_failed': 0,
                 'status_messages': []
             }
         MetricsCollectorBlock._instances[instance_id].setdefault('status_messages', []).append(msg)
@@ -121,6 +125,10 @@ class MetricsCollectorBlock(gr.sync_block):
                             'frame_error_count': 0,
                             'total_frames_received': 0,
                             'superframe_count': 0,
+                            'signature_verified': 0,
+                            'signature_failed': 0,
+                            'decrypt_success': 0,
+                            'decrypt_failed': 0,
                             'status_messages': []
                         }
                     storage = MetricsCollectorBlock._instances[instance_id]
@@ -158,12 +166,14 @@ class MetricsCollectorBlock(gr.sync_block):
                     self.frame_error_count = storage.get('frame_error_count', 0)
                     self.superframe_count = storage.get('superframe_count', 0)
                     
-                    # Extract signature validity
-                    sig_valid = msg_dict.get('signature_valid', False)
-                    if sig_valid:
-                        storage['signature_verified'] = storage.get('signature_verified', 0) + 1
-                    else:
-                        storage['signature_failed'] = storage.get('signature_failed', 0) + 1
+                    # Extract signature validity (only if present in message)
+                    if 'signature_valid' in msg_dict:
+                        sig_valid = msg_dict.get('signature_valid', False)
+                        if sig_valid:
+                            storage['signature_verified'] = storage.get('signature_verified', 0) + 1
+                        else:
+                            storage['signature_failed'] = storage.get('signature_failed', 0) + 1
+                        MetricsCollectorBlock._instances[instance_id] = storage
                     
                     # Extract sync state
                     sync_state = msg_dict.get('sync_state', '')

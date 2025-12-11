@@ -1,8 +1,8 @@
 {
-  "total_tests": 2132,
-  "passed": 1864,
-  "failed": 268,
-  "pass_rate": 0.874296435272045,
-  "duration_seconds": 15808.136070489883,
-  "timestamp": "2025-12-10T23:13:54.383409"
+  "total_tests": 8569,
+  "passed": 7061,
+  "failed": 1508,
+  "pass_rate": 0.8240168047613491,
+  "duration_seconds": 63.54212784767151,
+  "timestamp": "2025-12-11T22:58:29.304125"
 }

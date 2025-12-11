@@ -1,0 +1,20 @@
+{
+  "phase1": {
+    "total_seconds": 132.815727,
+    "hours": 0,
+    "minutes": 2,
+    "seconds": 12
+  },
+  "phase2": {
+    "total_seconds": 10070.161897,
+    "hours": 2,
+    "minutes": 47,
+    "seconds": 50
+  },
+  "phase3": {
+    "total_seconds": 97124.566885,
+    "hours": 26,
+    "minutes": 58,
+    "seconds": 44
+  }
+}

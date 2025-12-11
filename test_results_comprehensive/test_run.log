@@ -858,3 +858,52 @@
 2025-12-11 22:35:20,293 - __main__ - INFO - Loading 50 results from batch 154
 2025-12-11 22:35:20,293 - __main__ - INFO - Total results after batch 154: 8544
 2025-12-11 22:35:20,703 - __main__ - INFO - Batch 155/155: Tests 7701-7728
+2025-12-11 22:41:07,549 - __main__ - INFO - Batch 155 completed successfully
+2025-12-11 22:41:07,550 - __main__ - INFO - Loading 28 results from batch 155
+2025-12-11 22:41:07,550 - __main__ - INFO - Total results after batch 155: 8572
+2025-12-11 22:41:08,323 - __main__ - INFO - Phase 3 results saved to ./test-results-files/phase3.json (7728 results)
+2025-12-11 22:41:08,713 - __main__ - INFO - All results saved to ./test-results-json/results.json (8572 total results from all phases)
+2025-12-11 22:41:08,716 - __main__ - INFO - Summary: 7085/8572 tests passed (82.7%)
+2025-12-11 22:41:08,716 - __main__ - INFO - Test suite completed in 26h 41m 37s
+2025-12-11 22:45:33,718 - test_comprehensive - INFO - Loaded 8572 existing results from ./test-results-json/results.json
+2025-12-11 22:45:33,718 - test_comprehensive - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-11 22:46:15,883 - test_comprehensive - INFO - Loaded 8572 existing results from ./test-results-json/results.json
+2025-12-11 22:46:15,884 - test_comprehensive - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-11 22:47:10,594 - test_comprehensive - INFO - Loaded 8572 existing results from ./test-results-json/results.json
+2025-12-11 22:47:10,595 - test_comprehensive - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-11 22:47:16,249 - __main__ - INFO - Loaded 8549 existing results from ./test-results-json/results.json
+2025-12-11 22:47:16,250 - __main__ - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-11 22:47:16,287 - __main__ - INFO - Found 7708 already-completed tests for phase 3 (will skip)
+2025-12-11 22:47:16,306 - __main__ - INFO - Generated 7728 test scenarios
+2025-12-11 22:47:16,340 - __main__ - INFO - Skipping 7708 already-completed tests (resume mode)
+2025-12-11 22:47:16,340 - __main__ - INFO - Remaining tests to run: 20
+2025-12-11 22:47:16,340 - __main__ - INFO - Starting test suite: 20 scenarios
+2025-12-11 22:47:16,340 - __main__ - INFO - Using process isolation: 50 tests per process
+2025-12-11 22:47:16,341 - __main__ - INFO - Running 20 tests in 1 batches (50 tests per batch)
+2025-12-11 22:47:16,341 - __main__ - INFO - Batch 1/1: Tests 1-20
+2025-12-11 22:51:25,580 - __main__ - INFO - Batch 1 completed successfully
+2025-12-11 22:51:25,581 - __main__ - INFO - Loading 20 results from batch 1
+2025-12-11 22:51:25,581 - __main__ - INFO - Total results after batch 1: 8569
+2025-12-11 22:51:26,343 - __main__ - INFO - Phase 3 results saved to ./test-results-files/phase3.json (7728 results)
+2025-12-11 22:51:26,724 - __main__ - INFO - All results saved to ./test-results-json/results.json (8569 total results from all phases)
+2025-12-11 22:51:26,727 - __main__ - INFO - Summary: 7066/8569 tests passed (82.5%)
+2025-12-11 22:51:26,727 - __main__ - INFO - Test suite completed in 4m 10s
+2025-12-11 22:56:52,296 - test_comprehensive - INFO - Loaded 8569 existing results from ./test-results-json/results.json
+2025-12-11 22:56:52,296 - test_comprehensive - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-11 22:57:25,724 - __main__ - INFO - Loaded 8564 existing results from ./test-results-json/results.json
+2025-12-11 22:57:25,724 - __main__ - INFO - Input WAV properties: {'sample_rate': 48000, 'channels': 1, 'sample_width': 2, 'frames': 130176, 'duration': 2.712}
+2025-12-11 22:57:25,761 - __main__ - INFO - Found 7723 already-completed tests for phase 3 (will skip)
+2025-12-11 22:57:25,782 - __main__ - INFO - Generated 7728 test scenarios
+2025-12-11 22:57:25,816 - __main__ - INFO - Skipping 7723 already-completed tests (resume mode)
+2025-12-11 22:57:25,816 - __main__ - INFO - Remaining tests to run: 5
+2025-12-11 22:57:25,816 - __main__ - INFO - Starting test suite: 5 scenarios
+2025-12-11 22:57:25,816 - __main__ - INFO - Using process isolation: 50 tests per process
+2025-12-11 22:57:25,817 - __main__ - INFO - Running 5 tests in 1 batches (50 tests per batch)
+2025-12-11 22:57:25,817 - __main__ - INFO - Batch 1/1: Tests 1-5
+2025-12-11 22:58:28,124 - __main__ - INFO - Batch 1 completed successfully
+2025-12-11 22:58:28,124 - __main__ - INFO - Loading 5 results from batch 1
+2025-12-11 22:58:28,124 - __main__ - INFO - Total results after batch 1: 8569
+2025-12-11 22:58:28,913 - __main__ - INFO - Phase 3 results saved to ./test-results-files/phase3.json (7728 results)
+2025-12-11 22:58:29,300 - __main__ - INFO - All results saved to ./test-results-json/results.json (8569 total results from all phases)
+2025-12-11 22:58:29,304 - __main__ - INFO - Summary: 7061/8569 tests passed (82.4%)
+2025-12-11 22:58:29,304 - __main__ - INFO - Test suite completed in 1m 3s

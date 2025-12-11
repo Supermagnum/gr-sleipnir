@@ -1,0 +1,312 @@
+{
+  "overall_statistics": {
+    "voice": {
+      "count": 3864,
+      "fer_mean": 0.07045981997696235,
+      "fer_std": 0.08756147558213212,
+      "fer_median": 0.05,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.8284586843211725,
+      "warpq_std": 0.4231889859421893,
+      "warpq_median": 4.952048490420459,
+      "warpq_min": 2.2128065213233965,
+      "warpq_max": 5.0,
+      "pass_rate": 0.8141821946169773,
+      "passed": 3146
+    },
+    "voice_text": {
+      "count": 3864,
+      "fer_mean": 0.0690429470392847,
+      "fer_std": 0.08090091581417422,
+      "fer_median": 0.04923076923076923,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.829082285557588,
+      "warpq_std": 0.42264897537690094,
+      "warpq_median": 4.9519456818279615,
+      "warpq_min": 2.1939886283695613,
+      "warpq_max": 5.0,
+      "pass_rate": 0.8141821946169773,
+      "passed": 3146
+    }
+  },
+  "performance_difference": {
+    "fer_absolute": -0.0014168729376776573,
+    "fer_percentage": -2.0108949159122465,
+    "warpq_absolute": 0.0006236012364153609,
+    "pass_rate_absolute": 0.0
+  },
+  "statistical_significance": {
+    "fer_ttest": {
+      "t_statistic": 0.738696626261448,
+      "p_value": 0.46011367402874437,
+      "significant": false
+    },
+    "warpq_ttest": {
+      "t_statistic": -0.06177139759300889,
+      "p_value": 0.9507466399126807,
+      "significant": false
+    },
+    "pass_rate_chi2": {
+      "chi2_statistic": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    }
+  },
+  "by_modulation": {
+    "4FSK": {
+      "voice": {
+        "count": 1932,
+        "fer_mean": 0.0694091400218138,
+        "fer_std": 0.07485115516161352,
+        "fer_median": 0.047692307692307694,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.8500094275149985,
+        "warpq_std": 0.40957466002021775,
+        "warpq_median": 4.9626518596418325,
+        "warpq_min": 2.2128065213233965,
+        "warpq_max": 5.0,
+        "pass_rate": 0.7443064182194618,
+        "passed": 1438
+      },
+      "voice_text": {
+        "count": 1932,
+        "fer_mean": 0.06621216297595378,
+        "fer_std": 0.05780017808610511,
+        "fer_median": 0.04727272727272727,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.838830777117848,
+        "warpq_std": 0.43948785853700256,
+        "warpq_median": 4.960629815302059,
+        "warpq_min": 2.1939886283695613,
+        "warpq_max": 5.0,
+        "pass_rate": 0.7479296066252588,
+        "passed": 1445
+      },
+      "difference": {
+        "fer": -0.003196977045860014,
+        "warpq": -0.011178650397150491,
+        "pass_rate": 0.0036231884057970065
+      },
+      "fer_significance": {
+        "p_value": 0.13749043297457142,
+        "significant": false
+      }
+    },
+    "8FSK": {
+      "voice": {
+        "count": 1932,
+        "fer_mean": 0.07151049993211091,
+        "fer_std": 0.098636305316432,
+        "fer_median": 0.052,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.8066861496021955,
+        "warpq_std": 0.43543065701030886,
+        "warpq_median": 4.945084557617309,
+        "warpq_min": 2.3470442302417416,
+        "warpq_max": 5.0,
+        "pass_rate": 0.8840579710144928,
+        "passed": 1708
+      },
+      "voice_text": {
+        "count": 1932,
+        "fer_mean": 0.0718737311026156,
+        "fer_std": 0.09865611534787046,
+        "fer_median": 0.051964912280701755,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.819188126882062,
+        "warpq_std": 0.4046028429064196,
+        "warpq_median": 4.946270182744659,
+        "warpq_min": 2.429244372621967,
+        "warpq_max": 5.0,
+        "pass_rate": 0.8804347826086957,
+        "passed": 1701
+      },
+      "difference": {
+        "fer": 0.0003632311705046992,
+        "warpq": 0.012501977279866239,
+        "pass_rate": -0.0036231884057971175
+      },
+      "fer_significance": {
+        "p_value": 0.908915632476406,
+        "significant": false
+      }
+    }
+  },
+  "by_crypto_mode": {
+    "none": {
+      "voice": {
+        "count": 966,
+        "fer_mean": 0.05050549849876666,
+        "fer_std": 0.02413670371863648,
+        "fer_median": 0.04,
+        "fer_min": 0.04,
+        "fer_max": 0.16,
+        "warpq_mean": 4.922714489204736,
+        "warpq_std": 0.2422780173963797,
+        "warpq_median": 4.960694368832793,
+        "warpq_min": 2.61413048772805,
+        "warpq_max": 5.0,
+        "pass_rate": 0.9254658385093167,
+        "passed": 894
+      },
+      "voice_text": {
+        "count": 966,
+        "fer_mean": 0.05064935551480857,
+        "fer_std": 0.024149252650061136,
+        "fer_median": 0.04,
+        "fer_min": 0.04,
+        "fer_max": 0.136,
+        "warpq_mean": 4.926431316184397,
+        "warpq_std": 0.23277119829408804,
+        "warpq_median": 4.958816591728228,
+        "warpq_min": 2.516559015855509,
+        "warpq_max": 5.0,
+        "pass_rate": 0.9213250517598344,
+        "passed": 890
+      },
+      "difference": {
+        "fer": 0.0001438570160419081,
+        "warpq": 0.0037168269796605813,
+        "pass_rate": -0.0041407867494823725
+      },
+      "fer_significance": {
+        "p_value": 0.8958801666174967,
+        "significant": false
+      }
+    },
+    "sign": {
+      "voice": {
+        "count": 966,
+        "fer_mean": 0.06813214618340319,
+        "fer_std": 0.10387317406669948,
+        "fer_median": 0.044444444444444446,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.787124045392437,
+        "warpq_std": 0.47905550628584853,
+        "warpq_median": 4.953251906261319,
+        "warpq_min": 2.428058782584338,
+        "warpq_max": 5.0,
+        "pass_rate": 0.849896480331263,
+        "passed": 821
+      },
+      "voice_text": {
+        "count": 966,
+        "fer_mean": 0.060746798290716254,
+        "fer_std": 0.07313219029583992,
+        "fer_median": 0.044,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.799525309848866,
+        "warpq_std": 0.46172350120486017,
+        "warpq_median": 4.951978308014029,
+        "warpq_min": 2.4303507170938365,
+        "warpq_max": 5.0,
+        "pass_rate": 0.8643892339544513,
+        "passed": 835
+      },
+      "difference": {
+        "fer": -0.007385347892686932,
+        "warpq": 0.012401264456428862,
+        "pass_rate": 0.01449275362318836
+      },
+      "fer_significance": {
+        "p_value": 0.07107885785155958,
+        "significant": false
+      }
+    },
+    "encrypt": {
+      "voice": {
+        "count": 966,
+        "fer_mean": 0.07084806656465008,
+        "fer_std": 0.03371208574422642,
+        "fer_median": 0.05701587301587302,
+        "fer_min": 0.04,
+        "fer_max": 0.24545454545454545,
+        "warpq_mean": 4.785379862275117,
+        "warpq_std": 0.4758538749376238,
+        "warpq_median": 4.947826906335026,
+        "warpq_min": 2.2128065213233965,
+        "warpq_max": 5.0,
+        "pass_rate": 0.7598343685300207,
+        "passed": 734
+      },
+      "voice_text": {
+        "count": 966,
+        "fer_mean": 0.07121312095528562,
+        "fer_std": 0.033308582617808453,
+        "fer_median": 0.057495652173913045,
+        "fer_min": 0.04,
+        "fer_max": 0.22363636363636363,
+        "warpq_mean": 4.778095073909333,
+        "warpq_std": 0.4874759530228239,
+        "warpq_median": 4.947771964902239,
+        "warpq_min": 2.1939886283695613,
+        "warpq_max": 5.0,
+        "pass_rate": 0.7505175983436853,
+        "passed": 725
+      },
+      "difference": {
+        "fer": 0.00036505439063554135,
+        "warpq": -0.007284788365783612,
+        "pass_rate": -0.009316770186335477
+      },
+      "fer_significance": {
+        "p_value": 0.8109082387669757,
+        "significant": false
+      }
+    },
+    "both": {
+      "voice": {
+        "count": 966,
+        "fer_mean": 0.09235356866102945,
+        "fer_std": 0.13143913634973703,
+        "fer_median": 0.058823529411764705,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.809931132240392,
+        "warpq_std": 0.4464255461728418,
+        "warpq_median": 4.942518151133906,
+        "warpq_min": 2.415291413191931,
+        "warpq_max": 5.0,
+        "pass_rate": 0.7215320910973085,
+        "passed": 697
+      },
+      "voice_text": {
+        "count": 966,
+        "fer_mean": 0.09356251339632837,
+        "fer_std": 0.13463208495327852,
+        "fer_median": 0.059890109890109886,
+        "fer_min": 0.04,
+        "fer_max": 1.0,
+        "warpq_mean": 4.803684250390759,
+        "warpq_std": 0.4538964074081108,
+        "warpq_median": 4.944812556816862,
+        "warpq_min": 2.4294445749335516,
+        "warpq_max": 5.0,
+        "pass_rate": 0.7204968944099379,
+        "passed": 696
+      },
+      "difference": {
+        "fer": 0.0012089447352989224,
+        "warpq": -0.006246881849632402,
+        "pass_rate": -0.0010351966873706209
+      },
+      "fer_significance": {
+        "p_value": 0.841816109902775,
+        "significant": false
+      }
+    }
+  },
+  "conclusions": {
+    "text_degrades_voice": "NO - Text messaging has negligible impact",
+    "text_leaking_into_audio": "NO - WarpQ unchanged, text data is properly separated from audio",
+    "overhead_negligible": "YES - Text messaging overhead is negligible (<1% FER, <0.1 WarpQ, <2% pass rate)"
+  }
+}

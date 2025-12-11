@@ -1,0 +1,167 @@
+{
+  "phase_comparison": {
+    "4fsk_fer_floor": {
+      "phase1": 0.04019607843137255,
+      "phase2": 0.04645030081620071,
+      "phase3": 0.06445520407825385,
+      "unit": "FER (fraction)",
+      "display_unit": "FER (%)",
+      "trend": "increasing",
+      "confidence": "low",
+      "statistics": {
+        "mean": 0.050367194441942376,
+        "std_dev": 0.010283735898473383,
+        "coefficient_of_variation": 0.2041752774283927
+      }
+    },
+    "4fsk_operational_snr": {
+      "phase1": 5.0,
+      "phase2": 6.0,
+      "phase3": null,
+      "unit": "dB",
+      "display_unit": "dB",
+      "trend": "unknown",
+      "confidence": "medium",
+      "statistics": {
+        "mean": 5.5,
+        "std_dev": 0.5,
+        "coefficient_of_variation": 0.09090909090909091
+      }
+    },
+    "pass_rate": {
+      "phase1": 1.0,
+      "phase2": 0.9134615384615384,
+      "phase3": 0.8141821946169773,
+      "unit": "fraction",
+      "display_unit": "Pass Rate (%)",
+      "trend": "decreasing",
+      "confidence": "medium",
+      "statistics": {
+        "mean": 0.9092145776928385,
+        "std_dev": 0.07591921893771425,
+        "coefficient_of_variation": 0.08349978190006778
+      }
+    },
+    "mean_warpq": {
+      "phase1": 4.91326920629708,
+      "phase2": 4.790626431046143,
+      "phase3": 4.828770040905461,
+      "unit": "WarpQ score",
+      "display_unit": "WarpQ",
+      "trend": "stable",
+      "confidence": "high",
+      "statistics": {
+        "mean": 4.8442218927495615,
+        "std_dev": 0.05124699909504945,
+        "coefficient_of_variation": 0.010578994981991184
+      }
+    }
+  },
+  "stability_assessment": {
+    "stability_score": 0.25,
+    "stable_metrics": 1,
+    "total_metrics": 4,
+    "assessment": "low"
+  },
+  "sample_sizes": {
+    "phase1": 12,
+    "phase2": 832,
+    "phase3": 7728
+  },
+  "phase_metrics": {
+    "phase1": {
+      "phase": "Phase 1",
+      "test_count": 12,
+      "4fsk_fer_floor": {
+        "count": 6,
+        "fer_mean": 0.04019607843137255,
+        "fer_median": 0.04,
+        "warpq_mean": 4.9574547955142,
+        "pass_rate": 1.0,
+        "passed": 6
+      },
+      "4fsk_operational_snr_db": 5.0,
+      "overall_pass_rate": {
+        "count": 12,
+        "fer_mean": 0.048070458952811895,
+        "fer_median": 0.04,
+        "warpq_mean": 4.91326920629708,
+        "pass_rate": 1.0,
+        "passed": 12
+      },
+      "overall_warpq": {
+        "count": 12,
+        "fer_mean": 0.048070458952811895,
+        "fer_median": 0.04,
+        "warpq_mean": 4.91326920629708,
+        "pass_rate": 1.0,
+        "passed": 12
+      }
+    },
+    "phase2": {
+      "phase": "Phase 2",
+      "test_count": 832,
+      "4fsk_fer_floor": {
+        "count": 176,
+        "fer_mean": 0.04645030081620071,
+        "fer_median": 0.04230227743271221,
+        "warpq_mean": 4.744646540226931,
+        "pass_rate": 0.8579545454545454,
+        "passed": 151
+      },
+      "4fsk_operational_snr_db": 6.0,
+      "overall_pass_rate": {
+        "count": 832,
+        "fer_mean": 0.05620119257570417,
+        "fer_median": 0.047,
+        "warpq_mean": 4.790626431046143,
+        "pass_rate": 0.9134615384615384,
+        "passed": 760
+      },
+      "overall_warpq": {
+        "count": 832,
+        "fer_mean": 0.05620119257570417,
+        "fer_median": 0.047,
+        "warpq_mean": 4.790626431046143,
+        "pass_rate": 0.9134615384615384,
+        "passed": 760
+      }
+    },
+    "phase3": {
+      "phase": "Phase 3",
+      "test_count": 7728,
+      "4fsk_fer_floor": {
+        "count": 1848,
+        "fer_mean": 0.06445520407825385,
+        "fer_median": 0.044,
+        "warpq_mean": 4.871261269539276,
+        "pass_rate": 0.6693722943722944,
+        "passed": 1237
+      },
+      "4fsk_operational_snr_db": null,
+      "overall_pass_rate": {
+        "count": 7728,
+        "fer_mean": 0.06975138350812352,
+        "fer_median": 0.04941176470588235,
+        "warpq_mean": 4.828770040905461,
+        "pass_rate": 0.8141821946169773,
+        "passed": 6292
+      },
+      "overall_warpq": {
+        "count": 7728,
+        "fer_mean": 0.06975138350812352,
+        "fer_median": 0.04941176470588235,
+        "warpq_mean": 4.828770040905461,
+        "pass_rate": 0.8141821946169773,
+        "passed": 6292
+      }
+    }
+  },
+  "assessment": {
+    "results_stable": false,
+    "sample_size_impact": "significant",
+    "most_robust_findings": [
+      "mean_warpq"
+    ]
+  }
+}

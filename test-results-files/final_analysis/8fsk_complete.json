@@ -1,0 +1,305 @@
+{
+  "overall_performance": {
+    "count": 3864,
+    "fer_mean": 0.07169211551736325,
+    "fer_median": 0.052,
+    "fer_std": 0.09864637801371709,
+    "fer_min": 0.04,
+    "fer_max": 1.0,
+    "warpq_mean": 4.812921013593874,
+    "warpq_median": 4.945646962464568,
+    "warpq_std": 0.4203856963726143,
+    "warpq_min": 2.3470442302417416,
+    "warpq_max": 5.0,
+    "pass_rate": 0.8822463768115942,
+    "passed": 3409
+  },
+  "by_crypto_mode": {
+    "none": {
+      "count": 966,
+      "fer_mean": 0.04428356555983611,
+      "fer_median": 0.04,
+      "fer_std": 0.010773837170879213,
+      "fer_min": 0.04,
+      "fer_max": 0.10577777777777778,
+      "warpq_mean": 4.907719720674294,
+      "warpq_median": 4.951910952585171,
+      "warpq_std": 0.26060491772077515,
+      "warpq_min": 2.751518192538762,
+      "warpq_max": 5.0,
+      "pass_rate": 0.9917184265010351,
+      "passed": 958,
+      "overhead_vs_none": null
+    },
+    "sign": {
+      "count": 966,
+      "fer_mean": 0.05214581143865359,
+      "fer_median": 0.042666666666666665,
+      "fer_std": 0.06941722659430903,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.746780877366455,
+      "warpq_median": 4.944582945202259,
+      "warpq_std": 0.49888200353474754,
+      "warpq_min": 2.428058782584338,
+      "warpq_max": 5.0,
+      "pass_rate": 0.9751552795031055,
+      "passed": 942,
+      "overhead_vs_none": {
+        "fer_absolute": 0.007862245878817481,
+        "fer_percentage": 17.75431986883257,
+        "warpq_absolute": -0.16093884330783848,
+        "pass_rate_absolute": -0.0165631469979296
+      }
+    },
+    "encrypt": {
+      "count": 966,
+      "fer_mean": 0.0751505583981487,
+      "fer_median": 0.06276190476190477,
+      "fer_std": 0.035032196349206964,
+      "fer_min": 0.04,
+      "fer_max": 0.24545454545454545,
+      "warpq_mean": 4.803155802013978,
+      "warpq_median": 4.9488483837227975,
+      "warpq_std": 0.4256086334870512,
+      "warpq_min": 2.3470442302417416,
+      "warpq_max": 5.0,
+      "pass_rate": 0.8219461697722568,
+      "passed": 794,
+      "overhead_vs_none": {
+        "fer_absolute": 0.03086699283831259,
+        "fer_percentage": 69.70304321273542,
+        "warpq_absolute": -0.10456391866031556,
+        "pass_rate_absolute": -0.16977225672877838
+      }
+    },
+    "both": {
+      "count": 966,
+      "fer_mean": 0.11518852667281462,
+      "fer_median": 0.06666666666666667,
+      "fer_std": 0.17240987402102478,
+      "fer_min": 0.04285714285714286,
+      "fer_max": 1.0,
+      "warpq_mean": 4.7830497750127625,
+      "warpq_median": 4.934874342616831,
+      "warpq_std": 0.45431254931634785,
+      "warpq_min": 2.415291413191931,
+      "warpq_max": 5.0,
+      "pass_rate": 0.7401656314699793,
+      "passed": 715,
+      "overhead_vs_none": {
+        "fer_absolute": 0.0709049611129785,
+        "fer_percentage": 160.11574546130768,
+        "warpq_absolute": -0.12466994566153122,
+        "pass_rate_absolute": -0.2515527950310559
+      }
+    }
+  },
+  "crypto_overhead": {
+    "sign": {
+      "fer_increase_absolute": 0.007862245878817481,
+      "fer_increase_percentage": 17.75431986883257,
+      "db_estimate": 0.5241497252544988
+    },
+    "encrypt": {
+      "fer_increase_absolute": 0.03086699283831259,
+      "fer_increase_percentage": 69.70304321273542,
+      "db_estimate": 2.0577995225541725
+    },
+    "both": {
+      "fer_increase_absolute": 0.0709049611129785,
+      "fer_increase_percentage": 160.11574546130768,
+      "db_estimate": 4.726997407531901
+    }
+  },
+  "frequency_offset_tolerance": {
+    "\u00b1100_hz": {
+      "count": 552,
+      "fer_mean": 0.05164763818290096,
+      "fer_median": 0.04727272727272727,
+      "fer_std": 0.042437181512428285,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.766987070158821,
+      "warpq_median": 4.940337595736463,
+      "warpq_std": 0.47008870880216935,
+      "warpq_min": 2.415291413191931,
+      "warpq_max": 5.0,
+      "pass_rate": 0.9836956521739131,
+      "passed": 543
+    },
+    "\u00b1500_hz": {
+      "count": 552,
+      "fer_mean": 0.05736278570096467,
+      "fer_median": 0.052,
+      "fer_std": 0.059429195279530576,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.8090550836541235,
+      "warpq_median": 4.944786696760884,
+      "warpq_std": 0.4157092143538368,
+      "warpq_min": 2.439104888800214,
+      "warpq_max": 5.0,
+      "pass_rate": 0.9728260869565217,
+      "passed": 537
+    },
+    "\u00b11000_hz": {
+      "count": 552,
+      "fer_mean": 0.10874349321691071,
+      "fer_median": 0.05914438502673797,
+      "fer_std": 0.21068414130835067,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.706062908404675,
+      "warpq_median": 4.941164974805584,
+      "warpq_std": 0.5375689770608435,
+      "warpq_min": 2.428058782584338,
+      "warpq_max": 5.0,
+      "pass_rate": 0.9239130434782609,
+      "passed": 510
+    }
+  },
+  "fading_performance": {
+    "clean": {
+      "count": 552,
+      "fer_mean": 0.0557722094293922,
+      "fer_median": 0.04516666666666667,
+      "fer_std": 0.05996330952947473,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.760266907948927,
+      "warpq_median": 4.948749717946335,
+      "warpq_std": 0.48393987065738103,
+      "warpq_min": 2.3470442302417416,
+      "warpq_max": 5.0,
+      "pass_rate": 0.9166666666666666,
+      "passed": 506,
+      "difference_vs_clean": null,
+      "penalty_vs_awgn": null
+    },
+    "awgn": {
+      "count": 552,
+      "fer_mean": 0.06068171950183106,
+      "fer_median": 0.05143815513626834,
+      "fer_std": 0.06052725970332483,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.768085491358282,
+      "warpq_median": 4.948740530160125,
+      "warpq_std": 0.49747834939687746,
+      "warpq_min": 2.429244372621967,
+      "warpq_max": 5.0,
+      "pass_rate": 0.8713768115942029,
+      "passed": 481,
+      "difference_vs_clean": {
+        "fer_absolute": 0.004909510072438859,
+        "fer_percentage": 8.802789279227525
+      },
+      "penalty_vs_awgn": null
+    },
+    "rayleigh": {
+      "count": 552,
+      "fer_mean": 0.0836624963494624,
+      "fer_median": 0.06181818181818182,
+      "fer_std": 0.06628481102486869,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.934010148096832,
+      "warpq_median": 4.9550142184983015,
+      "warpq_std": 0.16844904254535958,
+      "warpq_min": 2.612235704206225,
+      "warpq_max": 5.0,
+      "pass_rate": 0.7626811594202898,
+      "passed": 421,
+      "difference_vs_clean": {
+        "fer_absolute": 0.027890286920070208,
+        "fer_percentage": 50.0074987263673
+      },
+      "penalty_vs_awgn": {
+        "fer_absolute": 0.02298077684763135,
+        "fer_percentage": 37.87100470502967,
+        "penalty_db_estimate": 1.53205178984209
+      }
+    },
+    "rician": {
+      "count": 552,
+      "fer_mean": 0.08397446624008084,
+      "fer_median": 0.06196172248803828,
+      "fer_std": 0.06399723955828437,
+      "fer_min": 0.04,
+      "fer_max": 1.0,
+      "warpq_mean": 4.922195300515836,
+      "warpq_median": 4.945298633031435,
+      "warpq_std": 0.16672977348705362,
+      "warpq_min": 3.0869218190029373,
+      "warpq_max": 5.0,
+      "pass_rate": 0.7445652173913043,
+      "passed": 411,
+      "difference_vs_clean": {
+        "fer_absolute": 0.028202256810688643,
+        "fer_percentage": 50.56686313708406
+      },
+      "penalty_vs_awgn": {
+        "fer_absolute": 0.023292746738249784,
+        "fer_percentage": 38.385113225980575,
+        "penalty_db_estimate": 1.5528497825499856
+      }
+    }
+  },
+  "fer_floor": {
+    "count": 1848,
+    "fer_mean": 0.06922520195712958,
+    "fer_median": 0.04711111111111111,
+    "fer_std": 0.12474694891413579,
+    "fer_min": 0.04,
+    "fer_max": 1.0,
+    "warpq_mean": 4.810454891086635,
+    "warpq_median": 4.947581315781461,
+    "warpq_std": 0.44706157195103985,
+    "warpq_min": 2.3470442302417416,
+    "warpq_max": 5.0,
+    "pass_rate": 0.9096320346320347,
+    "passed": 1681,
+    "comparison_4fsk_floor": {
+      "4fsk_floor_percent": 5.3,
+      "8fsk_floor_percent": 6.922520195712958,
+      "difference_pp": 1.6225201957129585
+    }
+  },
+  "operational_snr": {
+    "by_channel": {
+      "clean": {
+        "operational_snr_db": 4.0,
+        "target_fer": 0.05
+      },
+      "awgn": {
+        "operational_snr_db": 9.0,
+        "target_fer": 0.05
+      },
+      "rayleigh": {
+        "operational_snr_db": 19.0,
+        "target_fer": 0.05
+      },
+      "rician": {
+        "operational_snr_db": 20.0,
+        "target_fer": 0.05
+      },
+      "freq_offset_100hz": {
+        "operational_snr_db": -2.0,
+        "target_fer": 0.05
+      },
+      "freq_offset_500hz": {
+        "operational_snr_db": 19.0,
+        "target_fer": 0.05
+      },
+      "freq_offset_1khz": {
+        "operational_snr_db": 10.0,
+        "target_fer": 0.05
+      }
+    },
+    "comparison_4fsk": {
+      "4fsk_operational_snr_db": -1.0,
+      "note": "4FSK operational SNR at FER < 5%"
+    }
+  }
+}

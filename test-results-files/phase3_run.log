@@ -622,3 +622,13 @@
 2025-12-11 22:35:20,293 - __main__ - INFO - Loading 50 results from batch 154
 2025-12-11 22:35:20,293 - __main__ - INFO - Total results after batch 154: 8544
 2025-12-11 22:35:20,703 - __main__ - INFO - Batch 155/155: Tests 7701-7728
+2025-12-11 22:41:07,549 - __main__ - INFO - Batch 155 completed successfully
+2025-12-11 22:41:07,550 - __main__ - INFO - Loading 28 results from batch 155
+2025-12-11 22:41:07,550 - __main__ - INFO - Total results after batch 155: 8572
+2025-12-11 22:41:08,323 - __main__ - INFO - Phase 3 results saved to ./test-results-files/phase3.json (7728 results)
+2025-12-11 22:41:08,713 - __main__ - INFO - All results saved to ./test-results-json/results.json (8572 total results from all phases)
+2025-12-11 22:41:08,716 - __main__ - INFO - Summary: 7085/8572 tests passed (82.7%)
+2025-12-11 22:41:08,716 - __main__ - INFO - Test suite completed in 26h 41m 37s
+SUCCESS: gr-linux-crypto found as 'gnuradio.linux_crypto'
+  Available blocks/classes: ['brainpool_ecies_decrypt', 'brainpool_ecies_encrypt', 'brainpool_ecies_multi_decrypt', 'brainpool_ecies_multi_encrypt', 'get_integration_status', 'kernel_crypto_aes', 'kernel_keyring_source', 'nitrokey_interface']
+SUCCESS: gr-nacl found as 'nacl'
