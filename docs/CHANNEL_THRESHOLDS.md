@@ -90,7 +90,7 @@ Frequency offset is a **known limitation**, not a bug. The system works correctl
 ### 8FSK Mode
 
 - **Recommended: ±500 Hz** (FER ~5-6%, good)
-- **±1000 Hz performance TBD** (requires full Phase 3 data)
+- **±1000 Hz**: Significant degradation (FER ~13-14%, 20% threshold acceptable but not recommended)
 
 ### Hardware Compatibility
 

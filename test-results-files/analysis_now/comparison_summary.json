@@ -1,0 +1,10 @@
+{
+  "Waterfall_SNR_4FSK_dB": null,
+  "Waterfall_SNR_8FSK_dB": null,
+  "Waterfall_SNR_Difference_dB": null,
+  "FER_Floor_4FSK": 0.052848714812671685,
+  "FER_Floor_8FSK": 0.04013625289423248,
+  "FER_Floor_4FSK_Percent": 5.284871481267168,
+  "FER_Floor_8FSK_Percent": 4.013625289423247,
+  "timestamp": "2025-12-11T14:16:55.899152"
+}

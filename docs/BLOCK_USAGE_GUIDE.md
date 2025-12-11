@@ -277,7 +277,7 @@ rx_block = make_sleipnir_rx_hier(
 
 **Implementation**: Uses `gr-nacl` ChaCha20-Poly1305 encrypt block.
 
-**Reference**: See [gr-nacl documentation](https://github.com/gnuradio/gr-nacl) for detailed ChaCha20-Poly1305 implementation.
+**Reference**: See [gr-nacl documentation](https://github.com/Supermagnum/gr-nacl) for detailed ChaCha20-Poly1305 implementation.
 
 **Usage**:
 ```python
@@ -319,7 +319,7 @@ tx_block.message_port_pub("ctrl", ctrl_msg)
 
 **Implementation**: Uses `gr-nacl` ChaCha20-Poly1305 decrypt block.
 
-**Reference**: See [gr-nacl documentation](https://github.com/gnuradio/gr-nacl) for detailed ChaCha20-Poly1305 implementation.
+**Reference**: See [gr-nacl documentation](https://github.com/Supermagnum/gr-nacl) for detailed ChaCha20-Poly1305 implementation.
 
 **Usage**:
 ```python
@@ -454,7 +454,7 @@ tb.msg_connect(keyring_source, "message_out", rx_block, "key_source")
 ### References
 
 - **gr-linux-crypto**: [Documentation](https://github.com/Supermagnum/gr-linux-crypto)
-- **gr-nacl**: [Documentation](https://github.com/gnuradio/gr-nacl)
+- **gr-nacl**: [Documentation](https://github.com/Supermagnum/gr-nacl)
 - **ITU Radio Regulations**: Check applicable regulations for your jurisdiction
 - **Local Amateur Radio Regulations**: Verify with your licensing authority
 
@@ -814,5 +814,5 @@ tb.msg_connect(keyring_rx, "message_out", rx_block, "key_source")
 - **Crypto Integration Guide**: [docs/CRYPTO_INTEGRATION.md](CRYPTO_INTEGRATION.md)
 - **Crypto Wiring Guide**: [docs/CRYPTO_WIRING.md](CRYPTO_WIRING.md)
 - **gr-linux-crypto Documentation**: [https://github.com/Supermagnum/gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)
-- **gr-nacl Documentation**: [https://github.com/gnuradio/gr-nacl](https://github.com/gnuradio/gr-nacl)
+- **gr-nacl Documentation**: [https://github.com/Supermagnum/gr-nacl](https://github.com/Supermagnum/gr-nacl)
 

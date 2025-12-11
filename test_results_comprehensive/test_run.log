@@ -430,3 +430,239 @@
 2025-12-11 04:07:50,451 - __main__ - INFO - Loading 50 results from batch 47
 2025-12-11 04:07:50,451 - __main__ - INFO - Total results after batch 47: 3194
 2025-12-11 04:07:50,613 - __main__ - INFO - Batch 48/155: Tests 2351-2400
+2025-12-11 04:18:12,498 - __main__ - INFO - Batch 48 completed successfully
+2025-12-11 04:18:12,499 - __main__ - INFO - Loading 50 results from batch 48
+2025-12-11 04:18:12,499 - __main__ - INFO - Total results after batch 48: 3244
+2025-12-11 04:18:12,661 - __main__ - INFO - Batch 49/155: Tests 2401-2450
+2025-12-11 04:28:34,617 - __main__ - INFO - Batch 49 completed successfully
+2025-12-11 04:28:34,618 - __main__ - INFO - Loading 50 results from batch 49
+2025-12-11 04:28:34,618 - __main__ - INFO - Total results after batch 49: 3294
+2025-12-11 04:28:34,783 - __main__ - INFO - Batch 50/155: Tests 2451-2500
+2025-12-11 04:38:55,471 - __main__ - INFO - Batch 50 completed successfully
+2025-12-11 04:38:55,472 - __main__ - INFO - Loading 50 results from batch 50
+2025-12-11 04:38:55,472 - __main__ - INFO - Total results after batch 50: 3344
+2025-12-11 04:38:55,641 - __main__ - INFO - Batch 51/155: Tests 2501-2550
+2025-12-11 04:49:15,636 - __main__ - INFO - Batch 51 completed successfully
+2025-12-11 04:49:15,637 - __main__ - INFO - Loading 50 results from batch 51
+2025-12-11 04:49:15,637 - __main__ - INFO - Total results after batch 51: 3394
+2025-12-11 04:49:15,803 - __main__ - INFO - Batch 52/155: Tests 2551-2600
+2025-12-11 04:59:34,083 - __main__ - INFO - Batch 52 completed successfully
+2025-12-11 04:59:34,084 - __main__ - INFO - Loading 50 results from batch 52
+2025-12-11 04:59:34,085 - __main__ - INFO - Total results after batch 52: 3444
+2025-12-11 04:59:34,263 - __main__ - INFO - Batch 53/155: Tests 2601-2650
+2025-12-11 05:09:55,319 - __main__ - INFO - Batch 53 completed successfully
+2025-12-11 05:09:55,320 - __main__ - INFO - Loading 50 results from batch 53
+2025-12-11 05:09:55,320 - __main__ - INFO - Total results after batch 53: 3494
+2025-12-11 05:09:55,497 - __main__ - INFO - Batch 54/155: Tests 2651-2700
+2025-12-11 05:20:16,959 - __main__ - INFO - Batch 54 completed successfully
+2025-12-11 05:20:16,960 - __main__ - INFO - Loading 50 results from batch 54
+2025-12-11 05:20:16,960 - __main__ - INFO - Total results after batch 54: 3544
+2025-12-11 05:20:17,163 - __main__ - INFO - Batch 55/155: Tests 2701-2750
+2025-12-11 05:30:41,692 - __main__ - INFO - Batch 55 completed successfully
+2025-12-11 05:30:41,693 - __main__ - INFO - Loading 50 results from batch 55
+2025-12-11 05:30:41,693 - __main__ - INFO - Total results after batch 55: 3594
+2025-12-11 05:30:41,880 - __main__ - INFO - Batch 56/155: Tests 2751-2800
+2025-12-11 05:41:02,211 - __main__ - INFO - Batch 56 completed successfully
+2025-12-11 05:41:02,212 - __main__ - INFO - Loading 50 results from batch 56
+2025-12-11 05:41:02,212 - __main__ - INFO - Total results after batch 56: 3644
+2025-12-11 05:41:02,398 - __main__ - INFO - Batch 57/155: Tests 2801-2850
+2025-12-11 05:51:23,893 - __main__ - INFO - Batch 57 completed successfully
+2025-12-11 05:51:23,895 - __main__ - INFO - Loading 50 results from batch 57
+2025-12-11 05:51:23,895 - __main__ - INFO - Total results after batch 57: 3694
+2025-12-11 05:51:24,096 - __main__ - INFO - Batch 58/155: Tests 2851-2900
+2025-12-11 06:01:46,640 - __main__ - INFO - Batch 58 completed successfully
+2025-12-11 06:01:46,641 - __main__ - INFO - Loading 50 results from batch 58
+2025-12-11 06:01:46,641 - __main__ - INFO - Total results after batch 58: 3744
+2025-12-11 06:01:46,836 - __main__ - INFO - Batch 59/155: Tests 2901-2950
+2025-12-11 06:12:09,610 - __main__ - INFO - Batch 59 completed successfully
+2025-12-11 06:12:09,611 - __main__ - INFO - Loading 50 results from batch 59
+2025-12-11 06:12:09,611 - __main__ - INFO - Total results after batch 59: 3794
+2025-12-11 06:12:09,808 - __main__ - INFO - Batch 60/155: Tests 2951-3000
+2025-12-11 06:22:32,419 - __main__ - INFO - Batch 60 completed successfully
+2025-12-11 06:22:32,420 - __main__ - INFO - Loading 50 results from batch 60
+2025-12-11 06:22:32,420 - __main__ - INFO - Total results after batch 60: 3844
+2025-12-11 06:22:32,614 - __main__ - INFO - Batch 61/155: Tests 3001-3050
+2025-12-11 06:32:53,160 - __main__ - INFO - Batch 61 completed successfully
+2025-12-11 06:32:53,161 - __main__ - INFO - Loading 50 results from batch 61
+2025-12-11 06:32:53,161 - __main__ - INFO - Total results after batch 61: 3894
+2025-12-11 06:32:53,362 - __main__ - INFO - Batch 62/155: Tests 3051-3100
+2025-12-11 06:43:13,727 - __main__ - INFO - Batch 62 completed successfully
+2025-12-11 06:43:13,728 - __main__ - INFO - Loading 50 results from batch 62
+2025-12-11 06:43:13,728 - __main__ - INFO - Total results after batch 62: 3944
+2025-12-11 06:43:13,929 - __main__ - INFO - Batch 63/155: Tests 3101-3150
+2025-12-11 06:53:35,768 - __main__ - INFO - Batch 63 completed successfully
+2025-12-11 06:53:35,769 - __main__ - INFO - Loading 50 results from batch 63
+2025-12-11 06:53:35,769 - __main__ - INFO - Total results after batch 63: 3994
+2025-12-11 06:53:35,972 - __main__ - INFO - Batch 64/155: Tests 3151-3200
+2025-12-11 07:03:58,239 - __main__ - INFO - Batch 64 completed successfully
+2025-12-11 07:03:58,241 - __main__ - INFO - Loading 50 results from batch 64
+2025-12-11 07:03:58,241 - __main__ - INFO - Total results after batch 64: 4044
+2025-12-11 07:03:58,444 - __main__ - INFO - Batch 65/155: Tests 3201-3250
+2025-12-11 07:14:22,419 - __main__ - INFO - Batch 65 completed successfully
+2025-12-11 07:14:22,420 - __main__ - INFO - Loading 50 results from batch 65
+2025-12-11 07:14:22,420 - __main__ - INFO - Total results after batch 65: 4094
+2025-12-11 07:14:22,633 - __main__ - INFO - Batch 66/155: Tests 3251-3300
+2025-12-11 07:24:48,828 - __main__ - INFO - Batch 66 completed successfully
+2025-12-11 07:24:48,829 - __main__ - INFO - Loading 50 results from batch 66
+2025-12-11 07:24:48,829 - __main__ - INFO - Total results after batch 66: 4144
+2025-12-11 07:24:49,042 - __main__ - INFO - Batch 67/155: Tests 3301-3350
+2025-12-11 07:35:14,773 - __main__ - INFO - Batch 67 completed successfully
+2025-12-11 07:35:14,773 - __main__ - INFO - Loading 50 results from batch 67
+2025-12-11 07:35:14,774 - __main__ - INFO - Total results after batch 67: 4194
+2025-12-11 07:35:14,990 - __main__ - INFO - Batch 68/155: Tests 3351-3400
+2025-12-11 07:45:40,927 - __main__ - INFO - Batch 68 completed successfully
+2025-12-11 07:45:40,928 - __main__ - INFO - Loading 50 results from batch 68
+2025-12-11 07:45:40,928 - __main__ - INFO - Total results after batch 68: 4244
+2025-12-11 07:45:41,143 - __main__ - INFO - Batch 69/155: Tests 3401-3450
+2025-12-11 07:56:05,427 - __main__ - INFO - Batch 69 completed successfully
+2025-12-11 07:56:05,427 - __main__ - INFO - Loading 50 results from batch 69
+2025-12-11 07:56:05,427 - __main__ - INFO - Total results after batch 69: 4294
+2025-12-11 07:56:05,646 - __main__ - INFO - Batch 70/155: Tests 3451-3500
+2025-12-11 08:06:26,327 - __main__ - INFO - Batch 70 completed successfully
+2025-12-11 08:06:26,328 - __main__ - INFO - Loading 50 results from batch 70
+2025-12-11 08:06:26,328 - __main__ - INFO - Total results after batch 70: 4344
+2025-12-11 08:06:26,549 - __main__ - INFO - Batch 71/155: Tests 3501-3550
+2025-12-11 08:16:46,375 - __main__ - INFO - Batch 71 completed successfully
+2025-12-11 08:16:46,376 - __main__ - INFO - Loading 50 results from batch 71
+2025-12-11 08:16:46,376 - __main__ - INFO - Total results after batch 71: 4394
+2025-12-11 08:16:46,610 - __main__ - INFO - Batch 72/155: Tests 3551-3600
+2025-12-11 08:27:09,822 - __main__ - INFO - Batch 72 completed successfully
+2025-12-11 08:27:09,823 - __main__ - INFO - Loading 50 results from batch 72
+2025-12-11 08:27:09,823 - __main__ - INFO - Total results after batch 72: 4444
+2025-12-11 08:27:10,047 - __main__ - INFO - Batch 73/155: Tests 3601-3650
+2025-12-11 08:37:29,644 - __main__ - INFO - Batch 73 completed successfully
+2025-12-11 08:37:29,645 - __main__ - INFO - Loading 50 results from batch 73
+2025-12-11 08:37:29,646 - __main__ - INFO - Total results after batch 73: 4494
+2025-12-11 08:37:29,883 - __main__ - INFO - Batch 74/155: Tests 3651-3700
+2025-12-11 08:47:53,608 - __main__ - INFO - Batch 74 completed successfully
+2025-12-11 08:47:53,609 - __main__ - INFO - Loading 50 results from batch 74
+2025-12-11 08:47:53,609 - __main__ - INFO - Total results after batch 74: 4544
+2025-12-11 08:47:53,836 - __main__ - INFO - Batch 75/155: Tests 3701-3750
+2025-12-11 08:58:14,995 - __main__ - INFO - Batch 75 completed successfully
+2025-12-11 08:58:14,996 - __main__ - INFO - Loading 50 results from batch 75
+2025-12-11 08:58:14,996 - __main__ - INFO - Total results after batch 75: 4594
+2025-12-11 08:58:15,232 - __main__ - INFO - Batch 76/155: Tests 3751-3800
+2025-12-11 09:08:36,964 - __main__ - INFO - Batch 76 completed successfully
+2025-12-11 09:08:36,966 - __main__ - INFO - Loading 50 results from batch 76
+2025-12-11 09:08:36,966 - __main__ - INFO - Total results after batch 76: 4644
+2025-12-11 09:08:37,175 - __main__ - INFO - Batch 77/155: Tests 3801-3850
+2025-12-11 09:18:59,093 - __main__ - INFO - Batch 77 completed successfully
+2025-12-11 09:18:59,094 - __main__ - INFO - Loading 50 results from batch 77
+2025-12-11 09:18:59,094 - __main__ - INFO - Total results after batch 77: 4694
+2025-12-11 09:18:59,336 - __main__ - INFO - Batch 78/155: Tests 3851-3900
+2025-12-11 09:29:20,803 - __main__ - INFO - Batch 78 completed successfully
+2025-12-11 09:29:20,804 - __main__ - INFO - Loading 50 results from batch 78
+2025-12-11 09:29:20,804 - __main__ - INFO - Total results after batch 78: 4744
+2025-12-11 09:29:21,055 - __main__ - INFO - Batch 79/155: Tests 3901-3950
+2025-12-11 09:39:43,892 - __main__ - INFO - Batch 79 completed successfully
+2025-12-11 09:39:43,892 - __main__ - INFO - Loading 50 results from batch 79
+2025-12-11 09:39:43,892 - __main__ - INFO - Total results after batch 79: 4794
+2025-12-11 09:39:44,114 - __main__ - INFO - Batch 80/155: Tests 3951-4000
+2025-12-11 09:50:05,765 - __main__ - INFO - Batch 80 completed successfully
+2025-12-11 09:50:05,766 - __main__ - INFO - Loading 50 results from batch 80
+2025-12-11 09:50:05,766 - __main__ - INFO - Total results after batch 80: 4844
+2025-12-11 09:50:06,008 - __main__ - INFO - Batch 81/155: Tests 4001-4050
+2025-12-11 10:00:27,366 - __main__ - INFO - Batch 81 completed successfully
+2025-12-11 10:00:27,367 - __main__ - INFO - Loading 50 results from batch 81
+2025-12-11 10:00:27,367 - __main__ - INFO - Total results after batch 81: 4894
+2025-12-11 10:00:27,607 - __main__ - INFO - Batch 82/155: Tests 4051-4100
+2025-12-11 10:10:48,413 - __main__ - INFO - Batch 82 completed successfully
+2025-12-11 10:10:48,414 - __main__ - INFO - Loading 50 results from batch 82
+2025-12-11 10:10:48,415 - __main__ - INFO - Total results after batch 82: 4944
+2025-12-11 10:10:48,667 - __main__ - INFO - Batch 83/155: Tests 4101-4150
+2025-12-11 10:21:14,142 - __main__ - INFO - Batch 83 completed successfully
+2025-12-11 10:21:14,143 - __main__ - INFO - Loading 50 results from batch 83
+2025-12-11 10:21:14,143 - __main__ - INFO - Total results after batch 83: 4994
+2025-12-11 10:21:14,397 - __main__ - INFO - Batch 84/155: Tests 4151-4200
+2025-12-11 10:31:37,860 - __main__ - INFO - Batch 84 completed successfully
+2025-12-11 10:31:37,861 - __main__ - INFO - Loading 50 results from batch 84
+2025-12-11 10:31:37,861 - __main__ - INFO - Total results after batch 84: 5044
+2025-12-11 10:31:38,094 - __main__ - INFO - Batch 85/155: Tests 4201-4250
+2025-12-11 10:42:03,894 - __main__ - INFO - Batch 85 completed successfully
+2025-12-11 10:42:03,896 - __main__ - INFO - Loading 50 results from batch 85
+2025-12-11 10:42:03,896 - __main__ - INFO - Total results after batch 85: 5094
+2025-12-11 10:42:04,170 - __main__ - INFO - Batch 86/155: Tests 4251-4300
+2025-12-11 10:52:24,968 - __main__ - INFO - Batch 86 completed successfully
+2025-12-11 10:52:24,969 - __main__ - INFO - Loading 50 results from batch 86
+2025-12-11 10:52:24,969 - __main__ - INFO - Total results after batch 86: 5144
+2025-12-11 10:52:25,260 - __main__ - INFO - Batch 87/155: Tests 4301-4350
+2025-12-11 11:02:47,147 - __main__ - INFO - Batch 87 completed successfully
+2025-12-11 11:02:47,148 - __main__ - INFO - Loading 50 results from batch 87
+2025-12-11 11:02:47,148 - __main__ - INFO - Total results after batch 87: 5194
+2025-12-11 11:02:47,411 - __main__ - INFO - Batch 88/155: Tests 4351-4400
+2025-12-11 11:13:10,466 - __main__ - INFO - Batch 88 completed successfully
+2025-12-11 11:13:10,468 - __main__ - INFO - Loading 50 results from batch 88
+2025-12-11 11:13:10,468 - __main__ - INFO - Total results after batch 88: 5244
+2025-12-11 11:13:10,732 - __main__ - INFO - Batch 89/155: Tests 4401-4450
+2025-12-11 11:23:29,653 - __main__ - INFO - Batch 89 completed successfully
+2025-12-11 11:23:29,654 - __main__ - INFO - Loading 50 results from batch 89
+2025-12-11 11:23:29,654 - __main__ - INFO - Total results after batch 89: 5294
+2025-12-11 11:23:29,919 - __main__ - INFO - Batch 90/155: Tests 4451-4500
+2025-12-11 11:33:49,136 - __main__ - INFO - Batch 90 completed successfully
+2025-12-11 11:33:49,137 - __main__ - INFO - Loading 50 results from batch 90
+2025-12-11 11:33:49,137 - __main__ - INFO - Total results after batch 90: 5344
+2025-12-11 11:33:49,394 - __main__ - INFO - Batch 91/155: Tests 4501-4550
+2025-12-11 11:44:08,116 - __main__ - INFO - Batch 91 completed successfully
+2025-12-11 11:44:08,117 - __main__ - INFO - Loading 50 results from batch 91
+2025-12-11 11:44:08,117 - __main__ - INFO - Total results after batch 91: 5394
+2025-12-11 11:44:08,394 - __main__ - INFO - Batch 92/155: Tests 4551-4600
+2025-12-11 11:54:27,705 - __main__ - INFO - Batch 92 completed successfully
+2025-12-11 11:54:27,706 - __main__ - INFO - Loading 50 results from batch 92
+2025-12-11 11:54:27,706 - __main__ - INFO - Total results after batch 92: 5444
+2025-12-11 11:54:27,954 - __main__ - INFO - Batch 93/155: Tests 4601-4650
+2025-12-11 12:04:47,593 - __main__ - INFO - Batch 93 completed successfully
+2025-12-11 12:04:47,594 - __main__ - INFO - Loading 50 results from batch 93
+2025-12-11 12:04:47,594 - __main__ - INFO - Total results after batch 93: 5494
+2025-12-11 12:04:47,872 - __main__ - INFO - Batch 94/155: Tests 4651-4700
+2025-12-11 12:15:06,461 - __main__ - INFO - Batch 94 completed successfully
+2025-12-11 12:15:06,462 - __main__ - INFO - Loading 50 results from batch 94
+2025-12-11 12:15:06,462 - __main__ - INFO - Total results after batch 94: 5544
+2025-12-11 12:15:06,732 - __main__ - INFO - Batch 95/155: Tests 4701-4750
+2025-12-11 12:25:26,643 - __main__ - INFO - Batch 95 completed successfully
+2025-12-11 12:25:26,644 - __main__ - INFO - Loading 50 results from batch 95
+2025-12-11 12:25:26,644 - __main__ - INFO - Total results after batch 95: 5594
+2025-12-11 12:25:26,928 - __main__ - INFO - Batch 96/155: Tests 4751-4800
+2025-12-11 12:35:47,440 - __main__ - INFO - Batch 96 completed successfully
+2025-12-11 12:35:47,441 - __main__ - INFO - Loading 50 results from batch 96
+2025-12-11 12:35:47,441 - __main__ - INFO - Total results after batch 96: 5644
+2025-12-11 12:35:47,721 - __main__ - INFO - Batch 97/155: Tests 4801-4850
+2025-12-11 12:46:06,118 - __main__ - INFO - Batch 97 completed successfully
+2025-12-11 12:46:06,119 - __main__ - INFO - Loading 50 results from batch 97
+2025-12-11 12:46:06,119 - __main__ - INFO - Total results after batch 97: 5694
+2025-12-11 12:46:06,407 - __main__ - INFO - Batch 98/155: Tests 4851-4900
+2025-12-11 12:56:26,187 - __main__ - INFO - Batch 98 completed successfully
+2025-12-11 12:56:26,188 - __main__ - INFO - Loading 50 results from batch 98
+2025-12-11 12:56:26,188 - __main__ - INFO - Total results after batch 98: 5744
+2025-12-11 12:56:26,477 - __main__ - INFO - Batch 99/155: Tests 4901-4950
+2025-12-11 13:06:46,512 - __main__ - INFO - Batch 99 completed successfully
+2025-12-11 13:06:46,513 - __main__ - INFO - Loading 50 results from batch 99
+2025-12-11 13:06:46,513 - __main__ - INFO - Total results after batch 99: 5794
+2025-12-11 13:06:46,784 - __main__ - INFO - Batch 100/155: Tests 4951-5000
+2025-12-11 13:17:05,572 - __main__ - INFO - Batch 100 completed successfully
+2025-12-11 13:17:05,574 - __main__ - INFO - Loading 50 results from batch 100
+2025-12-11 13:17:05,574 - __main__ - INFO - Total results after batch 100: 5844
+2025-12-11 13:17:05,871 - __main__ - INFO - Batch 101/155: Tests 5001-5050
+2025-12-11 13:27:28,413 - __main__ - INFO - Batch 101 completed successfully
+2025-12-11 13:27:28,414 - __main__ - INFO - Loading 50 results from batch 101
+2025-12-11 13:27:28,414 - __main__ - INFO - Total results after batch 101: 5894
+2025-12-11 13:27:28,709 - __main__ - INFO - Batch 102/155: Tests 5051-5100
+2025-12-11 13:37:48,517 - __main__ - INFO - Batch 102 completed successfully
+2025-12-11 13:37:48,518 - __main__ - INFO - Loading 50 results from batch 102
+2025-12-11 13:37:48,518 - __main__ - INFO - Total results after batch 102: 5944
+2025-12-11 13:37:48,864 - __main__ - INFO - Batch 103/155: Tests 5101-5150
+2025-12-11 13:48:09,456 - __main__ - INFO - Batch 103 completed successfully
+2025-12-11 13:48:09,457 - __main__ - INFO - Loading 50 results from batch 103
+2025-12-11 13:48:09,457 - __main__ - INFO - Total results after batch 103: 5994
+2025-12-11 13:48:09,755 - __main__ - INFO - Batch 104/155: Tests 5151-5200
+2025-12-11 13:58:33,225 - __main__ - INFO - Batch 104 completed successfully
+2025-12-11 13:58:33,226 - __main__ - INFO - Loading 50 results from batch 104
+2025-12-11 13:58:33,226 - __main__ - INFO - Total results after batch 104: 6044
+2025-12-11 13:58:33,513 - __main__ - INFO - Batch 105/155: Tests 5201-5250
+2025-12-11 14:08:53,603 - __main__ - INFO - Batch 105 completed successfully
+2025-12-11 14:08:53,604 - __main__ - INFO - Loading 50 results from batch 105
+2025-12-11 14:08:53,604 - __main__ - INFO - Total results after batch 105: 6094
+2025-12-11 14:08:53,903 - __main__ - INFO - Batch 106/155: Tests 5251-5300
+2025-12-11 14:19:15,066 - __main__ - INFO - Batch 106 completed successfully
+2025-12-11 14:19:15,067 - __main__ - INFO - Loading 50 results from batch 106
+2025-12-11 14:19:15,067 - __main__ - INFO - Total results after batch 106: 6144
+2025-12-11 14:19:15,375 - __main__ - INFO - Batch 107/155: Tests 5301-5350

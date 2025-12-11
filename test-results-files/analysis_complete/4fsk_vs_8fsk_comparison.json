@@ -1,0 +1,301 @@
+{
+  "timestamp": "2025-12-11T14:21:23.350207",
+  "4FSK_total": 966,
+  "8FSK_total": 966,
+  "fer_floor": {
+    "4FSK": {
+      "mean": 0.052848714812671685,
+      "median": 0.04,
+      "std": 0.03130569108580906,
+      "min": 0.04,
+      "max": 0.136,
+      "count": 462
+    },
+    "8FSK": {
+      "mean": 0.04013625289423248,
+      "median": 0.04,
+      "std": 0.002239872700823428,
+      "min": 0.04,
+      "max": 0.088,
+      "count": 462
+    },
+    "difference": {
+      "absolute": -0.012712461918439208,
+      "percent": -24.054439097525805
+    }
+  },
+  "waterfall_snr": {
+    "4FSK": null,
+    "8FSK": null,
+    "difference_dB": null
+  },
+  "operational_snr": {
+    "4FSK": -2.0,
+    "8FSK": -2.0,
+    "difference_dB": 0.0
+  },
+  "channels": {
+    "clean": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04003191388198023,
+          "median": 0.04,
+          "std": 0.00014758912341294683,
+          "min": 0.04,
+          "max": 0.04081632653061224,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04,
+          "median": 0.04,
+          "std": 0.0,
+          "min": 0.04,
+          "max": 0.04,
+          "count": 66
+        },
+        "difference": -3.191388198022643e-05
+      },
+      "operational_snr": {
+        "4FSK": 1.0,
+        "8FSK": 0.0,
+        "difference_dB": null
+      }
+    },
+    "awgn": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04,
+          "median": 0.04,
+          "std": 0.0,
+          "min": 0.04,
+          "max": 0.04,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04,
+          "median": 0.04,
+          "std": 0.0,
+          "min": 0.04,
+          "max": 0.04,
+          "count": 66
+        },
+        "difference": 0.0
+      },
+      "operational_snr": {
+        "4FSK": -1.0,
+        "8FSK": 0.0,
+        "difference_dB": null
+      }
+    },
+    "rayleigh": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04047281722606398,
+          "median": 0.04,
+          "std": 0.0035933255267740273,
+          "min": 0.04,
+          "max": 0.06938775510204082,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04005729564553094,
+          "median": 0.04,
+          "std": 0.0003339498306694031,
+          "min": 0.04,
+          "max": 0.042352941176470586,
+          "count": 66
+        },
+        "difference": -0.00041552158053304034
+      },
+      "operational_snr": {
+        "4FSK": 4.0,
+        "8FSK": 4.0,
+        "difference_dB": 0.0
+      }
+    },
+    "rician": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04009074704261871,
+          "median": 0.04,
+          "std": 0.0005253564587380233,
+          "min": 0.04,
+          "max": 0.04363636363636364,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04004438322620141,
+          "median": 0.04,
+          "std": 0.0002585021409708687,
+          "min": 0.04,
+          "max": 0.04181818181818182,
+          "count": 66
+        },
+        "difference": -4.636381641730247e-05
+      },
+      "operational_snr": {
+        "4FSK": 4.0,
+        "8FSK": 6.0,
+        "difference_dB": 2.0
+      }
+    },
+    "freq_offset_100hz": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04,
+          "median": 0.04,
+          "std": 0.0,
+          "min": 0.04,
+          "max": 0.04,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.040048226129484325,
+          "median": 0.04,
+          "std": 0.0002373183543740465,
+          "min": 0.04,
+          "max": 0.04163265306122449,
+          "count": 66
+        },
+        "difference": 4.8226129484324476e-05
+      },
+      "operational_snr": {
+        "4FSK": -2.0,
+        "8FSK": -2.0,
+        "difference_dB": 0.0
+      }
+    },
+    "freq_offset_500hz": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04,
+          "median": 0.04,
+          "std": 0.0,
+          "min": 0.04,
+          "max": 0.04,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04074365274365275,
+          "median": 0.04,
+          "std": 0.0058629156255027995,
+          "min": 0.04,
+          "max": 0.088,
+          "count": 66
+        },
+        "difference": 0.0007436527436527479
+      },
+      "operational_snr": {
+        "4FSK": -2.0,
+        "8FSK": -2.0,
+        "difference_dB": 0.0
+      }
+    },
+    "freq_offset_1khz": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.12934552553803888,
+          "median": 0.12763636363636363,
+          "std": 0.004459243575274776,
+          "min": 0.12153846153846154,
+          "max": 0.136,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04006021251475797,
+          "median": 0.04,
+          "std": 0.0002765738938898769,
+          "min": 0.04,
+          "max": 0.041428571428571426,
+          "count": 66
+        },
+        "difference": -0.08928531302328091
+      },
+      "operational_snr": {
+        "4FSK": null,
+        "8FSK": -2.0,
+        "difference_dB": null
+      }
+    }
+  },
+  "frequency_tolerance": {
+    "freq_offset_100hz": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04,
+          "median": 0.04,
+          "std": 0.0,
+          "min": 0.04,
+          "max": 0.04,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.040048226129484325,
+          "median": 0.04,
+          "std": 0.0002373183543740465,
+          "min": 0.04,
+          "max": 0.04163265306122449,
+          "count": 66
+        },
+        "difference": 4.8226129484324476e-05
+      },
+      "operational_snr": {
+        "4FSK": -2.0,
+        "8FSK": -2.0,
+        "difference_dB": 0.0
+      }
+    },
+    "freq_offset_500hz": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.04,
+          "median": 0.04,
+          "std": 0.0,
+          "min": 0.04,
+          "max": 0.04,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04074365274365275,
+          "median": 0.04,
+          "std": 0.0058629156255027995,
+          "min": 0.04,
+          "max": 0.088,
+          "count": 66
+        },
+        "difference": 0.0007436527436527479
+      },
+      "operational_snr": {
+        "4FSK": -2.0,
+        "8FSK": -2.0,
+        "difference_dB": 0.0
+      }
+    },
+    "freq_offset_1khz": {
+      "fer_floor": {
+        "4FSK": {
+          "mean": 0.12934552553803888,
+          "median": 0.12763636363636363,
+          "std": 0.004459243575274776,
+          "min": 0.12153846153846154,
+          "max": 0.136,
+          "count": 66
+        },
+        "8FSK": {
+          "mean": 0.04006021251475797,
+          "median": 0.04,
+          "std": 0.0002765738938898769,
+          "min": 0.04,
+          "max": 0.041428571428571426,
+          "count": 66
+        },
+        "difference": -0.08928531302328091
+      },
+      "operational_snr": {
+        "4FSK": null,
+        "8FSK": -2.0,
+        "difference_dB": null
+      }
+    }
+  }
+}

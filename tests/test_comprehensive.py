@@ -896,18 +896,32 @@ with open(output_file, 'w') as f:
         
         return validation
     
-    def run_all_tests(self, phase: int = None, max_tests: int = None):
+    def run_all_tests(self, phase: int = None, max_tests: int = None, resume: bool = True):
         """
         Run all test scenarios.
         
         Args:
             phase: Test phase to run (1, 2, or 3). If None, run all enabled phases.
             max_tests: Maximum number of tests to run (for testing/debugging)
+            resume: If True, skip already-completed tests. If False, re-run all tests.
         """
         self.current_phase = phase
         
-        # Remove existing results for this phase if re-running
-        if phase is not None:
+        # Build set of completed scenario identifiers for resume functionality
+        completed_scenarios = set()
+        if resume and phase is not None:
+            import hashlib
+            for result in self.all_results:
+                if result.get('scenario', {}).get('phase') == phase:
+                    scenario = result.get('scenario', {})
+                    # Create unique identifier for scenario
+                    scenario_str = json.dumps(scenario, sort_keys=True)
+                    scenario_hash = hashlib.md5(scenario_str.encode()).hexdigest()
+                    completed_scenarios.add(scenario_hash)
+            if completed_scenarios:
+                logger.info(f"Found {len(completed_scenarios)} already-completed tests for phase {phase} (will skip)")
+        elif not resume and phase is not None:
+            # Remove existing results for this phase if re-running
             original_count = len(self.all_results)
             self.all_results = [r for r in self.all_results 
                               if r.get('scenario', {}).get('phase') != phase]
@@ -918,6 +932,22 @@ with open(output_file, 'w') as f:
         self.start_time = time.time()
         
         scenarios = self.generate_test_scenarios(phase=phase)
+        
+        # Filter out already-completed scenarios if resuming
+        if resume and completed_scenarios:
+            import hashlib
+            original_count = len(scenarios)
+            filtered_scenarios = []
+            for scenario in scenarios:
+                scenario_str = json.dumps(scenario, sort_keys=True)
+                scenario_hash = hashlib.md5(scenario_str.encode()).hexdigest()
+                if scenario_hash not in completed_scenarios:
+                    filtered_scenarios.append(scenario)
+            scenarios = filtered_scenarios
+            skipped_count = original_count - len(scenarios)
+            if skipped_count > 0:
+                logger.info(f"Skipping {skipped_count} already-completed tests (resume mode)")
+                logger.info(f"Remaining tests to run: {len(scenarios)}")
         
         if max_tests:
             scenarios = scenarios[:max_tests]
@@ -1039,6 +1069,10 @@ def main():
                        help='Maximum number of tests to run (for debugging)')
     parser.add_argument('--dry-run', action='store_true',
                        help='Validate configuration without running tests')
+    parser.add_argument('--resume', action='store_true', default=True,
+                       help='Resume from last checkpoint (skip already-completed tests). Default: True')
+    parser.add_argument('--no-resume', dest='resume', action='store_false',
+                       help='Re-run all tests (do not resume)')
     
     args = parser.parse_args()
     
@@ -1050,7 +1084,7 @@ def main():
             logger.info(f"Dry run: {len(scenarios)} scenarios would be executed")
             return 0
         
-        suite.run_all_tests(phase=args.phase, max_tests=args.max_tests)
+        suite.run_all_tests(phase=args.phase, max_tests=args.max_tests, resume=args.resume)
         return 0
         
     except Exception as e:

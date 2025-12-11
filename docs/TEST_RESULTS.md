@@ -9,7 +9,7 @@ Comprehensive test results for gr-sleipnir.
 - **Python Module Imports**: 14/14 passed
 - **Build System**: PASS
 - **Unit Test Suite**: 8/8 tests passed
-- **Comprehensive Test Suite**: Phase 1 complete, Phase 2 complete, Phase 3 in progress (5,394+ / 7,728 tests, ~69.8% complete)
+- **Comprehensive Test Suite**: Phase 1 complete, Phase 2 complete, Phase 3 in progress (5,250 / 7,728 tests, 67.9% complete)
 - **Documentation**: All links valid
 
 ## Comprehensive Test Suite
@@ -29,11 +29,17 @@ Comprehensive test results for gr-sleipnir.
 - **Merged results**: `test-results-json/results.json` (844 total: 12 Phase 1 + 832 Phase 2)
 
 **Phase 3**: In Progress (edge case tests)
-- **Status**: Running (5,394+ tests completed as of 2025-12-11)
+- **Status**: Running (5,250 tests completed as of 2025-12-11)
 - **Target**: 7,728 test scenarios
-- **Results saved to**: `test-results-files/phase3.json`
-- **Progress**: ~69.8% complete
-- **Estimated completion**: ~6-7 hours remaining
+- **Results saved to**: `test-results-files/phase3.json` and `test-results-files/results_intermediate.json`
+- **Progress**: 67.9% complete (5,250 / 7,728)
+- **Estimated completion**: ~8-9 hours remaining
+- **4FSK**: 100% complete (3,864 tests)
+- **8FSK**: 35.9% complete (1,386 tests)
+  - 8FSK baseline (no crypto): 100% complete (966 tests)
+  - 8FSK sign: 43.5% complete (420 tests)
+  - 8FSK encrypt: 0% complete
+  - 8FSK both: 0% complete
 
 ### Test Configuration
 
@@ -53,11 +59,13 @@ Comprehensive test results for gr-sleipnir.
 ### Phase 2 Results (Actual Findings)
 
 1. **FER Performance**:
-   - **Mean FER**: 5.15% (clean), 5.11% (AWGN), 6.14% (Rayleigh), 6.08% (Rician)
-   - **FER Floor**: 4.53% mean at high SNR (≥10 dB), confirming hard-decision decoder limitation
+   - **Mean FER** (Phase 2): 5.15% (clean), 5.11% (AWGN), 6.14% (Rayleigh), 6.08% (Rician)
+   - **FER Floor** (Phase 2): 4.53% mean at high SNR (≥10 dB), confirming hard-decision decoder limitation
+   - **FER Floor** (Phase 3, updated): 6.04% for 4FSK, 4.01% for 8FSK at high SNR (≥10 dB)
    - **FER at low SNR**: 8.05% mean at -5 to 0 dB SNR range
    - **Operational SNR (FER < 5%)**: 0-1 dB for 4FSK, -1 to 0 dB for 8FSK
-   - **Waterfall SNR (FER < 1%)**: Not achieved (limited by 4-5% FER floor)
+   - **Waterfall SNR (FER < 1%)**: Not achieved (limited by 4-6% FER floor)
+   - **8FSK Advantage**: 8FSK has lower FER floor (4.01% vs 6.04% for 4FSK) - 1.27 percentage points better
 
 2. **Audio Quality**:
    - **WarpQ scores**: Computed for all successful decodes
@@ -309,10 +317,13 @@ See `test-results-files/analysis/ANALYSIS_SUMMARY.md` for complete overview of a
 Test results updated: 2025-12-11
 - Phase 1: Complete (12/12 passed)
 - Phase 2: Complete (760/832 passed, 91.3% pass rate)
-- Phase 3: In progress (5,394+ / 7,728 tests completed, ~69.8%)
+- Phase 3: In progress (5,250 / 7,728 tests completed, 67.9%)
+  - 4FSK: 100% complete (3,864 tests)
+  - 8FSK: 35.9% complete (1,386 tests)
 - Unit tests: All passing (8/8)
 - Build system: All passing
 - Analysis reports: Generated (13 reports + visualizations)
+- Phase 3 interim analysis: Available (`test-results-files/analysis_now/`)
 - Channel-specific thresholds: Implemented (7-20% depending on channel type)
 
 ## Results Files

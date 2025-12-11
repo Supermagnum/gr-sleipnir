@@ -347,7 +347,7 @@ sudo ldconfig
 
 Install gr-nacl:
 ```bash
-git clone https://github.com/gnuradio/gr-nacl.git
+git clone https://github.com/Supermagnum/gr-nacl.git
 cd gr-nacl
 mkdir build && cd build
 cmake ..
