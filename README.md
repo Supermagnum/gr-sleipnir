@@ -784,7 +784,8 @@ The test suite includes three phases:
 - Key rotation tests (mid-stream key changes)
 - Sync loss/recovery scenarios
 - Mixed mode stress tests (voice + APRS + text simultaneously)
-- 120 edge case scenarios
+- Text messaging and multi-recipient encryption tests
+- 7,728 test scenarios (2 modulations × 4 crypto × 7 channels × 23 SNR × 2 data modes × 3 recipient scenarios)
 
 **Test Features:**
 - Frame Error Rate (FER) tracking with accurate error counting
