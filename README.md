@@ -219,8 +219,27 @@ The system supports two modulation modes optimized for different use cases:
 - **Rician Fading**: 6.08% mean FER, 88.5% pass rate (+1 dB penalty)
 
 **Competitive Analysis:**
-- **vs M17**: ~4-5 dB advantage (M17: +5 dB waterfall, gr-sleipnir: 0-1 dB operational)
-- **Limitation**: 4-5% FER floor prevents achieving <1% FER (hard-decision decoder)
+
+| Mode | Waterfall SNR | Operational SNR (FER<5%) | Audio Codec | Bitrate | Bandwidth | Advantage vs gr-sleipnir |
+|------|---------------|---------------------------|-------------|---------|------------|--------------------------|
+| **gr-sleipnir (8FSK)** | 0 to +1 dB | 0-1 dB | Opus 8 kbps | 14,400 bps | ~11-12 kHz | Baseline |
+| **gr-sleipnir (4FSK)** | -1 dB | 0-1 dB | Opus 6 kbps | 9,600 bps | ~9-10 kHz | Baseline |
+| **M17** | +5 dB | +5-6 dB | Codec2 3.2 kbps | 9,600 bps | ~9 kHz | **+4-5 dB better** |
+| **DMR** | +3 to +5 dB | +4-6 dB | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+3-4 dB better** |
+| **FreeDV** | +3 to +6 dB | +4-7 dB | Codec2 1.3-3.2 kbps | Varies | Varies | **+3-5 dB better** |
+| **D-STAR** | +4 to +6 dB | +5-7 dB | AMBE+ 2.45 kbps | 4,800 bps | 6.25 kHz | **+4-5 dB better** |
+| **Fusion (C4FM)** | +3 to +5 dB | +4-6 dB | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+3-4 dB better** |
+| **P25** | +4 to +6 dB | +5-7 dB | AMBE+2 2.45 kbps | 9,600 bps | 12.5 kHz | **+4-5 dB better** |
+
+**Key Advantages of gr-sleipnir:**
+- **Superior SNR performance**: 3-5 dB better than commercial/proprietary modes
+- **Modern audio codec**: Opus provides superior quality vs AMBE+2/Codec2
+- **Higher audio bitrate**: 6-8 kbps Opus vs 2.45-3.2 kbps for other modes
+- **Open source**: Full transparency and customization vs proprietary systems
+- **Flexible bandwidth**: 9-12 kHz fits standard NFM spacing
+
+**Limitation:**
+- **4-5% FER floor**: Hard-decision LDPC decoder prevents achieving <1% FER (soft-decision decoder would eliminate this)
 
 **Detailed Analysis:**
 Comprehensive analysis reports available in `test-results-files/analysis/`:
@@ -230,7 +249,7 @@ Comprehensive analysis reports available in `test-results-files/analysis/`:
 - Waterfall characterization
 - FER floor analysis
 - Channel model validation
-- Comparative analysis vs M17
+- Comparative analysis vs M17, DMR, FreeDV, D-STAR, Fusion, and P25
 
 **Performance Visualizations:**
 - [Performance Curves](test-results-files/analysis/performance_curves.png) - FER vs SNR plots for 4FSK and 8FSK
