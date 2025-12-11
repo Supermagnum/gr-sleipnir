@@ -5,3 +5,77 @@
 2025-12-10 15:41:31,871 - __main__ - INFO - Using process isolation: 50 tests per process
 2025-12-10 15:41:31,872 - __main__ - INFO - Running 832 tests in 17 batches (50 tests per batch)
 2025-12-10 15:41:31,872 - __main__ - INFO - Batch 1/17: Tests 1-50
+2025-12-10 15:51:37,002 - __main__ - INFO - Batch 1 completed successfully
+2025-12-10 15:51:37,003 - __main__ - INFO - Loading 50 results from batch 1
+2025-12-10 15:51:37,003 - __main__ - INFO - Total results after batch 1: 62
+2025-12-10 15:51:37,009 - __main__ - INFO - Batch 2/17: Tests 51-100
+2025-12-10 16:01:43,515 - __main__ - INFO - Batch 2 completed successfully
+2025-12-10 16:01:43,517 - __main__ - INFO - Loading 50 results from batch 2
+2025-12-10 16:01:43,517 - __main__ - INFO - Total results after batch 2: 112
+2025-12-10 16:01:43,527 - __main__ - INFO - Batch 3/17: Tests 101-150
+2025-12-10 16:11:49,207 - __main__ - INFO - Batch 3 completed successfully
+2025-12-10 16:11:49,207 - __main__ - INFO - Loading 50 results from batch 3
+2025-12-10 16:11:49,207 - __main__ - INFO - Total results after batch 3: 162
+2025-12-10 16:11:49,214 - __main__ - INFO - Batch 4/17: Tests 151-200
+2025-12-10 16:21:56,718 - __main__ - INFO - Batch 4 completed successfully
+2025-12-10 16:21:56,719 - __main__ - INFO - Loading 50 results from batch 4
+2025-12-10 16:21:56,719 - __main__ - INFO - Total results after batch 4: 212
+2025-12-10 16:21:56,733 - __main__ - INFO - Batch 5/17: Tests 201-250
+2025-12-10 16:32:01,804 - __main__ - INFO - Batch 5 completed successfully
+2025-12-10 16:32:01,805 - __main__ - INFO - Loading 50 results from batch 5
+2025-12-10 16:32:01,805 - __main__ - INFO - Total results after batch 5: 262
+2025-12-10 16:32:01,826 - __main__ - INFO - Batch 6/17: Tests 251-300
+2025-12-10 16:42:08,245 - __main__ - INFO - Batch 6 completed successfully
+2025-12-10 16:42:08,246 - __main__ - INFO - Loading 50 results from batch 6
+2025-12-10 16:42:08,247 - __main__ - INFO - Total results after batch 6: 312
+2025-12-10 16:42:08,268 - __main__ - INFO - Batch 7/17: Tests 301-350
+2025-12-10 16:52:13,578 - __main__ - INFO - Batch 7 completed successfully
+2025-12-10 16:52:13,579 - __main__ - INFO - Loading 50 results from batch 7
+2025-12-10 16:52:13,579 - __main__ - INFO - Total results after batch 7: 362
+2025-12-10 16:52:13,607 - __main__ - INFO - Batch 8/17: Tests 351-400
+2025-12-10 17:02:19,899 - __main__ - INFO - Batch 8 completed successfully
+2025-12-10 17:02:19,900 - __main__ - INFO - Loading 50 results from batch 8
+2025-12-10 17:02:19,900 - __main__ - INFO - Total results after batch 8: 412
+2025-12-10 17:02:19,918 - __main__ - INFO - Batch 9/17: Tests 401-450
+2025-12-10 17:12:25,447 - __main__ - INFO - Batch 9 completed successfully
+2025-12-10 17:12:25,447 - __main__ - INFO - Loading 50 results from batch 9
+2025-12-10 17:12:25,447 - __main__ - INFO - Total results after batch 9: 462
+2025-12-10 17:12:25,472 - __main__ - INFO - Batch 10/17: Tests 451-500
+2025-12-10 17:22:31,084 - __main__ - INFO - Batch 10 completed successfully
+2025-12-10 17:22:31,085 - __main__ - INFO - Loading 50 results from batch 10
+2025-12-10 17:22:31,085 - __main__ - INFO - Total results after batch 10: 512
+2025-12-10 17:22:31,119 - __main__ - INFO - Batch 11/17: Tests 501-550
+2025-12-10 17:32:36,730 - __main__ - INFO - Batch 11 completed successfully
+2025-12-10 17:32:36,731 - __main__ - INFO - Loading 50 results from batch 11
+2025-12-10 17:32:36,731 - __main__ - INFO - Total results after batch 11: 562
+2025-12-10 17:32:36,777 - __main__ - INFO - Batch 12/17: Tests 551-600
+2025-12-10 17:42:42,310 - __main__ - INFO - Batch 12 completed successfully
+2025-12-10 17:42:42,311 - __main__ - INFO - Loading 50 results from batch 12
+2025-12-10 17:42:42,311 - __main__ - INFO - Total results after batch 12: 612
+2025-12-10 17:42:42,351 - __main__ - INFO - Batch 13/17: Tests 601-650
+2025-12-10 17:52:49,385 - __main__ - INFO - Batch 13 completed successfully
+2025-12-10 17:52:49,386 - __main__ - INFO - Loading 50 results from batch 13
+2025-12-10 17:52:49,386 - __main__ - INFO - Total results after batch 13: 662
+2025-12-10 17:52:49,439 - __main__ - INFO - Batch 14/17: Tests 651-700
+2025-12-10 18:02:54,482 - __main__ - INFO - Batch 14 completed successfully
+2025-12-10 18:02:54,484 - __main__ - INFO - Loading 50 results from batch 14
+2025-12-10 18:02:54,485 - __main__ - INFO - Total results after batch 14: 712
+2025-12-10 18:02:54,546 - __main__ - INFO - Batch 15/17: Tests 701-750
+2025-12-10 18:13:00,710 - __main__ - INFO - Batch 15 completed successfully
+2025-12-10 18:13:00,711 - __main__ - INFO - Loading 50 results from batch 15
+2025-12-10 18:13:00,711 - __main__ - INFO - Total results after batch 15: 762
+2025-12-10 18:13:00,760 - __main__ - INFO - Batch 16/17: Tests 751-800
+2025-12-10 18:23:06,371 - __main__ - INFO - Batch 16 completed successfully
+2025-12-10 18:23:06,372 - __main__ - INFO - Loading 50 results from batch 16
+2025-12-10 18:23:06,372 - __main__ - INFO - Total results after batch 16: 812
+2025-12-10 18:23:06,424 - __main__ - INFO - Batch 17/17: Tests 801-832
+2025-12-10 18:29:34,391 - __main__ - INFO - Batch 17 completed successfully
+2025-12-10 18:29:34,392 - __main__ - INFO - Loading 32 results from batch 17
+2025-12-10 18:29:34,392 - __main__ - INFO - Total results after batch 17: 844
+2025-12-10 18:29:34,482 - __main__ - INFO - Phase 2 results saved to ./test-results-files/phase2.json (832 results)
+2025-12-10 18:29:34,516 - __main__ - INFO - All results saved to ./test-results-json/results.json (844 total results from all phases)
+2025-12-10 18:29:34,516 - __main__ - INFO - Summary: 772/844 tests passed (91.5%)
+2025-12-10 18:29:34,516 - __main__ - INFO - Test suite completed in 2h 48m 2s
+SUCCESS: gr-linux-crypto found as 'gnuradio.linux_crypto'
+  Available blocks/classes: ['brainpool_ecies_decrypt', 'brainpool_ecies_encrypt', 'brainpool_ecies_multi_decrypt', 'brainpool_ecies_multi_encrypt', 'get_integration_status', 'kernel_crypto_aes', 'kernel_keyring_source', 'nitrokey_interface']
+SUCCESS: gr-nacl found as 'nacl'
