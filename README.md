@@ -28,9 +28,9 @@ A Experimental GNU Radio-based digital voice mode designed for amateur radio nar
   - [Crypto Integration](#crypto-integration)
   - [APRS and Text Messaging](#aprs-and-text-messaging)
   - [Sync Frames](#sync-frames)
-  - [Testing](#testing)
+  - [Test Documentation](#test-documentation)
   - [Examples](#examples)
-- [Testing](#testing-1)
+- [Testing](#testing)
 - [Status](#status)
 - [Future Work](#future-work)
 - [License](#license)
@@ -594,7 +594,7 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 - **[LDPC Matrices Summary](ldpc_matrices/README_SUMMARY.md)** - Summary of available LDPC matrices
 - **[LDPC Notes](ldpc_matrices/NOTE.md)** - Additional notes on LDPC matrices
 
-### Testing
+### Test Documentation
 
 - **[Test Suite README](tests/README_TESTING.md)** - Comprehensive test suite documentation
 - **[Test Scenarios](tests/TEST_SCENARIOS.md)** - Detailed documentation of test scenarios
