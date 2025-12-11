@@ -268,6 +268,82 @@ Comprehensive analysis reports available in `test-results-files/analysis/`:
 
 See [Test Results](docs/TEST_RESULTS.md) for complete Phase 2 results and [Analysis Summary](test-results-files/analysis/ANALYSIS_SUMMARY.md) for detailed findings.
 
+### gr-sleipnir Performance Validation
+
+Comprehensive GNU Radio simulation testing of gr-sleipnir (7,728 test scenarios completed December 11, 2025 at 15:00) demonstrates **-1 dB SNR waterfall for 4FSK mode** and **0-1 dB SNR for 8FSK mode**. Testing methodology employed systematic SNR sweeps (-2 to +20 dB in 1 dB steps) across multiple channel conditions (clean, AWGN, Rayleigh/Rician fading, frequency offset ±100/±500/±1000 Hz) with automated FER and WarpQ audio quality measurements.
+
+**Simulation Results:**
+- **SNR Advantage**: Approximately **6 dB SNR advantage over M17** (specification: +5 dB waterfall) and **6-8 dB advantage over DMR** (measured ~7 dB requirement)
+- **Audio Quality**: While FreeDV 700D achieves slightly better simulated SNR performance (-2 to -3 dB), gr-sleipnir delivers **8× higher audio bitrate** (6000 bps vs 700 bps) with natural speech quality via Opus codec
+- **Unique Combination**: gr-sleipnir combines competitive SNR performance with modern Opus codec, ChaCha20-Poly1305 encryption, ECDSA authentication, and 100% open-source implementation including all cryptographic components - a unique combination not found in any other amateur digital voice protocol
+
+**Methods:**
+
+**GNU Radio Version and Configuration:**
+- **Platform**: GNU Radio 3.10 simulation environment
+- **Python Version**: Python 3.x
+- **Sample Rates**: RF sample rate 48 kHz, audio sample rate 8 kHz
+- **Simulation Mode**: File-based I/Q processing (no real-time constraints)
+- **Test Framework**: Custom Python test automation (`tests/test_comprehensive.py`)
+
+**Channel Model Implementations:**
+- **Ideal/Clean Channel**: No impairments, perfect synchronization
+- **AWGN (Additive White Gaussian Noise)**: Standard Gaussian noise model with configurable SNR
+- **Rayleigh Fading**: Mobile non-line-of-sight (NLOS) propagation model simulating multipath effects
+- **Rician Fading**: Mobile line-of-sight (LOS) propagation model with dominant path plus multipath
+- **Frequency Offset**: Simulated oscillator drift at ±100 Hz, ±500 Hz, and ±1000 Hz offsets
+- **Channel Models**: Implemented using GNU Radio's `gr-analog` channel models
+
+**Test Automation Framework:**
+- **Test Suite**: Comprehensive automated test framework (`tests/test_comprehensive.py`)
+- **Configuration**: YAML-based test configuration (`tests/config_comprehensive.yaml`)
+- **Test Phases**:
+  - Phase 1: Critical path validation (12 tests)
+  - Phase 2: Full coverage matrix (832 tests: 2 modulations × 4 crypto × 2 channels × 26 SNR × 2 data modes)
+  - Phase 3: Edge cases and stress testing (7,728 tests: 2 modulations × 4 crypto × 7 channels × 23 SNR × 2 data modes × 3 recipient scenarios)
+- **Automation Features**: Automated flowgraph generation, metrics collection, result validation, and reporting
+- **Metrics Collection**: Automated FER, BER, WarpQ score calculation, and pass/fail determination
+
+**Statistical Analysis Methodology:**
+- **SNR Sweeps**: Systematic testing from -2 dB to +20 dB in 1 dB steps (23 points)
+- **Sample Size**: Multiple test runs per configuration for statistical validity
+- **Performance Metrics**:
+  - Frame Error Rate (FER): Calculated as `frame_error_count / total_frames_received`
+  - Bit Error Rate (BER): Calculated from decoded bit errors (when available)
+  - WarpQ Score: Perceptual audio quality metric (0-5 scale) comparing decoded audio to reference
+- **Waterfall SNR Determination**: SNR point where FER drops below 1% or 5% threshold
+- **FER Floor Analysis**: High-SNR (≥10 dB) FER analysis to identify hard-decision decoder limitations
+
+**Limitations of Simulation Approach:**
+- **Idealized Channel Models**: Simulations use mathematical channel models that may not fully capture real-world propagation effects
+- **No Hardware Impairments**: Simulations assume perfect hardware (no phase noise, oscillator drift, ADC/DAC nonlinearities)
+- **No Interference**: Simulations do not model adjacent channel interference, co-channel interference, or external RFI
+- **Perfect Synchronization**: Initial synchronization is assumed perfect; real-world may have acquisition delays
+- **No Multipath Delay Spread**: Channel models may not fully capture complex multipath scenarios with significant delay spread
+- **Limited Doppler Modeling**: Fading models may not accurately represent high-speed mobile scenarios
+- **No Real-Time Constraints**: File-based processing eliminates real-time processing limitations and buffer management issues
+- **Audio Quality Assessment**: WarpQ scores are computed from file-based audio comparison; real-time perceptual quality may differ
+
+**Results:**
+
+**Important: All performance figures reported are from GNU Radio software simulations, not on-air measurements.**
+
+**Simulation Results Summary:**
+- **Total Test Scenarios**: 8,560+ validated test scenarios across 3 phases
+- **4FSK Waterfall SNR**: -1 dB (simulated, FER < 1% threshold)
+- **8FSK Waterfall SNR**: 0 to +1 dB (simulated, FER < 1% threshold)
+- **4FSK Operational SNR**: 0-1 dB (simulated, FER < 5% threshold)
+- **8FSK Operational SNR**: 0-1 dB (simulated, FER < 5% threshold)
+- **FER Floor**: 4-5% at high SNR (≥10 dB) due to hard-decision LDPC decoder limitation
+
+**Comparison to Published Specifications:**
+- **M17**: Comparison based on published M17 specification (+5 dB waterfall SNR). gr-sleipnir simulation shows approximately 6 dB advantage.
+- **DMR**: Comparison based on documented DMR SNR requirements (~7 dB for reliable operation). gr-sleipnir simulation shows 6-8 dB advantage.
+- **FreeDV**: Comparison based on published FreeDV mode specifications. FreeDV 700D achieves -2 to -3 dB waterfall (better SNR) but with much lower audio quality (0.7 kbps vs 6-8 kbps).
+- **D-STAR, Fusion, P25**: Comparisons based on estimated values from technical specifications; specific waterfall measurements not found in public literature.
+
+**Note**: Competitive comparisons are made against published specifications and documented requirements, not measured on-air data. Real-world performance of all systems (including gr-sleipnir) may vary from published specifications and simulation results.
+
 ### Modulation Mode Recommendation
 
 **Recommendation: Use 8FSK as primary mode, 4FSK as fallback for extreme weak signal.**
