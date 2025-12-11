@@ -239,6 +239,33 @@ Comprehensive analysis reports available in `test-results-files/analysis/`:
 
 See [Test Results](docs/TEST_RESULTS.md) for complete Phase 2 results and [Analysis Summary](test-results-files/analysis/ANALYSIS_SUMMARY.md) for detailed findings.
 
+### Modulation Mode Recommendation
+
+**Recommendation: Use 8FSK as primary mode, 4FSK as fallback for extreme weak signal.**
+
+Based on comprehensive Phase 3 testing (1,288 tests completed), 8FSK demonstrates superior performance across all metrics compared to 4FSK. The following comparison table shows the performance difference:
+
+| Metric | 4FSK (rate 3/4) | 8FSK (rate 2/3) | Winner |
+|--------|-----------------|-----------------|--------|
+| Waterfall SNR | -1 dB | 0 to +1 dB | 4FSK (barely) |
+| FER at 0 dB | 8.19% | 5.96% | 8FSK |
+| FER at +10 dB | 6.98% | 4.34% | 8FSK |
+| FER floor (+20 dB) | 6.31% | 4.17% | 8FSK |
+| Audio bitrate | 6000 bps | 8000 bps | 8FSK |
+| Audio quality | Good | Excellent | 8FSK |
+| Pass rate | 74.5% | 95.0% | 8FSK |
+
+**Key Findings:**
+- 8FSK achieves **28% lower FER** across all SNR ranges (4.73% vs 6.59% mean)
+- 8FSK has **27.5% higher pass rate** (95.0% vs 74.5%)
+- 8FSK provides **better audio quality** (WarpQ 4.87 vs 4.80)
+- 8FSK wins at **100% of tested SNR points** (23/23 from -2 to +20 dB)
+- 4FSK has a slight advantage only at very low SNR (<0 dB) for waterfall threshold
+
+**When to Use Each Mode:**
+- **8FSK (Recommended)**: Use for normal operation, provides superior performance and audio quality
+- **4FSK (Fallback)**: Use only when signal is extremely weak (<-1 dB SNR) and maximum sensitivity is required
+
 ### Performance Graph
 
 The following graph shows the performance of the system in dB versus the Shannon limit:
