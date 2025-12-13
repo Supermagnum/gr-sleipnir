@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from python.crypto_helpers import (
     generate_ecdsa_signature,
+    verify_ecdsa_signature,
     load_private_key,
     get_callsign_bytes
 )
@@ -70,11 +71,13 @@ def test_signature_generation():
         signature = generate_ecdsa_signature(test_data, private_key)
         print(f"   PASS: Signature generated: {len(signature)} bytes")
         
-        # Verify signature format
-        if len(signature) == 32:
-            print("   PASS: Signature length correct (32 bytes)")
+        # Verify signature format (should be 64 bytes: r + s, each 32 bytes)
+        if len(signature) == 64:
+            print("   PASS: Signature length correct (64 bytes: r + s)")
+        elif len(signature) == 32:
+            print("   PASS: Signature length correct (32 bytes, truncated)")
         else:
-            print(f"   FAIL: Signature length incorrect: {len(signature)} bytes")
+            print(f"   FAIL: Signature length incorrect: {len(signature)} bytes (expected 32 or 64)")
             return False
         
         # Load key from file
@@ -91,13 +94,47 @@ def test_signature_generation():
         signature2 = generate_ecdsa_signature(test_data, loaded_key)
         print(f"   PASS: Signature generated: {len(signature2)} bytes")
         
-        # Note: Full signature verification requires storing full 64-byte signature
-        # Current implementation uses 32-byte hash of signature
-        # This is a limitation noted in the code
+        # CRITICAL: Verify signature actually works
+        print("\n5. Verifying signature...")
+        public_key = private_key.public_key()
+        signature_valid = verify_ecdsa_signature(test_data, signature, public_key)
         
-        print("\nPASS: Signature generation test passed")
-        print("\nNote: Full signature verification requires storing 64-byte signature")
-        print("      Current implementation uses 32-byte hash (see crypto_helpers.py)")
+        if signature_valid:
+            print("   PASS: Signature verification successful")
+        else:
+            print("   FAIL: Signature verification failed")
+            return False
+        
+        # CRITICAL: Verify wrong data fails
+        print("\n6. Testing signature verification with wrong data...")
+        wrong_data = test_data + b"modified"
+        signature_invalid = verify_ecdsa_signature(wrong_data, signature, public_key)
+        
+        if not signature_invalid:
+            print("   PASS: Wrong data correctly rejected")
+        else:
+            print("   FAIL: Wrong data incorrectly accepted")
+            return False
+        
+        # CRITICAL: Verify signature is deterministic (same input -> same signature)
+        print("\n7. Testing signature determinism...")
+        signature3 = generate_ecdsa_signature(test_data, private_key)
+        
+        # ECDSA signatures are non-deterministic by default, but should verify
+        # Both signatures should verify the same data
+        valid1 = verify_ecdsa_signature(test_data, signature, public_key)
+        valid2 = verify_ecdsa_signature(test_data, signature3, public_key)
+        
+        if valid1 and valid2:
+            print("   PASS: Both signatures verify correctly")
+        else:
+            print("   FAIL: Signatures don't verify")
+            return False
+        
+        print("\nPASS: Signature generation and verification test passed")
+        print("  - Signatures are generated correctly")
+        print("  - Signatures verify correctly")
+        print("  - Wrong data is rejected")
         
         return True
         

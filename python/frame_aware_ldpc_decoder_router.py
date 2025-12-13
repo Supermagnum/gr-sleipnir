@@ -23,6 +23,14 @@ except ImportError:
     FEC_AVAILABLE = False
     print("Warning: GNU Radio FEC module not available")
 
+# Import LDPC utility functions
+try:
+    from python.ldpc_utils import load_alist_matrix, ldpc_decode_soft
+    LDPC_UTILS_AVAILABLE = True
+except ImportError:
+    LDPC_UTILS_AVAILABLE = False
+    print("Warning: LDPC utils not available")
+
 
 class frame_aware_ldpc_decoder_router(gr.sync_block):
     """
@@ -59,6 +67,10 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         self.auth_decoder = None
         self.voice_decoder = None
         
+        # LDPC parity check matrices for decoding
+        self.auth_H = None
+        self.voice_H = None
+        
         if FEC_AVAILABLE:
             try:
                 if auth_matrix_file:
@@ -74,6 +86,20 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
             except Exception as e:
                 print(f"Warning: Could not create voice decoder: {e}")
         
+        # Load LDPC matrices for direct decoding
+        if LDPC_UTILS_AVAILABLE:
+            try:
+                if auth_matrix_file and os.path.exists(auth_matrix_file):
+                    self.auth_H, n, k = load_alist_matrix(auth_matrix_file)
+            except Exception as e:
+                print(f"Warning: Could not load auth matrix: {e}")
+            
+            try:
+                if voice_matrix_file and os.path.exists(voice_matrix_file):
+                    self.voice_H, n, k = load_alist_matrix(voice_matrix_file)
+            except Exception as e:
+                print(f"Warning: Could not load voice matrix: {e}")
+        
         # Store reference to prevent garbage collection
         if not hasattr(type(self), '_instances'):
             type(self)._instances = []
@@ -83,31 +109,30 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         """
         Decode auth frame (1536 soft bits -> 64 bytes) using LDPC decoder.
         
-        NOTE: Currently using hard-decision decoding (sign-based threshold).
-        This limits performance to ~4% FER even at high SNR.
-        TODO: Implement proper soft-decision LDPC decoding by integrating
-        GNU Radio FEC decoders as stream blocks in the flowgraph.
+        WARNING: This is NOT actual LDPC decoding - only simple thresholding is performed.
+        The decoder objects are created but never used because GNU Radio FEC decoders
+        are stream-based blocks that must be integrated into the flowgraph, not called directly.
+        This performs NO error correction - it just converts soft decisions to hard bits by sign.
+        TODO: Integrate FEC decoder blocks properly in hierarchical flowgraph.
         """
         soft_array = np.array(soft_bits, dtype=np.float32)
         
-        # Try to use actual LDPC decoder if available
-        # Note: GNU Radio decoders are stream-based blocks, so we use a workaround
-        # We'll use the decoder's internal decode method if available, otherwise use hard decision
-        if self.auth_decoder and hasattr(self.auth_decoder, 'general_work'):
-            # Decoder is a GNU Radio block - we can't call it directly
-            # Use improved hard decision with threshold optimization
-            # For LDPC, we use sign-based hard decision (soft > 0 = 1, soft <= 0 = 0)
-            # This is a limitation: proper soft-decision decoding would improve FER significantly
-            hard_bits = (soft_array > 0).astype(np.uint8)
+        # Perform actual LDPC soft-decision decoding
+        if self.auth_H is not None:
+            # Use belief propagation decoding
+            info_bits = ldpc_decode_soft(soft_array, self.auth_H, self.max_iter)
+            # Convert bits to bytes
+            decoded_bytes = np.packbits(info_bits).tobytes()
+            # Ensure 64 bytes output
+            if len(decoded_bytes) < 64:
+                decoded_bytes = decoded_bytes + b'\x00' * (64 - len(decoded_bytes))
+            elif len(decoded_bytes) > 64:
+                decoded_bytes = decoded_bytes[:64]
         else:
-            # Fallback: improved hard decision
-            # Use sign-based decision: positive LLR = bit 1, negative/zero LLR = bit 0
+            # Fallback: simple thresholding if decoding not available
             hard_bits = (soft_array > 0).astype(np.uint8)
-        
-        # Extract first 512 bits (64 bytes) - this is the information bits after LDPC decoding
-        # The decoder should output 512 bits for a rate 1/3 code (1536 coded bits -> 512 info bits)
-        decoded_bits = hard_bits[:512]
-        decoded_bytes = decoded_bits.tobytes()[:64]
+            decoded_bits = hard_bits[:512]
+            decoded_bytes = decoded_bits.tobytes()[:64]
         
         return decoded_bytes
     
@@ -115,28 +140,30 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         """
         Decode voice frame (576 soft bits -> 48 bytes) using LDPC decoder.
         
-        NOTE: Currently using hard-decision decoding (sign-based threshold).
-        This limits performance to ~4% FER even at high SNR.
-        TODO: Implement proper soft-decision LDPC decoding by integrating
-        GNU Radio FEC decoders as stream blocks in the flowgraph.
+        WARNING: This is NOT actual LDPC decoding - only simple thresholding is performed.
+        The decoder objects are created but never used because GNU Radio FEC decoders
+        are stream-based blocks that must be integrated into the flowgraph, not called directly.
+        This performs NO error correction - it just converts soft decisions to hard bits by sign.
+        TODO: Integrate FEC decoder blocks properly in hierarchical flowgraph.
         """
         soft_array = np.array(soft_bits, dtype=np.float32)
         
-        # Try to use actual LDPC decoder if available
-        if self.voice_decoder and hasattr(self.voice_decoder, 'general_work'):
-            # Decoder is a GNU Radio block - we can't call it directly
-            # Use improved hard decision with threshold optimization
-            # This is a limitation: proper soft-decision decoding would improve FER significantly
-            hard_bits = (soft_array > 0).astype(np.uint8)
+        # Perform actual LDPC soft-decision decoding
+        if self.voice_H is not None:
+            # Use belief propagation decoding
+            info_bits = ldpc_decode_soft(soft_array, self.voice_H, self.max_iter)
+            # Convert bits to bytes
+            decoded_bytes = np.packbits(info_bits).tobytes()
+            # Ensure 48 bytes output
+            if len(decoded_bytes) < 48:
+                decoded_bytes = decoded_bytes + b'\x00' * (48 - len(decoded_bytes))
+            elif len(decoded_bytes) > 48:
+                decoded_bytes = decoded_bytes[:48]
         else:
-            # Fallback: improved hard decision
-            # Use sign-based decision: positive LLR = bit 1, negative/zero LLR = bit 0
+            # Fallback: simple thresholding if decoding not available
             hard_bits = (soft_array > 0).astype(np.uint8)
-        
-        # Extract first 384 bits (48 bytes) - this is the information bits after LDPC decoding
-        # The decoder should output 384 bits for a rate 2/3 code (576 coded bits -> 384 info bits)
-        decoded_bits = hard_bits[:384]
-        decoded_bytes = decoded_bits.tobytes()[:48]
+            decoded_bits = hard_bits[:384]
+            decoded_bytes = decoded_bits.tobytes()[:48]
         
         return decoded_bytes
     

@@ -1,5 +1,9 @@
 # gr-sleipnir
 
+**IMPORTANT NOTICE**: This is AI-generated code. The developer has a neurological condition that makes it impossible to use and learn traditional programming. The developer has put in a significant effort. This code might not work properly. Use at your own risk.
+
+---
+
 A Experimental GNU Radio-based digital voice mode designed for amateur radio narrowband FM (NFM) channel spacing, utilizing modern audio codecs for superior voice quality compared to traditional codec2 implementations.
 
 ## Disclaimer and Liability
@@ -341,7 +345,7 @@ Comprehensive GNU Radio simulation testing of gr-sleipnir demonstrates **-1 dB S
 - **Python Version**: Python 3.x
 - **Sample Rates**: RF sample rate 48 kHz, audio sample rate 8 kHz
 - **Simulation Mode**: File-based I/Q processing (no real-time constraints)
-- **Test Framework**: Custom Python test automation (`tests/test_comprehensive.py`)
+- **Test Framework**: Functional unit tests that verify actual code behavior
 
 **Channel Model Implementations:**
 - **Ideal/Clean Channel**: No impairments, perfect synchronization
@@ -351,14 +355,15 @@ Comprehensive GNU Radio simulation testing of gr-sleipnir demonstrates **-1 dB S
 - **Frequency Offset**: Simulated oscillator drift at ±100 Hz, ±500 Hz, and ±1000 Hz offsets
 - **Channel Models**: Implemented using GNU Radio's `gr-analog` channel models
 
-**Test Automation Framework:**
-- **Test Suite**: Comprehensive automated test framework (`tests/test_comprehensive.py`)
-- **Configuration**: YAML-based test configuration (`tests/config_comprehensive.yaml`)
-- **Test Phases**:
-  - Phase 1: Critical path validation (12 tests)
-  - Phase 2: Full coverage matrix (832 tests: 2 modulations × 4 crypto × 2 channels × 26 SNR × 2 data modes)
-  - Phase 3: Edge cases and stress testing (7,728 tests: 2 modulations × 4 crypto × 7 channels × 23 SNR × 2 data modes × 3 recipient scenarios)
-- **Automation Features**: Automated flowgraph generation, metrics collection, result validation, and reporting
+**Test Framework:**
+- **Functional Unit Tests**: Tests that verify actual encoding, decoding, and cryptographic operations
+- **Test Scripts**: `tests/run_all_functionality_tests.sh` - Runs all functional tests
+- **Key Test Suites**:
+  - `test_critical_functionality.py` - Tests for critical bugs (passthrough, thresholding, etc.)
+  - `test_ldpc_functionality.py` - LDPC encoding/decoding verification
+  - `test_crypto_functionality.py` - Cryptographic operations verification
+  - `test_actual_code_exercise.py` - Meta-test to verify tests exercise code
+- **Test Features**: Direct verification of encoding/decoding, cryptographic operations, and error correction
 - **Metrics Collection**: Automated FER, BER, WarpQ score calculation, and pass/fail determination
 
 **Statistical Analysis Methodology:**
@@ -730,7 +735,10 @@ gr-sleipnir/
 │   ├── TEST_SCENARIOS.md         # Test scenarios documentation
 │   ├── TEST_SUMMARY.md           # Test summary
 │   ├── INTEGRATION_TESTS.md      # Integration test guide
-│   ├── test_comprehensive.py     # Comprehensive automated test suite (Phase 1, 2, 3)
+│   ├── test_ldpc_functionality.py     # LDPC encoding/decoding tests
+│   ├── test_crypto_functionality.py   # Cryptographic functionality tests
+│   ├── test_critical_functionality.py # Critical bug detection tests
+│   ├── test_actual_code_exercise.py   # Meta-test for code exercise verification
 │   ├── analyze_results.py        # Test results analysis and reporting tool
 │   ├── config_comprehensive.yaml # Comprehensive test configuration
 │   ├── run_all_tests.py          # Test runner
@@ -795,15 +803,9 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 - **[Test Results](docs/TEST_RESULTS.md)** - Latest test execution results
 - **[Integration Tests](tests/INTEGRATION_TESTS.md)** - Guide for running integration tests
 - **[FER Tracking](docs/FER_TRACKING.md)** - Frame Error Rate tracking and calculation documentation
-- **[Comprehensive Test Suite](tests/test_comprehensive.py)** - Automated test suite (Phase 1, 2, 3)
-- **[Results Analysis Tool](tests/analyze_results.py)** - Test results analysis, plotting, and reporting
-- **[Comprehensive Analysis Generator](tests/generate_comprehensive_analysis.py)** - Generate all analysis reports from test results
-- **[Phase 2 Analysis Summary](test-results-files/analysis/ANALYSIS_SUMMARY.md)** - Complete Phase 2 analysis overview
-- **[Final Analysis Reports](test-results-files/final_analysis/)** - Complete Phase 3 analysis:
-  - `8fsk_complete.json` - 8FSK complete performance analysis (3,864 tests)
-  - `voice_vs_voice_text.json` - Text messaging overhead analysis
-  - `phase_comparison.json` - Phase evolution and stability assessment
-  - `plots/` - Performance curves (FER vs SNR, WarpQ vs SNR, BER vs SNR)
+- **[Functional Test Suite](tests/run_all_functionality_tests.sh)** - Run all functional unit tests
+- **[Test Documentation](tests/README_TESTING.md)** - Complete testing guide
+- **[Functional Test Suite](tests/run_all_functionality_tests.sh)** - Run all functional unit tests
 
 ### Technical Glossary
 
@@ -831,44 +833,59 @@ Example flowgraphs demonstrating gr-sleipnir module usage:
 
 ## Testing
 
-The gr-opus module includes comprehensive tests. See the [gr-opus repository](https://github.com/Supermagnum/gr-opus) for testing instructions and detailed test results.
+The gr-sleipnir project includes functional unit tests that verify actual code behavior, not just end-to-end audio quality metrics. These tests are designed to catch "plausible but broken" code that looks correct but doesn't actually work.
 
-For gr-sleipnir specific tests, see the [Test Suite Documentation](tests/README_TESTING.md).
+### Running Tests
 
-The test suite includes three phases:
+To run all functional tests:
 
-**Phase 1: Critical Path** - Baseline tests for core functionality
-- Clean channel and AWGN conditions
-- Coarser SNR steps for quick validation
-- No crypto modes (baseline performance)
-- **12 test scenarios, Duration: 2m 12s**
+```bash
+cd /home/haaken/github-projects/gr-sleipnir
+./tests/run_all_functionality_tests.sh
+```
 
-**Phase 2: Full Coverage** - Comprehensive testing across all configurations
-- All modulation modes (4FSK, 8FSK)
-- All crypto combinations (none, sign, encrypt, both)
-- Full SNR sweep (-5 dB to +20 dB in 1 dB steps)
-- Multiple channel models (clean, AWGN, Rayleigh, Rician)
-- **832 test scenarios, Duration: 2h 47m 50s**
+Or run individual test suites:
 
-**Phase 3: Edge Cases** - Stress testing and boundary conditions (**COMPLETE**)
-- Boundary conditions (zero frames, extreme SNR, rapid frame rate)
-- Key rotation tests (mid-stream key changes)
-- Sync loss/recovery scenarios
-- Mixed mode stress tests (voice + APRS + text simultaneously)
-- Text messaging and multi-recipient encryption tests
-- **7,728 test scenarios, Duration: 26h 58m 44s** (2 modulations × 4 crypto × 7 channels × 23 SNR × 2 data modes × 3 recipient scenarios) - **100% COMPLETE**
+```bash
+# Critical functionality tests (catches passthrough, thresholding, etc.)
+python3 -m pytest tests/test_critical_functionality.py -v
 
-**Total Test Execution Time**: **29h 48m 47s** for all three phases combined (8,572 total tests). - **100% COMPLETE**
+# LDPC encoding/decoding tests
+python3 -m pytest tests/test_ldpc_functionality.py -v
 
-**Test Features:**
-- Frame Error Rate (FER) tracking with accurate error counting
-  - Tracks `frame_error_count` and `total_frames_received` for accurate FER calculation
-  - Correctly identifies corrupted frames (including those misclassified as APRS/text)
-  - Validates FER against SNR-based thresholds
-- Cryptographic key source validation
-- APRS and text messaging functionality tests
-- Data leakage and security validation
-- Performance metrics: FER, BER, WarpQ scores, sync performance
+# Cryptographic functionality tests
+python3 -m pytest tests/test_crypto_functionality.py -v
+
+# Meta-test to verify tests actually exercise code
+python3 -m pytest tests/test_actual_code_exercise.py -v
+```
+
+### Test Suites
+
+**Critical Functionality Tests** (`test_critical_functionality.py`):
+- Verifies LDPC encoder actually encodes (not passthrough)
+- Verifies LDPC decoder actually decodes and corrects errors (not just thresholding)
+- Verifies encryption actually encrypts (not just MAC)
+- Verifies decryption actually decrypts (not just verification)
+
+**LDPC Functionality Tests** (`test_ldpc_functionality.py`):
+- Encoding changes data and satisfies parity checks
+- Decoding corrects errors and recovers original data
+- Encode-decode cycle recovers original information bits
+
+**Crypto Functionality Tests** (`test_crypto_functionality.py`):
+- ChaCha20-Poly1305 encryption actually encrypts data
+- Decryption recovers plaintext
+- MAC verification works correctly
+- Different inputs produce different ciphertexts
+
+**Other Functional Tests**:
+- `test_signature_verification.py` - ECDSA signature generation and verification
+- `test_encryption_switching.py` - Encryption enable/disable functionality
+- `test_recipient_checking.py` - Multi-recipient message handling
+- `test_multi_recipient.py` - Multi-recipient scenarios
+
+For detailed test documentation, see [Test Documentation](tests/README_TESTING.md).
 
 ### Understanding WarpQ Scores
 

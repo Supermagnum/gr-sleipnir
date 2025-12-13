@@ -10,7 +10,7 @@ Uses cryptography library (available) for all operations.
 
 import hashlib
 import hmac
-from typing import Optional
+from typing import Optional, Tuple
 
 # Use cryptography library (confirmed available)
 try:
@@ -123,9 +123,99 @@ def generate_ecdsa_signature(data: bytes, private_key: object) -> bytes:
         return b'\x00' * 64
 
 
+def encrypt_chacha20_poly1305(plaintext: bytes, key: bytes, nonce: Optional[bytes] = None) -> Tuple[bytes, bytes]:
+    """
+    Encrypt data using ChaCha20-Poly1305.
+
+    Args:
+        plaintext: Data to encrypt
+        key: 32-byte ChaCha20-Poly1305 key
+        nonce: 12-byte nonce (optional, defaults to zeros)
+
+    Returns:
+        Tuple of (ciphertext, mac) where:
+        - ciphertext: Encrypted data
+        - mac: 16-byte Poly1305 authentication tag
+    """
+    if len(key) != 32:
+        raise ValueError("ChaCha20-Poly1305 key must be 32 bytes")
+    
+    if nonce is None:
+        nonce = b'\x00' * 12
+    elif len(nonce) != 12:
+        raise ValueError("ChaCha20-Poly1305 nonce must be 12 bytes")
+
+    if CRYPTOGRAPHY_AVAILABLE:
+        try:
+            # Use cryptography library for ChaCha20-Poly1305
+            chacha = ChaCha20Poly1305(key)
+            ciphertext_with_tag = chacha.encrypt(nonce, plaintext, None)
+            # Last 16 bytes are the Poly1305 tag
+            ciphertext = ciphertext_with_tag[:-16]
+            mac = ciphertext_with_tag[-16:]
+            return ciphertext, mac
+        except Exception as e:
+            print(f"Error encrypting with cryptography library: {e}")
+            raise
+
+    # Fallback: Use HMAC-SHA256 for MAC (no encryption)
+    print("Warning: Using HMAC-SHA256 as fallback - NO ENCRYPTION PERFORMED")
+    mac = hmac.new(key, plaintext, hashlib.sha256).digest()[:16]
+    return plaintext, mac
+
+
+def decrypt_chacha20_poly1305(ciphertext: bytes, mac: bytes, key: bytes, nonce: Optional[bytes] = None) -> bytes:
+    """
+    Decrypt data using ChaCha20-Poly1305.
+
+    Args:
+        ciphertext: Encrypted data
+        mac: 16-byte Poly1305 authentication tag
+        key: 32-byte ChaCha20-Poly1305 key
+        nonce: 12-byte nonce (optional, defaults to zeros)
+
+    Returns:
+        Decrypted plaintext
+
+    Raises:
+        ValueError: If MAC verification fails
+    """
+    if len(key) != 32:
+        raise ValueError("ChaCha20-Poly1305 key must be 32 bytes")
+    
+    if len(mac) != 16:
+        raise ValueError("Poly1305 MAC must be 16 bytes")
+    
+    if nonce is None:
+        nonce = b'\x00' * 12
+    elif len(nonce) != 12:
+        raise ValueError("ChaCha20-Poly1305 nonce must be 12 bytes")
+
+    if CRYPTOGRAPHY_AVAILABLE:
+        try:
+            # Use cryptography library for ChaCha20-Poly1305
+            chacha = ChaCha20Poly1305(key)
+            ciphertext_with_tag = ciphertext + mac
+            plaintext = chacha.decrypt(nonce, ciphertext_with_tag, None)
+            return plaintext
+        except Exception as e:
+            print(f"Error decrypting with cryptography library: {e}")
+            raise ValueError("MAC verification failed or decryption error")
+
+    # Fallback: Verify MAC only (no decryption)
+    print("Warning: Using HMAC-SHA256 as fallback - NO DECRYPTION PERFORMED")
+    computed_mac = hmac.new(key, ciphertext, hashlib.sha256).digest()[:16]
+    if computed_mac != mac:
+        raise ValueError("MAC verification failed")
+    return ciphertext
+
+
 def compute_chacha20_mac(data: bytes, key: bytes) -> bytes:
     """
-    Compute ChaCha20-Poly1305 MAC (authentication tag).
+    Compute ChaCha20-Poly1305 MAC (authentication tag) without encryption.
+
+    This is a legacy function for MAC-only mode. For new code, use
+    encrypt_chacha20_poly1305 or decrypt_chacha20_poly1305.
 
     Args:
         data: Data to authenticate

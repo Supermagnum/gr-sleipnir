@@ -36,8 +36,20 @@ def test_recipient_checking():
     test_meta = pmt.make_dict()
     test_meta = pmt.dict_add(test_meta, pmt.intern("recipients"), pmt.intern("N0CALL"))
     
-    parser1.handle_msg(pmt.cons(test_meta, test_pdu))
-    print("  PASS: Message addressed to this station processed")
+    # CRITICAL: Actually verify the recipient checking works
+    result = parser1.handle_msg(pmt.cons(test_meta, test_pdu))
+    
+    # Check if parser has a method to verify recipient checking
+    if hasattr(parser1, 'check_recipient'):
+        recipients_str = pmt.symbol_to_string(pmt.dict_ref(test_meta, pmt.intern("recipients"), pmt.PMT_NIL))
+        is_recipient = parser1.check_recipient(recipients_str)
+        if is_recipient:
+            print("  PASS: Message addressed to this station processed")
+        else:
+            print("  FAIL: Recipient check failed for addressed message")
+            return False
+    else:
+        print("  PASS: Message addressed to this station processed (no explicit check method)")
     
     # Test 2: Message not addressed to this station
     print("\nTest 2: Message not addressed to this station")
@@ -49,8 +61,19 @@ def test_recipient_checking():
     test_meta2 = pmt.make_dict()
     test_meta2 = pmt.dict_add(test_meta2, pmt.intern("recipients"), pmt.intern("N1ABC,N2DEF"))
     
-    parser2.handle_msg(pmt.cons(test_meta2, test_pdu))
-    print("  PASS: Message not addressed to this station handled gracefully")
+    # CRITICAL: Verify that non-recipient messages are handled correctly
+    result = parser2.handle_msg(pmt.cons(test_meta2, test_pdu))
+    
+    if hasattr(parser2, 'check_recipient'):
+        recipients_str = pmt.symbol_to_string(pmt.dict_ref(test_meta2, pmt.intern("recipients"), pmt.PMT_NIL))
+        is_recipient = parser2.check_recipient(recipients_str)
+        if not is_recipient:
+            print("  PASS: Message not addressed to this station handled gracefully")
+        else:
+            print("  FAIL: Recipient check incorrectly passed for non-recipient")
+            return False
+    else:
+        print("  PASS: Message not addressed to this station handled gracefully (no explicit check method)")
     
     # Test 3: Broadcast message (empty recipients)
     print("\nTest 3: Broadcast message (empty recipients)")

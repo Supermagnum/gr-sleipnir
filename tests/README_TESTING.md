@@ -1,226 +1,189 @@
-# gr-sleipnir Comprehensive Test Suite
+# gr-sleipnir Testing Guide
 
 ## Overview
 
-The comprehensive test suite exercises all gr-sleipnir blocks and parameters across varying channel conditions, modulation modes, crypto configurations, and data modes.
+The gr-sleipnir test suite focuses on **functional unit tests** that verify actual code behavior. These tests are designed to catch "plausible but broken" code that looks correct but doesn't actually work.
 
 ## Quick Start
 
-### Run Phase 1 Tests (Baseline)
+### Run All Functional Tests
 
 ```bash
 cd /home/haaken/github-projects/gr-sleipnir
-python3 tests/test_comprehensive.py --config tests/config_comprehensive.yaml --phase 1
+./tests/run_all_functionality_tests.sh
 ```
 
-### Run All Tests
+This script runs all functional tests that verify:
+- LDPC encoding actually encodes data
+- LDPC decoding actually decodes and corrects errors
+- Encryption actually encrypts data
+- Decryption actually recovers plaintext
+- Signatures are generated and verified correctly
+
+### Run Individual Test Suites
 
 ```bash
-python3 tests/test_comprehensive.py --config tests/config_comprehensive.yaml
+# Critical functionality tests (catches passthrough, thresholding, etc.)
+python3 -m pytest tests/test_critical_functionality.py -v
+
+# LDPC encoding/decoding tests
+python3 -m pytest tests/test_ldpc_functionality.py -v
+
+# Cryptographic functionality tests
+python3 -m pytest tests/test_crypto_functionality.py -v
+
+# Meta-test to verify tests actually exercise code
+python3 -m pytest tests/test_actual_code_exercise.py -v
+
+# Signature verification
+python3 tests/test_signature_verification.py
+
+# Encryption switching
+python3 tests/test_encryption_switching.py
+
+# Recipient checking
+python3 tests/test_recipient_checking.py
+
+# Multi-recipient scenarios
+python3 tests/test_multi_recipient.py
 ```
 
-### Dry Run (Validate Configuration)
+## Test Suites
+
+### Critical Functionality Tests (`test_critical_functionality.py`)
+
+These tests are specifically designed to catch the types of bugs that were identified in the code review:
+- **LDPC Not Passthrough**: Verifies encoder actually changes data
+- **LDPC Not Just Thresholding**: Verifies decoder corrects errors, not just thresholds
+- **Encryption Not Just MAC**: Verifies encryption actually encrypts, not just computes MAC
+- **Decryption Actually Decrypts**: Verifies decryption recovers plaintext
+
+### LDPC Functionality Tests (`test_ldpc_functionality.py`)
+
+Tests for LDPC encoding and decoding:
+- **Encoding Tests**:
+  - Encoding changes data (not passthrough)
+  - Encoded codeword satisfies parity checks
+  - Encoding is deterministic
+  - Different inputs produce different outputs
+- **Decoding Tests**:
+  - Decoding recovers original data from perfect channel
+  - Decoding corrects errors (not just thresholds)
+  - Decoding works on noisy channels
+  - Decoded codeword satisfies parity checks
+- **Integration Tests**:
+  - Full encode-decode cycle recovers original data
+  - Multiple random inputs work correctly
+
+### Crypto Functionality Tests (`test_crypto_functionality.py`)
+
+Tests for cryptographic operations:
+- **ChaCha20-Poly1305 Encryption**:
+  - Encryption changes data
+  - Different plaintexts produce different ciphertexts
+  - Different nonces produce different ciphertexts
+  - Encryption produces random-looking output
+  - Encryption is deterministic with same nonce
+- **ChaCha20-Poly1305 Decryption**:
+  - Decryption recovers plaintext
+  - Decryption fails with wrong MAC
+  - Decryption fails with wrong key
+  - Decryption fails with wrong nonce
+  - Decryption fails with modified ciphertext
+- **MAC Functionality**:
+  - MAC is deterministic
+  - MAC differs for different data
+  - MAC is correct length
+
+### Code Exercise Verification (`test_actual_code_exercise.py`)
+
+Meta-test to verify that the critical tests themselves actually exercise the code:
+- Verifies LDPC encoding test actually tests encoding
+- Verifies LDPC decoding test actually tests decoding
+- Verifies crypto tests actually test encryption/decryption
+- Runs the critical test script and verifies success
+
+### Other Functional Tests
+
+- **`test_signature_verification.py`**: ECDSA signature generation and verification
+- **`test_encryption_switching.py`**: Encryption enable/disable functionality
+- **`test_recipient_checking.py`**: Multi-recipient message handling
+- **`test_multi_recipient.py`**: Multi-recipient scenarios
+
+## Test Philosophy
+
+These tests are designed to:
+1. **Verify actual functionality**, not just that code runs without crashing
+2. **Catch "plausible but broken" code** that looks correct but doesn't work
+3. **Run quickly** - all tests complete in seconds, not hours
+4. **Exercise real code paths** - tests import and call actual functions from the codebase
+
+## What Was Removed
+
+The following long-running tests were removed because they:
+- Took hours to run
+- Didn't explicitly verify encoding/decoding occurred
+- Only checked end-to-end audio quality metrics
+- Couldn't catch "plausible but broken" code
+
+Removed files:
+- `test_sleipnir.py` - Long-running SNR test suite
+- `test_comprehensive.py` - Comprehensive test suite
+- `generate_fer_comparison_samples.py` - FER sample generation
+
+## Running Tests in CI/CD
+
+For continuous integration, run:
 
 ```bash
-python3 tests/test_comprehensive.py --config tests/config_comprehensive.yaml --dry-run
+./tests/run_all_functionality_tests.sh
 ```
 
-## Configuration
+This script exits with code 0 if all tests pass, or non-zero if any test fails.
 
-Edit `tests/config_comprehensive.yaml` to customize test parameters:
+## Test Requirements
 
-- **Modulation modes**: 4FSK, 8FSK
-- **Crypto modes**: none, sign, encrypt, both
-- **Channel conditions**: clean, AWGN, fading, frequency offset
-- **SNR range**: Start, stop, and step values
-- **Test duration**: Duration per test scenario
-
-## Test Phases
-
-### Phase 1: Critical Path
-- Baseline tests (clean channel, no crypto)
-- AWGN sweep with coarser SNR steps
-- Quick validation of core functionality
-
-### Phase 2: Full Coverage
-- All modulation modes (4FSK, 8FSK)
-- All crypto combinations
-- Full SNR sweep
-- Fading channels
-
-### Phase 3: Edge Cases
-- Frequency offset scenarios
-- Key rotation tests
-- Sync loss/recovery
-- Boundary conditions
-
-## Output Files
-
-### Results Directory Structure
-
-```
-test_results_comprehensive/
-├── results.json              # Full test results
-├── summary.json              # Summary statistics
-├── summary_table.md          # Summary table
-├── report.md                 # Comprehensive report
-├── audio/                    # Decoded audio files
-│   └── output_*_snr*.wav
-└── plots/                    # Performance curves
-    ├── fer_vs_snr.png
-    ├── warpq_vs_snr.png
-    └── ber_vs_snr.png
-```
-
-## Metrics Collected
-
-### Protocol Metrics
-- **Frame Error Rate (FER)**: Percentage of frames that failed to decode
-  - Calculation: `FER = frame_error_count / total_frames_received`
-  - `frame_error_count`: Cumulative count of frames that were received but failed to decode
-    - Includes frames that failed to parse
-    - Includes frames with corrupted MACs
-    - Includes corrupted frames misclassified as APRS/text (for voice-only tests)
-  - `total_frames_received`: Cumulative count of all frames received from the channel
-  - For voice-only tests, only Opus frames are counted as successful; APRS/text frames are treated as corrupted voice frames
-  - **Note**: FER tracking was fixed to correctly identify corrupted frames that were previously misclassified
-- **Frame Count**: Total number of Opus frames successfully decoded
-- **Frame Error Count**: Cumulative count of frames that failed to decode
-- **Total Frames Received**: Cumulative count of all frames received (for accurate FER calculation)
-- Bit Error Rate (BER)
-- Superframe decode success rate
-- LDPC decoder iterations/convergence
-
-### Audio Quality
-- WarpQ scores
-- SNR/PSNR
-- Subjective quality assessment
-
-### Crypto Validation
-- Signature verification success rate
-- Decryption success rate
-- MAC verification success rate
-
-### Sync Performance
-- Sync acquisition time
-- Sync state transitions
-- Sync loss recovery time
-
-## Analyzing Results
-
-### Generate Performance Curves
-
-```bash
-python3 tests/analyze_results.py \
-    --input test_results_comprehensive/results.json \
-    --plots-dir test_results_comprehensive/plots
-```
-
-### Generate Summary Table
-
-```bash
-python3 tests/analyze_results.py \
-    --input test_results_comprehensive/results.json \
-    --summary-table test_results_comprehensive/summary_table.md
-```
-
-### Generate Report
-
-```bash
-python3 tests/analyze_results.py \
-    --input test_results_comprehensive/results.json \
-    --output test_results_comprehensive/report.md
-```
-
-## Pass Criteria
-
-Tests are evaluated against pass criteria defined in `config_comprehensive.yaml`:
-
-- **FER < 1%** at SNR > 10 dB (4FSK)
-- **FER < 1%** at SNR > 13 dB (8FSK)
-- **WarpQ > 2.5** at operational SNR
-- **WarpQ > 3.0** at SNR > 10 dB
-- **100% crypto verification** when properly keyed
-- **Sync acquisition < 1 second**
-- **Sync recovery < 2 seconds**
+- Python 3.x
+- pytest (for unit tests)
+- numpy
+- Access to LDPC matrix files in `ldpc_matrices/`
+- `cryptography` library (for crypto tests)
 
 ## Troubleshooting
 
-### Missing Input File
-
-Ensure `wav/cq_pcm.wav` exists or update `input_file` in config.
-
-### Missing Matrix Files
+### Missing LDPC Matrix Files
 
 Ensure LDPC matrix files exist:
-- `ldpc_matrices/ldpc_auth_768_256.alist`
-- `ldpc_matrices/ldpc_rate34.alist` (for 4FSK)
-- `ldpc_matrices/ldpc_rate23.alist` (for 8FSK)
+- `ldpc_matrices/ldpc_voice_576_384.alist`
+- `ldpc_matrices/ldpc_auth_1536_512.alist`
 
-### Test Timeout
+### Missing Dependencies
 
-Increase `test_duration` in config or check for flowgraph deadlocks.
+Install required Python packages:
+```bash
+pip3 install pytest numpy cryptography
+```
 
-### Memory Issues
+### Test Failures
 
-Reduce `max_tests` parameter or run tests in smaller batches.
+If tests fail, check:
+1. Are LDPC matrix files present?
+2. Are all dependencies installed?
+3. Is the code actually implementing the functionality (not just placeholders)?
 
 ## Expected Runtime
 
-- **Phase 1**: ~5-10 minutes
-- **Phase 2**: ~1-2 hours
-- **Phase 3**: ~30-60 minutes
-- **Full Suite**: ~2-4 hours
+All functional tests complete in **under 30 seconds** on typical hardware.
 
-## Advanced Usage
+## Test Coverage
 
-### Run Specific Test Subset
+The functional tests verify:
+- ✅ LDPC encoding actually encodes
+- ✅ LDPC decoding actually decodes and corrects errors
+- ✅ Encryption actually encrypts
+- ✅ Decryption actually decrypts
+- ✅ Signatures are generated and verified
+- ✅ MAC computation and verification
+- ✅ Multi-recipient message handling
 
-```bash
-python3 tests/test_comprehensive.py \
-    --config tests/config_comprehensive.yaml \
-    --phase 1 \
-    --max-tests 10
-```
-
-### Custom Configuration
-
-Create a custom config file:
-
-```yaml
-test_parameters:
-  input_file: "path/to/your/audio.wav"
-  modulation_modes: [4]
-  snr_range: [0, 15, 5]
-  # ... other parameters
-```
-
-Then run:
-
-```bash
-python3 tests/test_comprehensive.py --config your_config.yaml
-```
-
-## Integration with CI/CD
-
-The test suite can be integrated into CI/CD pipelines:
-
-```bash
-# Run Phase 1 tests
-python3 tests/test_comprehensive.py --phase 1
-
-# Check pass rate
-python3 -c "
-import json
-with open('test_results_comprehensive/summary.json') as f:
-    summary = json.load(f)
-    exit(0 if summary['pass_rate'] > 0.9 else 1)
-"
-```
-
-## Documentation
-
-- **Configuration Schema**: See `config_comprehensive.yaml` comments
-- **Metrics Definitions**: See `metrics_collector.py`
-- **Flowgraph Builder**: See `flowgraph_builder.py`
-- **Results Format**: See `results.json` structure
+These tests ensure the code actually works, not just that it looks plausible.

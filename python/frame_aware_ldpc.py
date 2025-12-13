@@ -18,6 +18,14 @@ except ImportError:
     FEC_AVAILABLE = False
     print("Warning: GNU Radio FEC module not available")
 
+# Import LDPC utility functions
+try:
+    from python.ldpc_utils import load_alist_matrix, compute_generator_matrix, ldpc_encode, ldpc_decode_soft
+    LDPC_UTILS_AVAILABLE = True
+except ImportError:
+    LDPC_UTILS_AVAILABLE = False
+    print("Warning: LDPC utils not available")
+
 class frame_aware_ldpc_encoder(gr.sync_block):
     """
     Frame-aware LDPC encoder that switches matrices based on frame number.
@@ -54,6 +62,12 @@ class frame_aware_ldpc_encoder(gr.sync_block):
         self._auth_encoder_created = False
         self._voice_encoder_created = False
         
+        # LDPC matrices and generator matrices
+        self.auth_H = None
+        self.auth_G = None
+        self.voice_H = None
+        self.voice_G = None
+        
         if FEC_AVAILABLE:
             self.auth_matrix_file = auth_matrix_file
             self.voice_matrix_file = voice_matrix_file
@@ -67,9 +81,15 @@ class frame_aware_ldpc_encoder(gr.sync_block):
 
     def _ensure_auth_encoder(self):
         """Lazy initialization of auth encoder to avoid memory issues."""
-        if not self._auth_encoder_created and FEC_AVAILABLE and self.auth_matrix_file:
+        if not self._auth_encoder_created and self.auth_matrix_file:
             try:
-                if os.path.exists(self.auth_matrix_file):
+                if os.path.exists(self.auth_matrix_file) and LDPC_UTILS_AVAILABLE:
+                    # Load parity check matrix and compute generator matrix
+                    self.auth_H, n, k = load_alist_matrix(self.auth_matrix_file)
+                    self.auth_G = compute_generator_matrix(self.auth_H)
+                    self._auth_encoder_created = True
+                elif FEC_AVAILABLE and os.path.exists(self.auth_matrix_file):
+                    # Fallback to GNU Radio encoder (for compatibility)
                     self.auth_encoder = fec.ldpc_encoder_make(self.auth_matrix_file)
                     self._auth_encoder_created = True
                 else:
@@ -79,9 +99,15 @@ class frame_aware_ldpc_encoder(gr.sync_block):
     
     def _ensure_voice_encoder(self):
         """Lazy initialization of voice encoder to avoid memory issues."""
-        if not self._voice_encoder_created and FEC_AVAILABLE and self.voice_matrix_file:
+        if not self._voice_encoder_created and self.voice_matrix_file:
             try:
-                if os.path.exists(self.voice_matrix_file):
+                if os.path.exists(self.voice_matrix_file) and LDPC_UTILS_AVAILABLE:
+                    # Load parity check matrix and compute generator matrix
+                    self.voice_H, n, k = load_alist_matrix(self.voice_matrix_file)
+                    self.voice_G = compute_generator_matrix(self.voice_H)
+                    self._voice_encoder_created = True
+                elif FEC_AVAILABLE and os.path.exists(self.voice_matrix_file):
+                    # Fallback to GNU Radio encoder (for compatibility)
                     self.voice_encoder = fec.ldpc_encoder_make(self.voice_matrix_file)
                     self._voice_encoder_created = True
                 else:
@@ -108,6 +134,8 @@ class frame_aware_ldpc_encoder(gr.sync_block):
 
         output_idx = 0
         input_consumed = 0
+        noutput = len(out)
+        ninput = len(in0)
 
         # Determine frame type and encode
         # Frame 0: 512 bits (64 bytes) -> 1536 bits (192 bytes) with rate 1/3
@@ -127,13 +155,21 @@ class frame_aware_ldpc_encoder(gr.sync_block):
                 frame_data = bytes(self.frame_buffer[:64])
                 self.frame_buffer = self.frame_buffer[64:]
 
-                # FEC encoder is a GNU Radio block, not a callable
-                # For now, pass through without encoding (will be fixed in architecture)
-                # TODO: Integrate FEC blocks properly in hierarchical flowgraph
-                if output_idx + len(frame_data) <= len(out):
-                    # Pass through (no encoding for now)
-                    out[output_idx:output_idx + len(frame_data)] = np.frombuffer(frame_data, dtype=np.uint8)
-                    output_idx += len(frame_data)
+                # Perform actual LDPC encoding
+                if self.auth_G is not None:
+                    # Convert bytes to bits
+                    info_bits = np.unpackbits(np.frombuffer(frame_data, dtype=np.uint8))
+                    # Encode using generator matrix
+                    codeword = ldpc_encode(info_bits, self.auth_G)
+                    # Convert back to bytes
+                    encoded_bytes = np.packbits(codeword).tobytes()
+                else:
+                    # Fallback: pass through if encoding not available
+                    encoded_bytes = frame_data
+                
+                if output_idx + len(encoded_bytes) <= len(out):
+                    out[output_idx:output_idx + len(encoded_bytes)] = np.frombuffer(encoded_bytes, dtype=np.uint8)
+                    output_idx += len(encoded_bytes)
                 else:
                     # Not enough space, put back
                     self.frame_buffer = bytearray(frame_data) + self.frame_buffer
@@ -153,13 +189,21 @@ class frame_aware_ldpc_encoder(gr.sync_block):
                 self.frame_buffer = self.frame_buffer[48:]
                 input_consumed += 48
 
-                # FEC encoder is a GNU Radio block, not a callable
-                # For now, pass through without encoding (will be fixed in architecture)
-                # TODO: Integrate FEC blocks properly in hierarchical flowgraph
-                if output_idx + len(frame_data) <= len(out):
-                    # Pass through (no encoding for now)
-                    out[output_idx:output_idx + len(frame_data)] = np.frombuffer(frame_data, dtype=np.uint8)
-                    output_idx += len(frame_data)
+                # Perform actual LDPC encoding
+                if self.voice_G is not None:
+                    # Convert bytes to bits
+                    info_bits = np.unpackbits(np.frombuffer(frame_data, dtype=np.uint8))
+                    # Encode using generator matrix
+                    codeword = ldpc_encode(info_bits, self.voice_G)
+                    # Convert back to bytes
+                    encoded_bytes = np.packbits(codeword).tobytes()
+                else:
+                    # Fallback: pass through if encoding not available
+                    encoded_bytes = frame_data
+                
+                if output_idx + len(encoded_bytes) <= len(out):
+                    out[output_idx:output_idx + len(encoded_bytes)] = np.frombuffer(encoded_bytes, dtype=np.uint8)
+                    output_idx += len(encoded_bytes)
                 else:
                     # Not enough space, put back
                     self.frame_buffer = bytearray(frame_data) + self.frame_buffer
@@ -211,6 +255,10 @@ class frame_aware_ldpc_decoder(gr.sync_block):
         self._auth_decoder_created = False
         self._voice_decoder_created = False
         
+        # LDPC parity check matrices for decoding
+        self.auth_H = None
+        self.voice_H = None
+        
         if FEC_AVAILABLE:
             self.auth_matrix_file = auth_matrix_file
             self.voice_matrix_file = voice_matrix_file
@@ -226,9 +274,14 @@ class frame_aware_ldpc_decoder(gr.sync_block):
 
     def _ensure_auth_decoder(self):
         """Lazy initialization of auth decoder to avoid memory issues."""
-        if not self._auth_decoder_created and FEC_AVAILABLE and self.auth_matrix_file:
+        if not self._auth_decoder_created and self.auth_matrix_file:
             try:
-                if os.path.exists(self.auth_matrix_file):
+                if os.path.exists(self.auth_matrix_file) and LDPC_UTILS_AVAILABLE:
+                    # Load parity check matrix for decoding
+                    self.auth_H, n, k = load_alist_matrix(self.auth_matrix_file)
+                    self._auth_decoder_created = True
+                elif FEC_AVAILABLE and os.path.exists(self.auth_matrix_file):
+                    # Fallback to GNU Radio decoder (for compatibility)
                     self.auth_decoder = fec.ldpc_decoder_make(self.auth_matrix_file, self.max_iter)
                     self._auth_decoder_created = True
                 else:
@@ -238,9 +291,14 @@ class frame_aware_ldpc_decoder(gr.sync_block):
     
     def _ensure_voice_decoder(self):
         """Lazy initialization of voice decoder to avoid memory issues."""
-        if not self._voice_decoder_created and FEC_AVAILABLE and self.voice_matrix_file:
+        if not self._voice_decoder_created and self.voice_matrix_file:
             try:
-                if os.path.exists(self.voice_matrix_file):
+                if os.path.exists(self.voice_matrix_file) and LDPC_UTILS_AVAILABLE:
+                    # Load parity check matrix for decoding
+                    self.voice_H, n, k = load_alist_matrix(self.voice_matrix_file)
+                    self._voice_decoder_created = True
+                elif FEC_AVAILABLE and os.path.exists(self.voice_matrix_file):
+                    # Fallback to GNU Radio decoder (for compatibility)
                     self.voice_decoder = fec.ldpc_decoder_make(self.voice_matrix_file, self.max_iter)
                     self._voice_decoder_created = True
                 else:
@@ -260,6 +318,8 @@ class frame_aware_ldpc_decoder(gr.sync_block):
             
         in0 = input_items[0]
         out = output_items[0]
+        noutput = len(out)
+        ninput = len(in0)
 
         # Add input to buffer (soft decisions)
         if len(in0) > 0:
@@ -283,11 +343,21 @@ class frame_aware_ldpc_decoder(gr.sync_block):
                 soft_bits = np.array(self.frame_buffer[:1536], dtype=np.float32)
                 self.frame_buffer = self.frame_buffer[1536:]
 
-                # FEC decoder is a GNU Radio block, not a callable
-                # For now, use hard decision (will be fixed in architecture)
-                # TODO: Integrate FEC blocks properly in hierarchical flowgraph
-                hard_bits = (soft_bits > 0).astype(np.uint8)
-                decoded = hard_bits[:512].tobytes()  # 64 bytes = 512 bits
+                # Perform actual LDPC soft-decision decoding
+                if self.auth_H is not None:
+                    # Use belief propagation decoding
+                    info_bits = ldpc_decode_soft(soft_bits, self.auth_H, self.max_iter)
+                    # Convert bits to bytes
+                    decoded = np.packbits(info_bits).tobytes()
+                    # Ensure 64 bytes output
+                    if len(decoded) < 64:
+                        decoded = decoded + b'\x00' * (64 - len(decoded))
+                    elif len(decoded) > 64:
+                        decoded = decoded[:64]
+                else:
+                    # Fallback: simple thresholding if decoding not available
+                    hard_bits = (soft_bits > 0).astype(np.uint8)
+                    decoded = hard_bits[:512].tobytes()  # 64 bytes = 512 bits
                 if output_idx + len(decoded) <= len(out):
                     out[output_idx:output_idx + len(decoded)] = np.frombuffer(decoded, dtype=np.uint8)
                     output_idx += len(decoded)
@@ -309,11 +379,21 @@ class frame_aware_ldpc_decoder(gr.sync_block):
                 soft_bits = np.array(self.frame_buffer[:576], dtype=np.float32)
                 self.frame_buffer = self.frame_buffer[576:]
 
-                # FEC decoder is a GNU Radio block, not a callable
-                # For now, use hard decision (will be fixed in architecture)
-                # TODO: Integrate FEC blocks properly in hierarchical flowgraph
-                hard_bits = (soft_bits > 0).astype(np.uint8)
-                decoded = hard_bits[:48].tobytes()
+                # Perform actual LDPC soft-decision decoding
+                if self.voice_H is not None:
+                    # Use belief propagation decoding
+                    info_bits = ldpc_decode_soft(soft_bits, self.voice_H, self.max_iter)
+                    # Convert bits to bytes
+                    decoded = np.packbits(info_bits).tobytes()
+                    # Ensure 48 bytes output
+                    if len(decoded) < 48:
+                        decoded = decoded + b'\x00' * (48 - len(decoded))
+                    elif len(decoded) > 48:
+                        decoded = decoded[:48]
+                else:
+                    # Fallback: simple thresholding if decoding not available
+                    hard_bits = (soft_bits > 0).astype(np.uint8)
+                    decoded = hard_bits[:384].tobytes()[:48]
                 if output_idx + len(decoded) <= len(out):
                     out[output_idx:output_idx + len(decoded)] = np.frombuffer(decoded, dtype=np.uint8)
                     output_idx += len(decoded)

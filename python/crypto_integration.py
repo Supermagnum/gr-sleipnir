@@ -469,6 +469,10 @@ class chacha20poly1305_encrypt_block(gr.sync_block):
         self.key = key
         self.nonce = nonce if nonce else b'\x00' * 12
 
+        # Initialize nacl block flags (currently not used - see _encrypt method)
+        self.use_nacl_block = False
+        self.nacl_block = None
+
         # Message ports
         self.message_port_register_in(pmt.intern("in"))
         self.message_port_register_out(pmt.intern("out"))
@@ -517,15 +521,17 @@ class chacha20poly1305_encrypt_block(gr.sync_block):
         return self._encrypt(plaintext)
     
     def _encrypt(self, plaintext: bytes) -> tuple:
-        """Encrypt using Python implementation."""
+        """
+        Encrypt data using ChaCha20-Poly1305.
+        """
         import sys
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent.parent))
-        from python.crypto_helpers import compute_chacha20_mac
+        from python.crypto_helpers import encrypt_chacha20_poly1305
 
-        # For MAC-only mode (current implementation), return plaintext + MAC
-        mac = compute_chacha20_mac(plaintext, self.key)
-        return plaintext, mac
+        # Perform actual ChaCha20-Poly1305 encryption
+        ciphertext, mac = encrypt_chacha20_poly1305(plaintext, self.key, self.nonce)
+        return ciphertext, mac
 
 
 class chacha20poly1305_decrypt_block(gr.sync_block):
@@ -558,6 +564,10 @@ class chacha20poly1305_decrypt_block(gr.sync_block):
 
         self.key = key
         self.nonce = nonce if nonce else b'\x00' * 12
+
+        # Initialize nacl block flags (currently not used - see _decrypt method)
+        self.use_nacl_block = False
+        self.nacl_block = None
 
         # Message ports
         self.message_port_register_in(pmt.intern("in"))
@@ -628,15 +638,21 @@ class chacha20poly1305_decrypt_block(gr.sync_block):
         return self._decrypt(ciphertext, mac)
     
     def _decrypt(self, ciphertext: bytes, mac: bytes) -> tuple:
-        """Decrypt and verify MAC using Python implementation."""
+        """
+        Decrypt data using ChaCha20-Poly1305.
+        """
         import sys
         from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent.parent))
-        from python.crypto_helpers import verify_chacha20_mac
+        from python.crypto_helpers import decrypt_chacha20_poly1305
 
-        # For MAC-only mode, verify MAC and return plaintext
-        mac_valid = verify_chacha20_mac(ciphertext, mac, self.key)
-        return ciphertext, mac_valid
+        # Perform actual ChaCha20-Poly1305 decryption
+        try:
+            plaintext = decrypt_chacha20_poly1305(ciphertext, mac, self.key, self.nonce)
+            return plaintext, True
+        except ValueError as e:
+            # MAC verification failed or decryption error
+            return ciphertext, False
 
 
 def make_ecdsa_sign_block(private_key_path: str, curve_name: str = "brainpoolP256r1"):

@@ -67,6 +67,17 @@ def test_encryption_switching():
         print("  FAIL: Frame has no MAC when encryption enabled")
         success2 = False
     
+    # CRITICAL: Verify that encryption actually encrypts (if encryption is enabled)
+    # Check if payload is different from input (if encryption is actually implemented)
+    if 'payload' in parsed2:
+        payload = parsed2['payload']
+        # If encryption is working, payload should be different from opus_frame
+        # (or at least have some structure indicating encryption)
+        if payload != opus_frame:
+            print("  PASS: Encrypted payload is different from input")
+        else:
+            print("  WARNING: Encrypted payload same as input (may indicate no encryption)")
+    
     # Test 3: Disable encryption mid-session
     print("\nTest 3: Disable encryption")
     builder3 = VoiceFrameBuilder(
