@@ -252,10 +252,8 @@ The system supports two modulation modes optimized for different use cases:
 - **Duration**: 26h 58m 44s
 - **4FSK**: 100% complete (3,864 tests)
   - **FER Floor**: 6.45% at high SNR (≥10 dB)
-  - All crypto modes, channels, and data modes tested
 - **8FSK**: 100% complete (3,864 tests)
   - **FER Floor**: 6.92% at high SNR (≥10 dB)
-  - All crypto modes, channels, and data modes tested
 - **Complete Analysis Available**: See `test-results-files/final_analysis/` for comprehensive analyses
 
 **Channel Performance:**
