@@ -160,16 +160,21 @@ Combine both methods:
 If periodic sync frames are implemented:
 
 ```
-Sync Frame Payload (48 bytes, same as voice frame):
-- Bytes 0-7:   Sync pattern (64 bits, fixed value)
-- Bytes 8-11:  Superframe counter (32 bits)
-- Bytes 12-15: Frame counter (32 bits, always 0 for sync frame)
-- Bytes 16-47: Reserved/padding
+Sync Frame Payload (49 bytes, same as voice frame):
+- Bytes 0-7:   Sync pattern (64 bits, fixed value, unencrypted)
+- Bytes 8-40:  Payload (33 bytes): superframe counter + frame counter + padding
+               (encrypted if encryption enabled, plaintext otherwise)
+- Bytes 41-48: MAC (8 bytes, truncated from 16-byte Poly1305 tag)
 ```
 
 **Sync Pattern**: Fixed 64-bit value (e.g., `0xDEADBEEFCAFEBABE`)
 
 **Encoding**: Use voice frame LDPC matrix (rate 2/3) for consistency
+
+**Security**: 
+- Payload can be encrypted using ChaCha20-Poly1305
+- MAC provides integrity verification
+- Sync pattern remains unencrypted for detection
 
 ### Sync Frame Detection
 

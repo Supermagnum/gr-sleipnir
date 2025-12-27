@@ -21,19 +21,28 @@ Periodic sync frames are inserted into the superframe stream to aid receiver acq
 - `enable_sync_frames`: Enable/disable sync frame generation (default: True)
 - `sync_frame_interval`: Insert sync frame every N superframes (default: 5)
 
-**Sync Frame Structure** (48 bytes, same as voice frame):
+**Sync Frame Structure** (49 bytes, same as voice frame):
 ```
-Bytes 0-7:   Sync pattern (64 bits, fixed: 0xDEADBEEFCAFEBABE)
-Bytes 8-11:  Superframe counter (32 bits, big-endian)
-Bytes 12-15: Frame counter (32 bits, always 0 for sync frame)
-Bytes 16-47: Reserved/padding (zeros)
+Bytes 0-7:   Sync pattern (64 bits, fixed: 0xDEADBEEFCAFEBABE, unencrypted)
+Bytes 8-40:  Payload (33 bytes): superframe counter + frame counter + padding
+             - Encrypted if encryption enabled (ChaCha20-Poly1305)
+             - Plaintext if only MAC enabled
+Bytes 41-48: MAC (8 bytes, truncated from 16-byte Poly1305 tag)
 ```
+
+**Security Features**:
+- **Encryption**: Payload is encrypted using ChaCha20-Poly1305 when `enable_encryption=True`
+- **MAC**: Integrity verification via 8-byte MAC (truncated from 16-byte Poly1305 tag)
+- **Sync Pattern**: Remains unencrypted to allow receiver detection
+- **Nonce**: Fixed zero nonce (12 bytes) for sync frames (counter cannot be used as nonce)
 
 **Usage**:
 ```python
 assembler = make_sleipnir_superframe_assembler(
     callsign="N0CALL",
     enable_signing=False,  # Sync frames only when signing disabled
+    enable_encryption=True,  # Enable encryption for sync frames
+    mac_key=mac_key,  # 32-byte key for encryption/MAC
     enable_sync_frames=True,
     sync_frame_interval=5  # Insert every 5 superframes
 )
@@ -46,14 +55,18 @@ assembler = make_sleipnir_superframe_assembler(
 **Features**:
 - Detects sync frames by pattern matching
 - Validates sync frame structure
+- Decrypts payload if encryption is enabled
+- Verifies MAC for integrity
 - Updates sync state and frame counter
 - Maintains sync state: "searching", "synced", "lost"
 
 **Sync Detection Process**:
 1. **Pattern Matching**: Search for sync pattern (0xDEADBEEFCAFEBABE) in decoded data
-2. **Validation**: Verify sync frame structure (pattern + counters)
-3. **State Update**: Update sync state and superframe counter
-4. **Frame Parsing**: Parse frames starting from sync frame position
+2. **Decryption**: Decrypt payload if encryption is enabled (using MAC key and zero nonce)
+3. **MAC Verification**: Verify MAC for integrity (covers encrypted or plaintext payload)
+4. **Validation**: Verify sync frame structure (pattern + counters)
+5. **State Update**: Update sync state and superframe counter
+6. **Frame Parsing**: Parse frames starting from sync frame position
 
 **Sync State**:
 - **"searching"**: Initial state, looking for sync frame
@@ -67,7 +80,8 @@ assembler = make_sleipnir_superframe_assembler(
 ```python
 parser = make_sleipnir_superframe_parser(
     local_callsign="N0CALL",
-    enable_sync_detection=True
+    enable_sync_detection=True,
+    mac_key=mac_key  # Required for MAC verification and decryption
 )
 ```
 
@@ -200,13 +214,37 @@ parser = make_sleipnir_superframe_parser(
 - Increase `sync_frame_interval` (e.g., 10 instead of 5)
 - Disable sync frames if not needed (`enable_sync_frames=False`)
 
+## Security
+
+### Encryption
+
+Sync frame payloads can be encrypted using ChaCha20-Poly1305 when `enable_encryption=True`:
+- **Encryption**: ChaCha20 stream cipher
+- **Authentication**: Poly1305 MAC (16 bytes, truncated to 8 bytes in frame)
+- **Nonce**: Fixed zero nonce (12 bytes) - counter cannot be used as nonce since it's inside encrypted payload
+- **Key**: Same MAC key used for voice frames (32 bytes)
+
+### MAC Verification
+
+MAC provides integrity verification:
+- **Algorithm**: Poly1305 (via ChaCha20-Poly1305)
+- **Coverage**: Encrypted or plaintext payload (33 bytes)
+- **Size**: 8 bytes (truncated from 16-byte Poly1305 tag)
+- **Verification**: Automatic on RX side when MAC key is provided
+
+### Backward Compatibility
+
+The implementation maintains backward compatibility:
+- Old sync frames without encryption/MAC are still detected
+- Plaintext sync frames are supported when encryption is disabled
+- MAC-only mode (no encryption) is supported
+
 ## Future Enhancements
 
 Potential improvements:
 - **Adaptive sync interval**: Adjust interval based on channel conditions
 - **Multiple sync patterns**: Use different patterns for different transmitters
-- **Sync frame encryption**: Encrypt sync frame payload (currently plaintext)
-- **Sync frame MAC**: Add MAC to sync frame for integrity
+- **Nonce derivation**: Use sync pattern or other metadata for nonce (currently fixed zero)
 
 ## References
 

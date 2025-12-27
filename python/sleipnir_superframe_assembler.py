@@ -23,6 +23,7 @@ from python.crypto_helpers import (
     load_private_key,
     generate_ecdsa_signature,
     compute_chacha20_mac,
+    encrypt_chacha20_poly1305,
     get_callsign_bytes
 )
 from python.voice_frame_builder import VoiceFrameBuilder
@@ -420,23 +421,66 @@ class sleipnir_superframe_assembler(gr.basic_block):
         Build sync frame payload (49 bytes, 386 bits for LDPC).
 
         Structure:
-        - Bytes 0-7:   Sync pattern (64 bits, fixed value)
-        - Bytes 8-11:  Superframe counter (32 bits)
-        - Bytes 12-15: Frame counter (32 bits, always 0 for sync frame)
-        - Bytes 16-47: Reserved/padding
+        - Bytes 0-7:   Sync pattern (64 bits, fixed value, unencrypted)
+        - Bytes 8-40:  Payload (33 bytes): superframe counter + frame counter + padding
+                       (encrypted if encryption enabled, plaintext otherwise)
+        - Bytes 41-48: MAC (8 bytes, truncated from 16-byte Poly1305 tag)
+
+        The sync pattern remains unencrypted to allow receiver detection.
+        The payload (counters) is encrypted if encryption is enabled.
+        MAC provides integrity verification for the payload.
         """
         sync_frame = bytearray(self.SYNC_FRAME_BYTES)
 
-        # Sync pattern (64 bits = 8 bytes)
+        # Sync pattern (64 bits = 8 bytes) - always unencrypted for detection
         struct.pack_into('>Q', sync_frame, 0, self.SYNC_PATTERN)
 
-        # Superframe counter (32 bits = 4 bytes)
-        struct.pack_into('>I', sync_frame, 8, self.superframe_counter)
+        # Build payload: superframe counter + frame counter + padding
+        payload = bytearray(33)  # 33 bytes for payload
+        struct.pack_into('>I', payload, 0, self.superframe_counter)  # 4 bytes
+        struct.pack_into('>I', payload, 4, 0)  # Frame counter (always 0 for sync frame, 4 bytes)
+        # Bytes 8-32: Padding (25 bytes, already zeros)
 
-        # Frame counter (32 bits = 4 bytes, always 0 for sync frame)
-        struct.pack_into('>I', sync_frame, 12, 0)
-
-        # Bytes 16-47: Reserved/padding (already zeros)
+        # Encrypt payload if encryption is enabled
+        if self.enable_encryption and self.mac_key and len(self.mac_key) == 32:
+            try:
+                # Encrypt payload using ChaCha20-Poly1305
+                # Use fixed nonce (all zeros) for sync frames since we can't use counter
+                # (counter is inside encrypted payload, creating chicken-and-egg problem)
+                nonce = b'\x00' * 12  # Fixed 12-byte nonce for sync frames
+                ciphertext, mac_full = encrypt_chacha20_poly1305(bytes(payload), self.mac_key, nonce)
+                
+                # Store encrypted payload (33 bytes)
+                if len(ciphertext) > 33:
+                    ciphertext = ciphertext[:33]
+                elif len(ciphertext) < 33:
+                    ciphertext = ciphertext.ljust(33, b'\x00')
+                sync_frame[8:41] = ciphertext
+                
+                # Store MAC (8 bytes, truncated from 16)
+                sync_frame[41:49] = mac_full[:8]
+            except Exception as e:
+                print(f"Warning: Error encrypting sync frame: {e}, using plaintext")
+                # Fall back to plaintext with MAC
+                sync_frame[8:41] = payload
+                if self.mac_key and len(self.mac_key) == 32:
+                    # Compute MAC for plaintext payload
+                    mac_data = bytes(payload)
+                    mac_full = compute_chacha20_mac(mac_data, self.mac_key)
+                    sync_frame[41:49] = mac_full[:8]
+                else:
+                    sync_frame[41:49] = b'\x00' * 8
+        elif self.mac_key and len(self.mac_key) == 32:
+            # MAC only (no encryption)
+            sync_frame[8:41] = payload
+            # Compute MAC for plaintext payload
+            mac_data = bytes(payload)
+            mac_full = compute_chacha20_mac(mac_data, self.mac_key)
+            sync_frame[41:49] = mac_full[:8]
+        else:
+            # No encryption, no MAC - use original structure for backward compatibility
+            sync_frame[8:41] = payload
+            sync_frame[41:49] = b'\x00' * 8
 
         return bytes(sync_frame)
     

@@ -783,7 +783,7 @@ Note: gr-opus is a separate module available at https://github.com/Supermagnum/g
 ### Sync Frames
 
 - **[Sync Frame Analysis](docs/SYNC_FRAME_ANALYSIS.md)** - Analysis of sync frame requirements for receiver acquisition
-- **[Sync Frame Implementation](docs/SYNC_FRAME_IMPLEMENTATION.md)** - Implementation details for periodic sync frames in TX and RX
+- **[Sync Frame Implementation](docs/SYNC_FRAME_IMPLEMENTATION.md)** - Implementation details for periodic sync frames in TX and RX, including encryption and MAC support
 
 ### PTT Control
 
