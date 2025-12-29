@@ -1,5 +1,60 @@
 # gr-sleipnir
 
+## Current Status and Known Issues (December 2025)
+
+### Recent Fixes
+
+**Fixed Issues:**
+- **Segmentation fault crash** - Resolved by removing duplicate message port connections
+- **Decoder router scheduling** - Fixed sync_block contract violation (now returns `input_consumed` instead of `output_produced`)
+- **Buffer accumulation** - Fixed by setting `output_multiple` and `min_output_buffer` sizes
+  - Decoder router now receives 4096 items per call (was 8)
+  - Buffer accumulates 1536+ items in 1 call (was ~192 calls)
+  - ~192x speed improvement in data accumulation
+
+**Current Status:**
+- Decoder router is being called and processing data
+- Frames are being decoded (auth frame + voice frames)
+- PDUs are being published via message port from decoder router
+- **Parser not receiving PDUs** - Message port connection through `hier_block2` not delivering messages
+
+### Current Issue
+
+**Problem:** The `sleipnir_superframe_parser` is not receiving PDUs from the `frame_aware_ldpc_decoder_router` through the `hier_block2` message port connection.
+
+**Evidence:**
+- Decoder router successfully decodes frames and publishes PDUs:
+  - `"Published PDU directly via message port: 64 bytes"` (auth frame)
+  - `"Published PDU directly via message port: 48 bytes"` (voice frames)
+- Parser's `handle_msg()` method is not being called (no debug messages)
+- Tests show `FER=1.0, Frames=0` despite frames being decoded
+
+**Connection Chain:**
+```
+decoder_router['pdus'] → hier_block2['decoder_pdus'] → parser['in']
+```
+
+**Message Port Setup:**
+- `decoder_router.message_port_register_out("pdus")` - Registered
+- `hier_block2.message_port_register_hier_out("decoder_pdus")` - Registered
+- `hier_block2.msg_connect(decoder_router, "pdus", self, "decoder_pdus")` - Connected
+- `hier_block2.msg_connect(self, "decoder_pdus", parser, "in")` - Connected
+- `parser.message_port_register_in("in")` - Registered
+- `parser.set_msg_handler("in", parser.handle_msg)` - Handler set
+
+**Possible Causes:**
+1. Message port forwarding through `hier_block2` boundaries not working in GNU Radio 3.10
+2. Timing issue - messages published from `work()` may not propagate through hier_block2
+3. Message port connection order - connections made before ports are fully registered
+4. Threading issue - messages published from `work()` not propagating through hier_block2
+
+**Next Steps:**
+- Verify message port forwarding mechanism in GNU Radio 3.10
+- Check if messages need to be published from a different context (not from `work()`)
+- Consider alternative approaches (tagged streams, external message routing)
+
+---
+
 **IMPORTANT NOTICE**: This is AI-generated code. The developer has a neurological condition that makes it impossible to use and learn traditional programming. The developer has put in a significant effort. This code might not work properly. Use at your own risk.
 
 This code has not been reviewed by professional coders, it is a large task. If there are tests available in the codebase, please review those and their code.
