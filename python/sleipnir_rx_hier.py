@@ -34,6 +34,8 @@ except ImportError:
 
 # Import sleipnir blocks
 from python.sleipnir_superframe_parser import make_sleipnir_superframe_parser
+from python.fsk_symbol_to_llr import make_fsk_symbol_to_llr
+from python.message_forwarder import make_message_forwarder
 
 # Check FEC availability
 try:
@@ -190,43 +192,25 @@ class sleipnir_rx_hier(gr.hier_block2):
                 logger.warning(f"Could not create symbol_sync, using simple decimation: {e}")
                 symbol_sync = filter.rational_resampler_fff(1, self.sps)
 
-        # 5. Symbol slicing (convert to bits)
-        # Add offset to center symbols
-        add_const = blocks.add_const_vff([1.0])  # Offset to center
-        multiply_const = blocks.multiply_const_vff([0.5])  # Scale
-        float_to_uchar = blocks.float_to_uchar(1, 1.0)
+        # 5. Symbol to LLR conversion for soft-decision decoding
+        # When FEC is enabled: convert symbols directly to LLRs (bypass float_to_uchar/uchar_to_float)
+        # When FEC is disabled: use old path with float_to_uchar for hard decisions
         
-        # Set buffer sizes for upstream blocks to ensure continuous data flow
-        # Decoder needs 18 float32 items before producing output, so we need
-        # sufficient buffering upstream to prevent stalls
-        try:
-            # Buffer sizes: enough for multiple decoder frames (18 items each)
-            buffer_size = int(18 * 10)  # 10 frames worth
-            add_const.set_min_output_buffer(buffer_size)
-            multiply_const.set_min_output_buffer(buffer_size)
-            float_to_uchar.set_min_output_buffer(buffer_size)
-        except:
-            pass  # Buffer setting methods may not be available in all GNU Radio versions
-        
-        # 6. Convert to float for processing
-        # When FEC is disabled: convert to bytes for hard decision
-        # When FEC is enabled: keep as float for soft decision decoding
-        uchar_to_float = blocks.uchar_to_float()
-        
-        # Set buffer size for uchar_to_float to ensure decoder receives enough input
-        try:
-            uchar_to_float.set_min_output_buffer(int(18 * 10))  # 10 frames worth
-        except:
-            pass
-
-        # 8. FEC LDPC decoder (using GNU Radio-generated matrices)
+        # 6. FEC LDPC decoder (using GNU Radio-generated matrices)
         # Voice frames: 576 soft bits (float32) input -> 48 bytes (384 bits) output
         # Auth frames: 1536 soft bits (float32) input -> 64 bytes (512 bits) output
         # Use frame-aware decoder router that routes to appropriate decoder based on frame number
         ldpc_decoder_router = None
+        symbol_to_llr = None
         USE_FEC = True  # Re-enabled now that segfault is fixed
         
         if USE_FEC and FEC_AVAILABLE and os.path.exists(voice_matrix_file) and os.path.exists(auth_matrix_file):
+            print(f"RX: FEC enabled, creating LLR converter and decoder router")
+            # Convert FSK symbols to bit-level LLRs for soft-decision decoding
+            # This replaces the incorrect float_to_uchar -> uchar_to_float conversion
+            symbol_to_llr = make_fsk_symbol_to_llr(fsk_levels=fsk_levels, scale_factor=2.0)
+            print(f"RX: LLR converter created")
+            
             # Use frame-aware decoder router that handles both auth and voice frames
             from python.frame_aware_ldpc_decoder_router import make_frame_aware_ldpc_decoder_router
             ldpc_decoder_router = make_frame_aware_ldpc_decoder_router(
@@ -235,6 +219,26 @@ class sleipnir_rx_hier(gr.hier_block2):
                 superframe_size=25,
                 max_iter=50
             )
+            print(f"RX: Decoder router created")
+        else:
+            print(f"RX: FEC disabled or unavailable - USE_FEC={USE_FEC}, FEC_AVAILABLE={FEC_AVAILABLE}, auth_file={os.path.exists(auth_matrix_file) if auth_matrix_file else 'None'}, voice_file={os.path.exists(voice_matrix_file) if voice_matrix_file else 'None'}")
+        
+        # For backward compatibility (no FEC case), keep old path
+        # 5b. Symbol slicing (convert to bits) - only used when FEC is disabled
+        add_const = blocks.add_const_vff([1.0])  # Offset to center
+        multiply_const = blocks.multiply_const_vff([0.5])  # Scale
+        float_to_uchar = blocks.float_to_uchar(1, 1.0)
+        uchar_to_float = blocks.uchar_to_float()
+        
+        # Set buffer sizes for upstream blocks to ensure continuous data flow
+        try:
+            buffer_size = int(18 * 10)  # 10 frames worth
+            add_const.set_min_output_buffer(buffer_size)
+            multiply_const.set_min_output_buffer(buffer_size)
+            float_to_uchar.set_min_output_buffer(buffer_size)
+            uchar_to_float.set_min_output_buffer(int(18 * 10))
+        except:
+            pass  # Buffer setting methods may not be available in all GNU Radio versions
         
         # 9. Stream to PDU for superframe parser
         # When FEC is disabled: superframe assembler outputs 49-byte frames
@@ -249,6 +253,7 @@ class sleipnir_rx_hier(gr.hier_block2):
             # Frame 0: 64 bytes (auth), Frames 1-24: 48 bytes (voice)
             from python.frame_aware_ldpc_decoder_to_pdu import make_frame_aware_ldpc_decoder_to_pdu
             ldpc_decoder_to_pdu_block = make_frame_aware_ldpc_decoder_to_pdu(superframe_size=25)
+            print(f"RX: Decoder-to-PDU block created")
         else:
             frame_size_bytes = 49  # 49 bytes from superframe assembler (no FEC)
             # Create stream_to_tagged_stream with proper buffer configuration
@@ -286,6 +291,8 @@ class sleipnir_rx_hier(gr.hier_block2):
         self._superframe_parser = superframe_parser
         if ldpc_decoder_router:
             self._ldpc_decoder_router = ldpc_decoder_router
+        if symbol_to_llr:
+            self._symbol_to_llr = symbol_to_llr
         if ldpc_decoder_to_pdu_block:
             self._ldpc_decoder_to_pdu = ldpc_decoder_to_pdu_block
 
@@ -318,19 +325,68 @@ class sleipnir_rx_hier(gr.hier_block2):
         self.connect(self, agc, quadrature_demod)
         self.connect(quadrature_demod, rrc_filter)
         self.connect(rrc_filter, symbol_sync)
-        self.connect(symbol_sync, add_const, multiply_const, float_to_uchar)
-        self.connect(float_to_uchar, uchar_to_float)
+        
         # Frame-aware LDPC decoder router: routes soft decisions to appropriate decoder
         # Frame 0: 1536 soft bits -> auth decoder -> 64 bytes
         # Frames 1-24: 576 soft bits -> voice decoder -> 48 bytes
-        if ldpc_decoder_router:
-            self.connect(uchar_to_float, ldpc_decoder_router)
-            # Convert LDPC decoder router output (stream) to PDU for superframe parser
-            # Use frame-aware block that handles variable frame sizes (64 bytes for auth, 48 bytes for voice)
-            self.connect(ldpc_decoder_router, ldpc_decoder_to_pdu_block)
-            self.msg_connect(ldpc_decoder_to_pdu_block, "pdus", superframe_parser, "in")
+        if ldpc_decoder_router and symbol_to_llr:
+            # FEC enabled: convert symbols directly to LLRs (proper soft-decision path)
+            # Decoder router outputs tagged stream (reliable through hier_block2)
+            print(f"RX: Connecting FEC blocks: symbol_sync -> symbol_to_llr -> decoder_router (tagged stream) -> tagged_to_pdu -> parser")
+            self.connect(symbol_sync, symbol_to_llr)
+            self.connect(symbol_to_llr, ldpc_decoder_router)
+            
+            # Convert tagged stream to PDU using custom block that accepts uint8 directly
+            # This bypasses the char_to_short conversion and tag propagation issues
+            from python.tagged_stream_to_pdu_custom import make_tagged_stream_to_pdu_custom
+            ldpc_tagged_to_pdu = make_tagged_stream_to_pdu_custom("packet_len")
+            
+            # Custom block has dummy stream output for scheduling
+            # Connect decoder router -> custom_tagged_to_pdu -> null_sink (for scheduling)
+            # NOTE: Tagged stream path kept for scheduling, but direct PDU output is primary
+            tagged_to_pdu_sink = blocks.null_sink(gr.sizeof_char)
+            self.connect(ldpc_decoder_router, ldpc_tagged_to_pdu, tagged_to_pdu_sink)
+            # Don't connect tagged_to_pdu PDUs to parser (tags don't propagate)
+            # Instead, use decoder router's direct PDU output (bypasses tag propagation issues)
+            self.msg_connect(ldpc_decoder_router, "pdus", superframe_parser, "in")
+            
+            # Add PDU debug sink to verify PDUs are being created
+            from python.pdu_debug_sink import make_pdu_debug_sink
+            pdu_debug = make_pdu_debug_sink()
+            pdu_debug._debug_name = "TaggedToPDU"
+            self.msg_connect(ldpc_tagged_to_pdu, "pdus", pdu_debug, "in")
+            
+            # Also debug decoder router's direct PDU output
+            pdu_debug_direct = make_pdu_debug_sink()
+            pdu_debug_direct._debug_name = "DecoderRouterDirect"
+            self.msg_connect(ldpc_decoder_router, "pdus", pdu_debug_direct, "in")
+            
+            # Store references
+            self._ldpc_tagged_to_pdu = ldpc_tagged_to_pdu
+            self._tagged_to_pdu_sink = tagged_to_pdu_sink
+            self._pdu_debug = pdu_debug
+            self._char_to_short_ldpc = None  # Not needed with custom block
+            
+            # CRITICAL: Connect parser's dummy stream I/O to keep scheduler active
+            # The parser is a sync_block with dummy stream I/O (1 byte in/out)
+            parser_dummy_data = np.array([0] * 1024, dtype=np.byte)
+            parser_dummy_src = blocks.vector_source_b(parser_dummy_data.tolist(), repeat=True)
+            parser_dummy_sink = blocks.null_sink(gr.sizeof_char)
+            self.connect(parser_dummy_src, superframe_parser, parser_dummy_sink)
+            
+            print(f"RX: FEC blocks connected successfully (using decoder-to-pdu buffer)")
+            print(f"RX: Parser dummy stream connected (vector_src -> parser -> null_sink)")
+            
+            # Store references to prevent garbage collection
+            self._ldpc_tagged_to_pdu = ldpc_tagged_to_pdu
+            self._char_to_short_ldpc = char_to_short_ldpc
+            self._parser_dummy_src = parser_dummy_src
+            self._parser_dummy_sink = parser_dummy_sink
         else:
             # No FEC, pass through (hard decision)
+            # Use old path: symbol_sync -> add_const -> multiply_const -> float_to_uchar -> uchar_to_float
+            self.connect(symbol_sync, add_const, multiply_const, float_to_uchar)
+            self.connect(float_to_uchar, uchar_to_float)
             # Convert float to uchar, then uchar to char (uint8)
             float_to_uchar2 = blocks.float_to_uchar(1, 1.0)
             # uchar is already uint8, so we can use it directly with stream_to_tagged_stream
@@ -348,6 +404,7 @@ class sleipnir_rx_hier(gr.hier_block2):
         self.message_port_register_hier_out("audio_pdu")
         self.message_port_register_hier_out("aprs_out")
         self.message_port_register_hier_out("text_out")
+        # Note: decoder_pdus and parser_pdus are registered earlier in FEC section if needed
         self._key_source_handler = self.handle_key_source_msg
         
         # Connect ctrl port to superframe parser
