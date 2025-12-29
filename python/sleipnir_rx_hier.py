@@ -336,6 +336,10 @@ class sleipnir_rx_hier(gr.hier_block2):
             self.connect(symbol_sync, symbol_to_llr)
             self.connect(symbol_to_llr, ldpc_decoder_router)
             
+            # CRITICAL: Expose decoder router's PDU output at hier_block2 level BEFORE connecting
+            # Message ports from internal blocks need to be exposed to be accessible
+            self.message_port_register_hier_out("decoder_pdus")
+            
             # Convert tagged stream to PDU using custom block that accepts uint8 directly
             # This bypasses the char_to_short conversion and tag propagation issues
             from python.tagged_stream_to_pdu_custom import make_tagged_stream_to_pdu_custom
@@ -347,24 +351,18 @@ class sleipnir_rx_hier(gr.hier_block2):
             tagged_to_pdu_sink = blocks.null_sink(gr.sizeof_char)
             self.connect(ldpc_decoder_router, ldpc_tagged_to_pdu, tagged_to_pdu_sink)
             # Don't connect tagged_to_pdu PDUs to parser (tags don't propagate)
-            # Instead, use decoder router's direct PDU output (bypasses tag propagation issues)
-            self.msg_connect(ldpc_decoder_router, "pdus", superframe_parser, "in")
+            # Connect decoder router's PDU output through exposed hier port to parser
+            # NOTE: Only connect decoder router to hier port, then hier port to parser
+            # Multiple connections to same message port can cause crashes
+            self.msg_connect(ldpc_decoder_router, "pdus", self, "decoder_pdus")
+            self.msg_connect(self, "decoder_pdus", superframe_parser, "in")
             
-            # Add PDU debug sink to verify PDUs are being created
-            from python.pdu_debug_sink import make_pdu_debug_sink
-            pdu_debug = make_pdu_debug_sink()
-            pdu_debug._debug_name = "TaggedToPDU"
-            self.msg_connect(ldpc_tagged_to_pdu, "pdus", pdu_debug, "in")
-            
-            # Also debug decoder router's direct PDU output
-            pdu_debug_direct = make_pdu_debug_sink()
-            pdu_debug_direct._debug_name = "DecoderRouterDirect"
-            self.msg_connect(ldpc_decoder_router, "pdus", pdu_debug_direct, "in")
+            # Debug sinks removed - multiple connections to same message port cause crashes
+            # Use GNU Radio's message_debug block if debugging is needed
             
             # Store references
             self._ldpc_tagged_to_pdu = ldpc_tagged_to_pdu
             self._tagged_to_pdu_sink = tagged_to_pdu_sink
-            self._pdu_debug = pdu_debug
             self._char_to_short_ldpc = None  # Not needed with custom block
             
             # CRITICAL: Connect parser's dummy stream I/O to keep scheduler active

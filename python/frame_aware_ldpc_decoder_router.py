@@ -57,6 +57,19 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
             out_sig=[np.uint8]  # Tagged stream output (decoded bytes with packet_len tags)
         )
         
+        # CRITICAL: Request larger input buffers to accumulate data faster
+        # This allows GNU Radio to pass more items per work() call
+        # Request buffers that are multiples of reasonable sizes
+        try:
+            # Request input buffers that are multiples of 512 items (good for accumulation)
+            # This allows faster accumulation of soft bits
+            self.set_output_multiple(512)  # Request output in multiples of 512
+            # Also set minimum input buffer to encourage larger chunks
+            self.set_min_output_buffer(1536)  # At least enough for one auth frame
+            print(f"Decoder router: Set output_multiple=512, min_output_buffer=1536")
+        except Exception as e:
+            print(f"Decoder router: Could not set buffer sizes: {e}")
+        
         # Tag key for packet length
         self.tag_key = pmt.intern("packet_len")
         
@@ -213,6 +226,10 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
             # No input available - return 0 for sync_block
             return 0
         
+        # CRITICAL: For sync_block, we must consume all input and produce equal output
+        # Track how many input items we consume
+        input_consumed = len(in0)
+        
         # Add new soft decisions to buffer
         # CRITICAL: Always add input to buffer, even if we can't output yet
         # This ensures we don't lose data
@@ -235,13 +252,17 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         self._debug_last_call_time = current_time
         
         # Log first 20 calls, then every 1000 calls, or when buffer reaches threshold
+        # Also log when buffer is close to threshold (every 100 items when > 1000)
         should_log = (self._debug_call_count <= 20 or 
                      self._debug_call_count % 1000 == 0 or 
-                     len(self.soft_buffer) >= 1536)
+                     len(self.soft_buffer) >= 1536 or
+                     (len(self.soft_buffer) > 1000 and len(self.soft_buffer) % 100 == 0))
         
         if should_log:
             if len(self.soft_buffer) >= 1536:
                 print(f"Decoder router: Call #{self._debug_call_count}, Buffer has {len(self.soft_buffer)} soft bits (enough for auth frame), received {len(in0)} new items, time since last: {time_since_last*1000:.2f}ms")
+            elif len(self.soft_buffer) > 1000:
+                print(f"Decoder router: Call #{self._debug_call_count}, Buffer has {len(self.soft_buffer)} soft bits (approaching auth threshold of 1536), received {len(in0)} new items")
             else:
                 print(f"Decoder router: Call #{self._debug_call_count}, Received {len(in0)} items, buffer now has {len(self.soft_buffer)} items (total: {self._debug_total_input}), time since last: {time_since_last*1000:.2f}ms")
         
@@ -261,6 +282,12 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
             if self.frame_counter == 0:
                 # Auth frame: need 1536 soft bits
                 if len(self.soft_buffer) < 1536:
+                    # Debug: Log when waiting for more bits
+                    if not hasattr(self, '_waiting_for_auth_logged') or self._waiting_for_auth_logged < 5:
+                        if not hasattr(self, '_waiting_for_auth_logged'):
+                            self._waiting_for_auth_logged = 0
+                        self._waiting_for_auth_logged += 1
+                        print(f"Decoder router: Waiting for auth frame: need 1536 bits, have {len(self.soft_buffer)} bits")
                     break
                 
                 # Extract 1536 soft bits
@@ -281,19 +308,21 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
                     else:
                         decoded = decoded[:64]
                 
-                # Add to output buffer for tagged stream (skip all-zero frames)
+                # Add to output buffer for tagged stream
+                # NOTE: Don't skip all-zero frames - they may be valid decoded frames
+                # The parser will handle validation
                 frame_data = bytes(decoded)
-                if not all(b == 0 for b in frame_data):
-                    self.output_frame_buffer.append({
-                        'data': frame_data,
-                        'size': frame_size_bytes,
-                        'frame_num': current_frame_num
-                    })
-                    frames_decoded_this_call += 1
-                    
-                    # Debug: Log frame creation
-                    if frames_decoded_this_call <= 20 or current_frame_num == 0:
-                        print(f"Decoder router: Decoded auth frame {current_frame_num}, size {frame_size_bytes} bytes, queued for tagged stream, first few: {list(frame_data[:min(8, len(frame_data))])}")
+                self.output_frame_buffer.append({
+                    'data': frame_data,
+                    'size': frame_size_bytes,
+                    'frame_num': current_frame_num
+                })
+                frames_decoded_this_call += 1
+                
+                # Debug: Log frame creation
+                if frames_decoded_this_call <= 20 or current_frame_num == 0:
+                    is_all_zero = all(b == 0 for b in frame_data)
+                    print(f"Decoder router: Decoded auth frame {current_frame_num}, size {frame_size_bytes} bytes, queued for tagged stream, all_zero={is_all_zero}, first few: {list(frame_data[:min(8, len(frame_data))])}")
                 
                 # Update frame counter (wraps at superframe_size)
                 self.frame_counter = (self.frame_counter + 1) % self.superframe_size
@@ -301,6 +330,12 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
             else:
                 # Voice frame: need 576 soft bits
                 if len(self.soft_buffer) < 576:
+                    # Debug: Log when waiting for more bits
+                    if not hasattr(self, '_waiting_for_voice_logged') or self._waiting_for_voice_logged < 5:
+                        if not hasattr(self, '_waiting_for_voice_logged'):
+                            self._waiting_for_voice_logged = 0
+                        self._waiting_for_voice_logged += 1
+                        print(f"Decoder router: Waiting for voice frame: need 576 bits, have {len(self.soft_buffer)} bits, frame_counter={self.frame_counter}")
                     break
                 
                 # Extract 576 soft bits
@@ -321,19 +356,21 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
                     else:
                         decoded = decoded[:48]
                 
-                # Add to output buffer for tagged stream (skip all-zero frames)
+                # Add to output buffer for tagged stream
+                # NOTE: Don't skip all-zero frames - they may be valid decoded frames
+                # The parser will handle validation
                 frame_data = bytes(decoded)
-                if not all(b == 0 for b in frame_data):
-                    self.output_frame_buffer.append({
-                        'data': frame_data,
-                        'size': frame_size_bytes,
-                        'frame_num': current_frame_num
-                    })
-                    frames_decoded_this_call += 1
-                    
-                    # Debug: Log frame creation
-                    if frames_decoded_this_call <= 20:
-                        print(f"Decoder router: Decoded voice frame {current_frame_num}, size {frame_size_bytes} bytes, queued for tagged stream")
+                self.output_frame_buffer.append({
+                    'data': frame_data,
+                    'size': frame_size_bytes,
+                    'frame_num': current_frame_num
+                })
+                frames_decoded_this_call += 1
+                
+                # Debug: Log frame creation
+                if frames_decoded_this_call <= 20:
+                    is_all_zero = all(b == 0 for b in frame_data)
+                    print(f"Decoder router: Decoded voice frame {current_frame_num}, size {frame_size_bytes} bytes, queued for tagged stream, all_zero={is_all_zero}")
                 
                 # Update frame counter (wraps at superframe_size)
                 # After frame 24, counter wraps to 0 (next superframe's auth frame)
@@ -479,8 +516,26 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         if frames_decoded_this_call > 0 or output_produced > 0 or self._work_call_count <= 20:
             print(f"Decoder router: Call #{self._work_call_count}, consumed {input_consumed} items, decoded {frames_decoded_this_call} frames, produced {output_produced} bytes tagged stream, buffer={len(self.output_frame_buffer)} frames")
         
-        # Return number of output items produced (always at least 1 to keep scheduler active)
-        return output_produced
+        # CRITICAL: For sync_block, we must return the number of input items consumed
+        # NOT the number of output items produced
+        # sync_block requires: output_items == input_items (1:1 ratio)
+        # But we buffer input and produce variable output, so we need to:
+        # 1. Always consume all input (to keep data flowing)
+        # 2. Always produce at least as many output items as input items
+        # If we don't have enough output, we need to pad with zeros
+        
+        # Ensure we produce at least as many output items as we consume
+        # This maintains the 1:1 ratio required by sync_block
+        if output_produced < input_consumed:
+            # Pad output with zeros to match input consumption
+            padding_needed = input_consumed - output_produced
+            if output_produced + padding_needed <= len(out0):
+                out0[output_produced:output_produced + padding_needed] = 0
+                output_produced += padding_needed
+        
+        # Return number of input items consumed (required for sync_block)
+        # This ensures we consume all input and keep the stream flowing
+        return input_consumed
     
     def forecast(self, noutput_items, ninputs):
         """
@@ -489,10 +544,12 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         For variable rate (decoding produces variable output), we request
         enough input to potentially produce the requested output.
         """
-        # Request enough input to potentially decode frames
-        # Average: ~1 frame per 576-1536 input items, producing 48-64 bytes
-        # Request more input to ensure we can decode
-        return [noutput_items * 20]  # Request more input to keep buffer full
+        # Request enough input to accumulate data quickly
+        # We buffer input and need 1536 items for auth frame
+        # Request at least 1536 items if possible, or as much as we can get
+        # This helps accumulate soft bits faster
+        requested = max(noutput_items, 1536)  # Request at least 1536 items
+        return [requested]
     
     def __del__(self):
         """Cleanup method"""
