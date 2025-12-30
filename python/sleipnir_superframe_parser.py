@@ -29,7 +29,7 @@ from python.crypto_helpers import (
 from python.voice_frame_builder import VoiceFrameBuilder
 
 
-class sleipnir_superframe_parser(gr.basic_block):
+class sleipnir_superframe_parser(gr.sync_block):
     """
     Parses superframes from decoded bits.
 
@@ -79,11 +79,14 @@ class sleipnir_superframe_parser(gr.basic_block):
             enable_sync_detection: Enable sync detection
             mac_key: MAC key for ChaCha20-Poly1305 verification (32 bytes)
         """
-        gr.basic_block.__init__(
+        # Use sync_block with dummy stream I/O to keep scheduler active
+        # The actual data flow is via message ports, but we need stream I/O
+        # to ensure the block is scheduled and message handlers run
+        gr.sync_block.__init__(
             self,
             name="sleipnir_superframe_parser",
-            in_sig=None,
-            out_sig=None
+            in_sig=[np.byte],  # Dummy input (1 byte)
+            out_sig=[np.byte]  # Dummy output (1 byte)
         )
 
         self.local_callsign = local_callsign.upper()
@@ -138,10 +141,25 @@ class sleipnir_superframe_parser(gr.basic_block):
         self.total_frames_received = 0  # Total frames received (for FER calculation)
 
         # Message ports
-        self.message_port_register_in(pmt.intern("in"))
+        # CRITICAL: Register input port FIRST, then set handler IMMEDIATELY
+        # STEP 1: Register input port (MUST be first)
+        input_port = pmt.intern("in")
+        self.message_port_register_in(input_port)
+        
+        # STEP 2: Set handler (MUST be immediately after registration)
+        # CRITICAL: Store handler reference to prevent GC
+        self._handle_msg_ref = self.handle_msg
+        self.set_msg_handler(input_port, self._handle_msg_ref)
+        
+        # STEP 3: Output ports
         self.message_port_register_out(pmt.intern("out"))  # Opus frames output
         self.message_port_register_out(pmt.intern("status"))
-        self.set_msg_handler(pmt.intern("in"), self.handle_msg)
+        
+        # Debug: Verify port registration and handler
+        print(f"Superframe parser: Input port 'in' registered")
+        print(f"Superframe parser: Message handler set for port 'in'")
+        print(f"Superframe parser: Handler function: {self.handle_msg}")
+        print(f"Superframe parser: Handler reference stored: {hasattr(self, '_handle_msg_ref')}")
 
         # Control port
         self.message_port_register_in(pmt.intern("ctrl"))
@@ -216,17 +234,59 @@ class sleipnir_superframe_parser(gr.basic_block):
         except Exception as e:
             print(f"Error handling control message: {e}")
 
+    def work(self, input_items, output_items):
+        """
+        Dummy work function - just pass through to keep scheduler happy.
+        The actual data flow is via message ports, not streams.
+        """
+        # Debug: Log first few calls to verify work() is being called
+        if not hasattr(self, '_work_call_count'):
+            self._work_call_count = 0
+            print(f"Superframe parser: work() called for first time - block is scheduled!")
+        self._work_call_count += 1
+        
+        if self._work_call_count <= 10 or self._work_call_count % 1000 == 0:
+            print(f"Superframe parser: work() call #{self._work_call_count}, input={len(input_items[0])}, output={len(output_items[0])}")
+        
+        n = min(len(input_items[0]), len(output_items[0]))
+        if n > 0:
+            # Just pass through dummy data to keep scheduler active
+            output_items[0][:n] = input_items[0][:n]
+        return n
+
     def handle_msg(self, msg):
         """Handle incoming PDU with decoded bits."""
+        # CRITICAL: Always log first call to verify parser is being invoked
+        if not hasattr(self, '_parser_msg_count'):
+            self._parser_msg_count = 0
+            print(f"\n{'='*60}")
+            import sys
+            msg = "★★★ Superframe parser: handle_msg() called for first time ★★★"
+            print(msg)
+            sys.stderr.write(msg + "\n")
+            sys.stderr.flush()
+            print(f"Parser message port 'in' is working!")
+            print(f"Message received: {type(msg)}")
+            print(f"{'='*60}\n")
+        self._parser_msg_count += 1
+        
+        # Always log first 20 messages to verify delivery
+        if self._parser_msg_count <= 20:
+            import sys
+            msg = f"★★★ Superframe parser: handle_msg() call #{self._parser_msg_count} ★★★"
+            print(msg)
+            sys.stderr.write(msg + "\n")
+            sys.stderr.flush()
+        
         if not pmt.is_pair(msg):
-            print("Warning: handle_msg received non-pair message")
+            print(f"Superframe parser: Message #{self._parser_msg_count} - Warning: received non-pair message")
             return
 
         meta = pmt.car(msg)
         data = pmt.cdr(msg)
 
         if not pmt.is_blob(data) and not pmt.is_u8vector(data):
-            print(f"Warning: Expected blob/u8vector data, got {type(data)}")
+            print(f"Superframe parser: Message #{self._parser_msg_count} - Warning: Expected blob/u8vector data, got {type(data)}")
             return
 
         # Extract decoded bits
@@ -235,17 +295,31 @@ class sleipnir_superframe_parser(gr.basic_block):
         elif pmt.is_blob(data):
             decoded_data = pmt.to_python(data)
         else:
-            print("Warning: Unexpected data type")
+            print(f"Superframe parser: Message #{self._parser_msg_count} - Warning: Unexpected data type")
             return
-
-        print(f"Superframe parser received {len(decoded_data)} bytes")
-
+        
+        # Always log first 20 messages to verify data flow
+        should_log = (self._parser_msg_count <= 20)
+        
+        # Extract frame number from metadata if available
+        frame_num = None
+        frame_size = None
+        
         # Check if this is a single frame from frame-aware decoder-to-PDU block
         # The frame-aware block sends individual frames with metadata
         frames = []
         if pmt.is_dict(meta):
             frame_num_pmt = pmt.dict_ref(meta, pmt.intern("frame_num"), pmt.PMT_NIL)
             frame_size_pmt = pmt.dict_ref(meta, pmt.intern("frame_size"), pmt.PMT_NIL)
+            
+            if pmt.is_number(frame_num_pmt):
+                frame_num = pmt.to_long(frame_num_pmt)
+            if pmt.is_number(frame_size_pmt):
+                frame_size = pmt.to_long(frame_size_pmt)
+        
+        should_log = (self._parser_msg_count <= 20 or frame_num is not None)
+        if should_log:
+            print(f"Superframe parser: Message #{self._parser_msg_count}, received {len(decoded_data)} bytes, frame_num={frame_num}, frame_size={frame_size}, buffer has {len(self.frame_buffer)} frames")
             
             if pmt.is_number(frame_num_pmt) and pmt.is_number(frame_size_pmt):
                 # This is a single frame from frame-aware decoder
@@ -287,8 +361,16 @@ class sleipnir_superframe_parser(gr.basic_block):
             return
 
         # Add frames to buffer
+        frames_before = len(self.frame_buffer)
         self.frame_buffer.extend(frames)
-        print(f"Frame buffer now has {len(self.frame_buffer)} frames (need 24-25 for superframe)")
+        frames_added = len(self.frame_buffer) - frames_before
+        
+        # CRITICAL: Update total_frames_received when frames are added to buffer
+        # This ensures frames are counted even if superframe isn't complete yet
+        self.total_frames_received += frames_added
+        
+        if should_log or frames_added > 0:
+            print(f"Superframe parser: Added {frames_added} frames to buffer, buffer now has {len(self.frame_buffer)} frames (need 24-25 for superframe), total_frames_received={self.total_frames_received}")
 
         # Process superframe when we have enough frames
         # Logic: Look for complete superframes in the buffer

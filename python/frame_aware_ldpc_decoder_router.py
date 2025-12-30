@@ -15,6 +15,9 @@ from gnuradio import gr
 import pmt
 from array import array
 import os
+import threading
+import time
+from queue import Queue
 
 try:
     from gnuradio import fec
@@ -79,7 +82,15 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         # Buffer for decoded frames waiting to be output as tagged stream
         self.output_frame_buffer = []
         
+        # Queue for PDUs to be published from timer/callback (not from work())
+        # Messages published from work() don't propagate through hier_block2 in GNU Radio 3.10
+        self.pdu_queue = Queue()
+        self.pdu_lock = threading.Lock()
+        self.publisher_thread = None
+        self.running = False
+        
         print(f"Decoder router: Using tagged stream output (reliable through hier_block2)")
+        print(f"Decoder router: PDU messages will be queued and published from timer/callback")
         
         # Note: set_min_output_buffer is optional and causes type errors in some GNU Radio versions
         # GNU Radio will automatically size buffers, so we don't need to set it explicitly
@@ -143,6 +154,155 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
         if not hasattr(type(self), '_instances'):
             type(self)._instances = []
         type(self)._instances.append(self)
+    
+    def start(self):
+        """Start the publisher thread when flowgraph starts."""
+        # GNU Radio automatically calls start() on all blocks when flowgraph starts
+        if not self.running:
+            self.running = True
+            self.publisher_thread = threading.Thread(target=self._publisher_loop, daemon=True)
+            self.publisher_thread.start()
+            import sys
+            msg = "Decoder router: Started PDU publisher thread"
+            print(msg)
+            sys.stderr.write(msg + "\n")
+            sys.stderr.flush()
+            # Verify thread started
+            if self.publisher_thread.is_alive():
+                msg = "Decoder router: Publisher thread is alive and running"
+                print(msg)
+                sys.stderr.write(msg + "\n")
+                sys.stderr.flush()
+            else:
+                msg = "Decoder router: WARNING - Publisher thread did not start!"
+                print(msg)
+                sys.stderr.write(msg + "\n")
+                sys.stderr.flush()
+        else:
+            print("Decoder router: Publisher thread already running")
+        return True
+    
+    def stop(self):
+        """Stop the publisher thread when flowgraph stops."""
+        if self.running:
+            self.running = False
+            # Wait for thread to finish (with timeout)
+            if self.publisher_thread and self.publisher_thread.is_alive():
+                self.publisher_thread.join(timeout=1.0)
+            print("Decoder router: Stopped PDU publisher thread")
+        return True
+    
+    def _publisher_loop(self):
+        """Publisher thread loop - publishes queued PDUs periodically."""
+        # Reduced interval for faster processing - 1ms instead of 10ms
+        publish_interval = 0.001  # 1ms - much faster to keep up with queue rate
+        
+        # Log thread start (use sys.stderr for visibility in subprocesses)
+        import sys
+        if not hasattr(self, '_loop_start_logged'):
+            msg = "Decoder router: Publisher loop thread started and running"
+            print(msg)
+            sys.stderr.write(msg + "\n")
+            sys.stderr.flush()
+            self._loop_start_logged = True
+        
+        loop_count = 0
+        total_published = 0
+        while self.running:
+            try:
+                loop_count += 1
+                
+                # Get initial queue size for logging
+                initial_queue_size = self.pdu_queue.qsize()
+                
+                # Log first 20 loop iterations and then every 1000 iterations
+                import sys
+                should_log = (loop_count <= 20) or (loop_count % 1000 == 0)
+                if should_log:
+                    msg = f"Decoder router: Publisher loop iteration #{loop_count}, queue size: {initial_queue_size}, running={self.running}, total_published={total_published}"
+                    print(msg)
+                    sys.stderr.write(msg + "\n")
+                    sys.stderr.flush()
+                
+                # Process ALL queued PDUs in this iteration
+                # Use a batch approach to process efficiently
+                published_count = 0
+                max_batch = 1000  # Process up to 1000 PDUs per iteration to avoid blocking too long
+                batch_count = 0
+                
+                while not self.pdu_queue.empty() and batch_count < max_batch:
+                    try:
+                        pdu = self.pdu_queue.get_nowait()
+                        # Publish from thread context (not work())
+                        self.message_port_pub(pmt.intern("pdus"), pdu)
+                        published_count += 1
+                        batch_count += 1
+                    except Exception as e:
+                        import sys
+                        msg = f"Decoder router: ERROR publishing queued PDU: {e}"
+                        print(msg)
+                        sys.stderr.write(msg + "\n")
+                        sys.stderr.flush()
+                        import traceback
+                        traceback.print_exc()
+                        break
+                
+                total_published += published_count
+                
+                # Log when PDUs are published
+                if published_count > 0:
+                    if not hasattr(self, '_publish_log_count'):
+                        self._publish_log_count = 0
+                    self._publish_log_count += 1
+                    # Log first 50 publishes, then every 100
+                    if self._publish_log_count <= 50 or self._publish_log_count % 100 == 0:
+                        # Extract PDU info for logging
+                        try:
+                            first_pdu = None
+                            for _ in range(published_count):
+                                if first_pdu is None:
+                                    # Get a sample PDU to log its size
+                                    temp_queue = Queue()
+                                    while not self.pdu_queue.empty():
+                                        pdu = self.pdu_queue.get_nowait()
+                                        if first_pdu is None:
+                                            first_pdu = pdu
+                                        temp_queue.put(pdu)
+                                    while not temp_queue.empty():
+                                        self.pdu_queue.put(temp_queue.get_nowait())
+                            
+                            if first_pdu and pmt.is_pair(first_pdu):
+                                data = pmt.cdr(first_pdu)
+                                if pmt.is_u8vector(data):
+                                    pdu_size = len(pmt.u8vector_elements(data))
+                                    print(f"Decoder router: Published {published_count} queued PDU(s) from publisher thread (sample size: {pdu_size} bytes)")
+                                else:
+                                    print(f"Decoder router: Published {published_count} queued PDU(s) from publisher thread")
+                            else:
+                                print(f"Decoder router: Published {published_count} queued PDU(s) from publisher thread")
+                        except Exception as e:
+                            print(f"Decoder router: Published {published_count} queued PDU(s) from publisher thread (error logging details: {e})")
+                
+                # Sleep before next check (only if no PDUs were published to avoid busy-waiting)
+                # If we published PDUs, sleep shorter to process remaining queue faster
+                if published_count > 0:
+                    # If we published, sleep very briefly to allow other threads but process queue quickly
+                    time.sleep(publish_interval * 0.5)  # 0.5ms if we published
+                else:
+                    # If queue was empty, sleep normal interval
+                    time.sleep(publish_interval)  # 1ms if queue was empty
+                
+            except Exception as e:
+                import sys
+                msg = f"Decoder router: ERROR in publisher loop: {e}"
+                print(msg)
+                sys.stderr.write(msg + "\n")
+                sys.stderr.flush()
+                import traceback
+                traceback.print_exc()
+                # Continue loop even on error
+                time.sleep(publish_interval)
+                time.sleep(publish_interval)
     
     def _decode_auth_frame(self, soft_bits):
         """
@@ -443,19 +603,33 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
                 tag_pmt = pmt.from_long(frame_size)
                 self.add_item_tag(0, tag_offset, self.tag_key, tag_pmt)
                 
-                # ALSO publish PDU directly via message port (bypasses tag propagation issues)
-                # This ensures frames are delivered even if tags don't propagate through hier_block2
+                # Queue PDU for publishing from timer/callback (not from work())
+                # Messages published from work() don't propagate through hier_block2 in GNU Radio 3.10
+                # Publishing from a separate thread/callback is more reliable
                 try:
                     packet_pmt = pmt.init_u8vector(len(frame_array), list(frame_array))
                     meta = pmt.make_dict()
                     meta = pmt.dict_add(meta, pmt.intern("packet_len"), tag_pmt)
                     pdu = pmt.cons(meta, packet_pmt)
-                    self.message_port_pub(pmt.intern("pdus"), pdu)
+                    
+                    # Queue PDU instead of publishing directly
+                    with self.pdu_lock:
+                        self.pdu_queue.put(pdu)
                     
                     if self._output_log_count <= 10:
-                        print(f"Decoder router: Published PDU directly via message port: {frame_size} bytes, data: {list(frame_array[:min(8, len(frame_array))])}")
+                        import sys
+                        msg = f"Decoder router: Queued PDU for publishing: {frame_size} bytes, data: {list(frame_array[:min(8, len(frame_array))])}"
+                        print(msg)
+                        sys.stderr.write(msg + "\n")
+                        sys.stderr.flush()
                 except Exception as e:
-                    print(f"Decoder router: ERROR publishing PDU: {e}")
+                    import sys
+                    msg = f"Decoder router: ERROR queueing PDU: {e}"
+                    print(msg)
+                    sys.stderr.write(msg + "\n")
+                    sys.stderr.flush()
+                    import traceback
+                    traceback.print_exc()
                 
                 if self._output_log_count <= 10:
                     # Verify tag was added immediately
@@ -553,6 +727,12 @@ class frame_aware_ldpc_decoder_router(gr.sync_block):
     
     def __del__(self):
         """Cleanup method"""
+        try:
+            # Stop publisher thread
+            self.stop()
+        except:
+            pass
+        
         try:
             self.soft_buffer = []
             self.output_buffer = bytearray()

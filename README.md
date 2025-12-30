@@ -1,5 +1,9 @@
 # gr-sleipnir
 
+## Status: Waiting for GNU Radio 4.0
+
+This project is currently waiting for GNU Radio 4.0, as it may solve the message port forwarding issues encountered in GNU Radio 3.10. The current implementation uses message queuing and asynchronous publishing from a separate thread to work around limitations in GNU Radio 3.10's message port delivery within `hier_block2` contexts, but messages are still not reliably reaching downstream blocks. GNU Radio 4.0 may provide improved message port forwarding mechanisms that would resolve these issues.
+
 ## Current Status and Known Issues (December 2025)
 
 ### Recent Fixes
