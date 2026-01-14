@@ -1,14 +1,18 @@
 # gr-sleipnir
 
-## Status: Waiting for GNU Radio 4.0
+## Status: Active Development (GNU Radio 3.11)
 
-This project is currently waiting for GNU Radio 4.0, as it may solve the message port forwarding issues encountered in GNU Radio 3.10. The current implementation uses message queuing and asynchronous publishing from a separate thread to work around limitations in GNU Radio 3.10's message port delivery within `hier_block2` contexts, but messages are still not reliably reaching downstream blocks. GNU Radio 4.0 may provide improved message port forwarding mechanisms that would resolve these issues.
+This project is actively being developed for GNU Radio 3.11. Hierarchical blocks (`hier_block2`) have been removed to address message port forwarding issues, and the system now uses individual blocks connected directly.
 
 ## Current Status and Known Issues (December 2025)
 
 ### Recent Fixes
 
 **Fixed Issues:**
+- **Hierarchical blocks removed** - Removed `sleipnir_tx_hier` and `sleipnir_rx_hier` to eliminate message port forwarding issues through `hier_block2` boundaries
+- **Direct block connections** - TX and RX chains now use individual blocks connected directly, eliminating hierarchical block message port forwarding
+- **Decoder router PDU publishing** - Changed from separate publisher thread to direct publishing from `work()` function, aligning with GNU Radio 3.11 recommendations
+- **Parser block type** - Changed `sleipnir_superframe_parser` from `gr.sync_block` to `gr.basic_block` (message-only block) to address scheduling issues
 - **Segmentation fault crash** - Resolved by removing duplicate message port connections
 - **Decoder router scheduling** - Fixed sync_block contract violation (now returns `input_consumed` instead of `output_produced`)
 - **Buffer accumulation** - Fixed by setting `output_multiple` and `min_output_buffer` sizes
@@ -19,43 +23,64 @@ This project is currently waiting for GNU Radio 4.0, as it may solve the message
 **Current Status:**
 - Decoder router is being called and processing data
 - Frames are being decoded (auth frame + voice frames)
-- PDUs are being published via message port from decoder router
-- **Parser not receiving PDUs** - Message port connection through `hier_block2` not delivering messages
+- PDUs are being published directly from `decoder_router.work()` via message port `"pdus"`
+- **Parser not being scheduled** - `sleipnir_superframe_parser` (now a `gr.basic_block`) is not having its `general_work()` method called by the scheduler
+- **Parser not receiving PDUs** - Even though PDUs are published, `handle_msg()` is never invoked
 
 ### Current Issue
 
-**Problem:** The `sleipnir_superframe_parser` is not receiving PDUs from the `frame_aware_ldpc_decoder_router` through the `hier_block2` message port connection.
+**Problem:** The `sleipnir_superframe_parser` (a `gr.basic_block` message-only block) is not being scheduled by GNU Radio 3.11's scheduler, preventing it from receiving PDUs published by the `frame_aware_ldpc_decoder_router`.
 
 **Evidence:**
-- Decoder router successfully decodes frames and publishes PDUs:
-  - `"Published PDU directly via message port: 64 bytes"` (auth frame)
-  - `"Published PDU directly via message port: 48 bytes"` (voice frames)
-- Parser's `handle_msg()` method is not being called (no debug messages)
-- Tests show `FER=1.0, Frames=0` despite frames being decoded
+- Decoder router successfully decodes frames and publishes PDUs directly from `work()`:
+  - `"Published PDU directly from work()"` logs confirm PDUs are published
+  - PDUs include correct metadata (`frame_num`, `frame_size`)
+- Parser's `general_work()` method is never called (no initialization logs)
+- Parser's `handle_msg()` method is never invoked (no message reception logs)
+- Tests show `FER=1.0, Frames=0` despite frames being decoded and PDUs being published
 
 **Connection Chain:**
 ```
-decoder_router['pdus'] → hier_block2['decoder_pdus'] → parser['in']
+decoder_router['pdus'] → parser['in']  (direct connection, no hier_block2)
 ```
 
 **Message Port Setup:**
-- `decoder_router.message_port_register_out("pdus")` - Registered
-- `hier_block2.message_port_register_hier_out("decoder_pdus")` - Registered
-- `hier_block2.msg_connect(decoder_router, "pdus", self, "decoder_pdus")` - Connected
-- `hier_block2.msg_connect(self, "decoder_pdus", parser, "in")` - Connected
-- `parser.message_port_register_in("in")` - Registered
-- `parser.set_msg_handler("in", parser.handle_msg)` - Handler set
+- `decoder_router.message_port_register_out("pdus")` - Registered ✓
+- `parser.message_port_register_in("in")` - Registered ✓
+- `parser.set_msg_handler("in", parser.handle_msg)` - Handler set ✓
+- `tb.msg_connect(decoder_router, "pdus", parser, "in")` - Connected ✓
+
+**Block Configuration:**
+- `decoder_router`: `gr.sync_block` with stream I/O (continuously scheduled)
+- `parser`: `gr.basic_block` with message ports only (no stream I/O)
+  - Inherits from `gr.basic_block` (not `gr.sync_block`)
+  - Implements `general_work()` instead of `work()`
+  - No dummy stream connections (message-only block)
+
+**Root Cause Analysis:**
+
+According to GNU Radio PR #797 and related issues (#3521, #1302), message-only `basic_block`s may not be properly scheduled unless:
+1. They have output message ports connected to downstream blocks that are scheduled
+2. They are explicitly triggered by the scheduler when messages arrive
+3. The scheduler recognizes the message port connection and wakes the block
 
 **Possible Causes:**
-1. Message port forwarding through `hier_block2` boundaries not working in GNU Radio 3.10
-2. Timing issue - messages published from `work()` may not propagate through hier_block2
-3. Message port connection order - connections made before ports are fully registered
-4. Threading issue - messages published from `work()` not propagating through hier_block2
+1. **Scheduler not recognizing message-only blocks** - GNU Radio 3.11 scheduler may not schedule `basic_block`s that have no stream I/O, even if they have message ports connected
+2. **Message port connection not triggering scheduler** - Messages published from `work()` may not wake up the receiving `basic_block`'s thread
+3. **Block not added to scheduler's active set** - `basic_block`s may need explicit registration or connection to scheduled blocks to be activated
+4. **GNU Radio 3.11 scheduling behavior** - Known issue where message-only blocks aren't scheduled unless they have stream I/O or are explicitly triggered
+
+**Related GNU Radio Issues:**
+- **PR #797**: "Termination of run-to-completion flow graphs" - Discusses scheduling issues with message-only blocks
+- **Issue #3521**: "Runtime: Setting block_alias has a severe impact on latency for message blocks" - Shows cases where message handlers aren't called
+- **Issue #1302**: "Msg input ports not connected to anything are not exposed" - Message ports need proper connection for scheduler recognition
 
 **Next Steps:**
-- Verify message port forwarding mechanism in GNU Radio 3.10
-- Check if messages need to be published from a different context (not from `work()`)
-- Consider alternative approaches (tagged streams, external message routing)
+- Investigate GNU Radio 3.11 scheduler behavior for `basic_block`s
+- Consider adding dummy stream I/O to parser to ensure scheduling (workaround)
+- Verify if parser needs to be connected to a scheduled downstream block
+- Check if messages need to be published from a different context or with explicit notification
+- Research alternative approaches (intermediate `sync_block` relay, tagged streams, external message routing)
 
 ---
 
