@@ -1,86 +1,29 @@
 # gr-sleipnir
 
-## Status: Active Development (GNU Radio 3.11)
+## Status: Active Development (GNU Radio 3.10)
 
-This project is actively being developed for GNU Radio 3.11. Hierarchical blocks (`hier_block2`) have been removed to address message port forwarding issues, and the system now uses individual blocks connected directly.
+This project is actively being developed for GNU Radio 3.10. The system has been refactored from FSK to 8-carrier QPSK modulation, and encryption, text messaging, and APRS support have been removed to focus on voice communication.
 
-## Current Status and Known Issues (December 2025)
+## Current Status (January 2025)
 
-### Recent Fixes
+### System Refactoring
 
-**Fixed Issues:**
-- **Hierarchical blocks removed** - Removed `sleipnir_tx_hier` and `sleipnir_rx_hier` to eliminate message port forwarding issues through `hier_block2` boundaries
-- **Direct block connections** - TX and RX chains now use individual blocks connected directly, eliminating hierarchical block message port forwarding
-- **Decoder router PDU publishing** - Changed from separate publisher thread to direct publishing from `work()` function, aligning with GNU Radio 3.11 recommendations
-- **Parser block type** - Changed `sleipnir_superframe_parser` from `gr.sync_block` to `gr.basic_block` (message-only block) to address scheduling issues
-- **Segmentation fault crash** - Resolved by removing duplicate message port connections
-- **Decoder router scheduling** - Fixed sync_block contract violation (now returns `input_consumed` instead of `output_produced`)
-- **Buffer accumulation** - Fixed by setting `output_multiple` and `min_output_buffer` sizes
-  - Decoder router now receives 4096 items per call (was 8)
-  - Buffer accumulates 1536+ items in 1 call (was ~192 calls)
-  - ~192x speed improvement in data accumulation
+**Completed:**
+- **8-Carrier QPSK Modulation** - System refactored from 4FSK/8FSK to 8 parallel QPSK carriers
+  - 900 baud per carrier (7,200 total symbol rate)
+  - 2 bits per symbol (QPSK)
+  - ~1,000-1,200 Hz bandwidth per carrier with pulse shaping
+  - 1,300 Hz carrier spacing
+- **Tagged Stream Architecture** - Implemented tagged streams for reliable message delivery between decoder and parser
+- **Voice-Only Mode** - Removed encryption, text messaging, and APRS support to focus on core voice functionality
+- **Soft-Decision LDPC** - Using soft-decision LDPC decoding with rate 2/3 for voice frames
+- **Multi-Carrier RX** - Full 8-carrier parallel demodulation with diversity combining
 
-**Current Status:**
-- Decoder router is being called and processing data
-- Frames are being decoded (auth frame + voice frames)
-- PDUs are being published directly from `decoder_router.work()` via message port `"pdus"`
-- **Parser not being scheduled** - `sleipnir_superframe_parser` (now a `gr.basic_block`) is not having its `general_work()` method called by the scheduler
-- **Parser not receiving PDUs** - Even though PDUs are published, `handle_msg()` is never invoked
-
-### Current Issue
-
-**Problem:** The `sleipnir_superframe_parser` (a `gr.basic_block` message-only block) is not being scheduled by GNU Radio 3.11's scheduler, preventing it from receiving PDUs published by the `frame_aware_ldpc_decoder_router`.
-
-**Evidence:**
-- Decoder router successfully decodes frames and publishes PDUs directly from `work()`:
-  - `"Published PDU directly from work()"` logs confirm PDUs are published
-  - PDUs include correct metadata (`frame_num`, `frame_size`)
-- Parser's `general_work()` method is never called (no initialization logs)
-- Parser's `handle_msg()` method is never invoked (no message reception logs)
-- Tests show `FER=1.0, Frames=0` despite frames being decoded and PDUs being published
-
-**Connection Chain:**
-```
-decoder_router['pdus'] → parser['in']  (direct connection, no hier_block2)
-```
-
-**Message Port Setup:**
-- `decoder_router.message_port_register_out("pdus")` - Registered ✓
-- `parser.message_port_register_in("in")` - Registered ✓
-- `parser.set_msg_handler("in", parser.handle_msg)` - Handler set ✓
-- `tb.msg_connect(decoder_router, "pdus", parser, "in")` - Connected ✓
-
-**Block Configuration:**
-- `decoder_router`: `gr.sync_block` with stream I/O (continuously scheduled)
-- `parser`: `gr.basic_block` with message ports only (no stream I/O)
-  - Inherits from `gr.basic_block` (not `gr.sync_block`)
-  - Implements `general_work()` instead of `work()`
-  - No dummy stream connections (message-only block)
-
-**Root Cause Analysis:**
-
-According to GNU Radio PR #797 and related issues (#3521, #1302), message-only `basic_block`s may not be properly scheduled unless:
-1. They have output message ports connected to downstream blocks that are scheduled
-2. They are explicitly triggered by the scheduler when messages arrive
-3. The scheduler recognizes the message port connection and wakes the block
-
-**Possible Causes:**
-1. **Scheduler not recognizing message-only blocks** - GNU Radio 3.11 scheduler may not schedule `basic_block`s that have no stream I/O, even if they have message ports connected
-2. **Message port connection not triggering scheduler** - Messages published from `work()` may not wake up the receiving `basic_block`'s thread
-3. **Block not added to scheduler's active set** - `basic_block`s may need explicit registration or connection to scheduled blocks to be activated
-4. **GNU Radio 3.11 scheduling behavior** - Known issue where message-only blocks aren't scheduled unless they have stream I/O or are explicitly triggered
-
-**Related GNU Radio Issues:**
-- **PR #797**: "Termination of run-to-completion flow graphs" - Discusses scheduling issues with message-only blocks
-- **Issue #3521**: "Runtime: Setting block_alias has a severe impact on latency for message blocks" - Shows cases where message handlers aren't called
-- **Issue #1302**: "Msg input ports not connected to anything are not exposed" - Message ports need proper connection for scheduler recognition
-
-**Next Steps:**
-- Investigate GNU Radio 3.11 scheduler behavior for `basic_block`s
-- Consider adding dummy stream I/O to parser to ensure scheduling (workaround)
-- Verify if parser needs to be connected to a scheduled downstream block
-- Check if messages need to be published from a different context or with explicit notification
-- Research alternative approaches (intermediate `sync_block` relay, tagged streams, external message routing)
+**Current Implementation:**
+- TX chain: 8-carrier QPSK with frequency multiplexing
+- RX chain: 8 parallel QPSK demodulation chains with LLR combining
+- Message delivery: Tagged stream architecture for reliable PDU delivery
+- Frame processing: Voice-only superframes (no encryption, text, or APRS)
 
 ---
 
@@ -110,9 +53,6 @@ A Experimental GNU Radio-based digital voice mode designed for amateur radio nar
 - Assessing the software's suitability for their intended use
 - Verifying results against other reliable sources
 - Ensuring compliance with all applicable laws and regulations
-- **Cryptographic Operations**: 
-  - **Signing and Verification (NOT Encryption)**: Digital signing and signature verification do NOT obscure message content and are generally permitted in amateur radio. These operations provide authentication and integrity verification without hiding the message content.
-  - **Encryption and Decryption**: Encryption DOES obscure message content and may be restricted or prohibited in certain jurisdictions or on certain frequency bands. Users must verify that encryption and decryption operations comply with applicable laws and regulations in their jurisdiction. Users are 100% responsible for legal compliance with all encryption operations.
 - Understanding and accepting the risks associated with using experimental software
 - Taking appropriate precautions and backups before using the software
 
@@ -143,8 +83,6 @@ By using this software, you acknowledge that you have read, understood, and agre
   - [TX/RX Modules](#txrx-modules)
   - [PTT Control](#ptt-control)
   - [LDPC Matrices](#ldpc-matrices)
-  - [Crypto Integration](#crypto-integration)
-  - [APRS and Text Messaging](#aprs-and-text-messaging)
   - [Sync Frames](#sync-frames)
   - [Test Documentation](#test-documentation)
   - [Technical Glossary](#technical-glossary)
@@ -159,9 +97,9 @@ By using this software, you acknowledge that you have read, understood, and agre
 
 ## About the Name
 
-Sleipnir is the eight-legged horse of Odin, the Allfather in Norse mythology. According to the Prose Edda, Sleipnir was the finest of all horses, capable of traveling between the worlds of the gods, giants, and the dead. The name reflects the project's dual nature:
+Sleipnir is the eight-legged horse of Odin, the Allfather in Norse mythology. According to the Prose Edda, Sleipnir was the finest of all horses, capable of traveling between the worlds of the gods, giants, and the dead. The name reflects the project's architecture:
 
-- **Eight legs**: Representing the 8FSK modulation mode (and the 4FSK mode as half the capability)
+- **Eight legs**: Representing the 8-carrier QPSK modulation system (8 parallel carriers working together)
 - **Speed and reliability**: Sleipnir's legendary speed and ability to traverse difficult terrain mirrors the system's goal of providing fast, reliable digital voice communication
 - **Connection between worlds**: Just as Sleipnir bridged the realms of Norse cosmology, this system bridges the gap between traditional ham radio and modern digital communication technology
 
@@ -169,40 +107,19 @@ The name embodies the project's ambition to be a superior mode of digital voice 
 
 ## Overview
 
-gr-sleipnir is an experimental digital voice communication system for ham radio that combines Frequency Shift Keying (4FSK and 8FSK) modulation with modern audio codec technology. The system is designed to fit within standard NFM channel spacing while providing significantly improved audio quality over older codec2-based systems. Two modes are supported: 4FSK for standard operation and 8FSK for enhanced quality.
+gr-sleipnir is an experimental digital voice communication system for ham radio that uses 8-carrier Quadrature Phase Shift Keying (QPSK) modulation with modern audio codec technology. The system is designed to fit within standard NFM channel spacing while providing significantly improved audio quality over older codec2-based systems. The 8-carrier architecture provides parallel transmission paths for robust communication.
 
 ## Key Features
 
-- **Dual Modulation Modes**: 4FSK (9,600 bps) and 8FSK (14,400 bps) for different quality/performance trade-offs
+- **8-Carrier QPSK Modulation**: 8 parallel QPSK carriers for robust parallel transmission
 - **Modern Audio Codec**: Uses Opus codec (via gr-opus module) for superior voice quality
-- **Forward Error Correction**: LDPC coding (rate 3/4 for 4FSK, rate 2/3 for 8FSK) for robust communication
+- **Forward Error Correction**: Soft-decision LDPC coding (rate 2/3) for robust communication
 - **NFM Channel Spacing**: Designed to operate within standard narrowband FM channel allocations
-- **Integrated Services**: Voice, APRS packets, text messaging, callsign metadata, and framing in a single protocol
-- **APRS Support**: Automatic Packet Reporting System (APRS) packet transmission and reception
-- **Text Messaging**: Real-time text messaging multiplexed with voice
+- **Voice Communication**: Focused on voice-only communication (encryption, text messaging, and APRS removed)
+- **Multi-Carrier Architecture**: Parallel carrier processing with diversity combining at the receiver
 - **PTT Control**: Push-to-talk control integration for radio operation
 - **GNU Radio Integration**: Built on GNU Radio framework for flexibility and extensibility
-- **Optional Cryptography**: BrainpoolP256r1 + ChaCha20Poly1305 optimized for low-power devices (optional features)
 
-## Cryptography: BrainpoolP256r1 + ChaCha20Poly1305 (Optional)
-
-The system optionally supports a combination of BrainpoolP256r1 (from [gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)) and ChaCha20Poly1305 (from gr-nacl) for authentication and message integrity. This combination is specifically chosen for its battery-friendly characteristics. **Note: Encryption and signing are optional features** - the system can operate without cryptographic features for basic voice communication.
-
-### Why This Combination is Battery-Friendly
-
-#### 1. ChaCha20Poly1305 (from gr-nacl)
-
-- **Software-optimized**: Designed for efficient software implementation without requiring special hardware instructions
-- **ARM-friendly**: Provides excellent performance on ARM processors (common in battery-powered devices)
-- **No hardware dependency**: Unlike AES, which benefits from AES-NI instructions (Intel/AMD), ChaCha20 works efficiently in pure software
-- **Lower power consumption**: Software implementations consume less power than hardware-accelerated instructions that require specialized CPU features
-- **High throughput**: Even without hardware acceleration, ChaCha20 achieves high encryption speeds
-
-#### 2. BrainpoolP256r1 (from gr-linux-crypto)
-
-- **Lightweight ECC**: Smaller key sizes compared to RSA (256 bits vs. 2048+ bits for equivalent security)
-- **Efficient key exchange**: ECDH operations are computationally efficient
-- **Battery-conscious**: Fewer CPU cycles = less power consumption during key exchange operations
 
 ## Why Opus Over Codec2?
 
@@ -227,28 +144,35 @@ At comparable bitrates (e.g., 6-8 kbps), Opus provides noticeably better audio q
 
 The system consists of two main components:
 
-### 1. 4FSK Opus Transceiver Flowgraphs
+### 1. 8-Carrier QPSK Transceiver Flowgraphs
 
 The system includes separate transmitter and receiver flowgraphs:
 
-**Transmitter (`tx_4fsk_opus.grc`)**:
+**Transmitter**:
 - WAV file source for audio input
 - Low-pass filter for audio preprocessing
-- Opus audio encoder (6 kbps)
-- LDPC forward error correction (rate 3/4)
-- 4FSK symbol mapping and modulation
+- Opus audio encoder
+- Superframe assembly
+- LDPC forward error correction (rate 2/3)
+- Bit interleaving across 8 carriers
+- 8 parallel QPSK symbol mapping and modulation chains
 - Root raised cosine pulse shaping
-- Frequency modulation for RF transmission
+- Frequency shifting for each carrier
+- Carrier combining (sum of all 8 carriers)
 - Complex baseband I/Q file output
 
-**Receiver (`rx_4fsk_opus.grc`)**:
+**Receiver**:
 - Complex baseband I/Q file input
 - Automatic gain control (AGC)
-- Quadrature demodulation for FSK reception
-- Root raised cosine matched filtering
-- Symbol timing recovery (Mueller & Muller)
-- 4FSK symbol slicing
-- LDPC forward error correction decoding
+- 8 parallel carrier separation and demodulation chains:
+  - Matched filtering (root raised cosine)
+  - Frequency shifting to baseband
+  - Costas loop for carrier recovery
+  - Symbol timing recovery
+  - QPSK to LLR conversion (soft decisions)
+- LLR diversity combining (sum of all 8 carriers)
+- LDPC soft-decision decoding (rate 2/3)
+- Superframe parsing
 - Opus audio decoder
 - Low-pass filter for audio post-processing
 - WAV file sink for audio output
@@ -264,56 +188,44 @@ The gr-opus module is a separate GNU Radio Out-of-Tree (OOT) module available at
 
 ## Technical Specifications
 
-### Modulation Modes
+### 8-Carrier QPSK Modulation
 
-The system supports two modulation modes optimized for different use cases:
+The system uses 8 parallel QPSK carriers for robust voice communication:
 
-#### 4FSK Mode (Standard)
+#### Per Carrier Specifications
 
-- **Modulation**: 4-level Frequency Shift Keying
-- **Symbol Rate**: 4800 symbols/second
-- **Gross Capacity**: 9,600 bps
-- **FSK Deviation**: 2400 Hz
-- **RF Sample Rate**: 48 kHz (10 samples per symbol)
+- **Modulation**: Quadrature Phase Shift Keying (QPSK)
+- **Symbol Rate**: 900 symbols/second per carrier
+- **Bits per Symbol**: 2 (QPSK)
+- **Bit Rate**: 1,800 bits/second per carrier
+- **Bandwidth**: ~1,000-1,200 Hz per carrier (with α=0.35 roll-off)
+- **Carrier Spacing**: 1,300 Hz between carriers
+
+#### Total System Specifications
+
+- **Total Carriers**: 8
+- **Total Symbol Rate**: 7,200 symbols/second (8 × 900)
+- **Total Bit Rate**: 14,400 bits/second (8 × 1,800)
+- **Total Bandwidth**: ~10,400-9,600 Hz (8 carriers × 1,300 Hz spacing)
+- **RF Sample Rate**: 48 kHz
 - **Audio Sample Rate**: 8 kHz
-- **Bandwidth**: ~9-10 kHz
-- **SNR Requirement**: Baseline
 
-**Bitrate Budget Breakdown**:
-- Opus voice (raw): 6,000 bps
-- LDPC rate 3/4 coded: 8,000 bps
-- Framing/sync: 800 bps
-- Metadata/callsign: 400 bps
-- Text messaging: 400 bps (burst mode)
-- **Total**: 9,600 bps
+**Pulse Shaping**:
+- Filter: Root Raised Cosine (RRC)
+- Roll-off factor (α): 0.35
+- Samples per symbol: Variable based on RF sample rate
+
+**Bitrate Budget**:
+- Opus voice (raw): Variable based on codec settings
+- LDPC rate 2/3 coded: Forward error correction for voice frames
+- Framing/sync: Frame structure and synchronization
+- Metadata/callsign: Callsign and frame metadata
 
 **Characteristics**:
-- Voice quality: Good (6 kbps Opus)
-- FEC strength: Moderate (rate 3/4)
+- Voice quality: High quality with Opus codec
+- FEC strength: Strong (rate 2/3 LDPC with soft-decision decoding)
+- Multi-carrier diversity: Parallel transmission provides robustness
 - Suitable for standard NFM channel spacing
-
-#### 8FSK Mode (High Performance)
-
-- **Modulation**: 8-level Frequency Shift Keying
-- **Symbol Rate**: 4800 symbols/second
-- **Gross Capacity**: 14,400 bps
-- **Bandwidth**: ~11-12 kHz
-- **SNR Requirement**: +3 dB vs 4FSK
-
-**Bitrate Budget Breakdown**:
-- Opus voice (raw): 8,000 bps
-- LDPC rate 2/3 coded: 12,000 bps
-- Framing/sync: 800 bps
-- Callsign/meta: 600 bps
-- Text messaging: 600 bps (burst mode)
-- CRC/checksum: 200 bps
-- Reserved: 200 bps
-- **Total**: 14,400 bps
-
-**Characteristics**:
-- Voice quality: Excellent (8 kbps Opus)
-- FEC strength: Strong (rate 2/3)
-- Requires better SNR but provides superior audio quality
 
 ### General Specifications
 
@@ -706,45 +618,32 @@ make install DESTDIR=/tmp/gr-sleipnir-install
 ### Running the Flowgraphs
 
 **Transmitter**:
-Open the transmitter flowgraph in GNU Radio Companion:
+Use the test framework to run the transmitter flowgraph:
 
 ```bash
-cd examples
-gnuradio-companion tx_4fsk_opus.grc
+cd tests
+python3 test_comprehensive.py --phase 1
 ```
 
-Or run the generated Python script directly:
-
-```bash
-cd examples
-grcc tx_4fsk_opus.grc
-python3 tx_4fsk_opus.py
-```
+Or build flowgraphs programmatically using the `flowgraph_builder` module.
 
 **Receiver**:
-Open the receiver flowgraph in GNU Radio Companion:
+The receiver is automatically configured when running tests. Use the test framework:
 
 ```bash
-cd examples
-gnuradio-companion rx_4fsk_opus.grc
-```
-
-Or run the generated Python script directly:
-
-```bash
-cd examples
-grcc rx_4fsk_opus.grc
-python3 rx_4fsk_opus.py
+cd tests
+python3 test_comprehensive.py --phase 1
 ```
 
 ### Configuration
 
-Key parameters can be adjusted in the flowgraphs:
+Key parameters can be adjusted in the test configuration (`tests/config_comprehensive.yaml`):
 - `audio_samp_rate`: Audio sample rate (default: 8000 Hz)
 - `rf_samp_rate`: RF sample rate (default: 48000 Hz)
-- `symbol_rate`: Symbol rate (default: 4800 symbols/second)
-- `fsk_deviation`: FSK deviation in Hz (default: 2400)
-- `ldpc_matrix_file`: Path to LDPC matrix file (default: `../ldpc_matrices/ldpc_rate34.alist`)
+- `symbol_rate`: Symbol rate per carrier (default: 900 baud)
+- `num_carriers`: Number of QPSK carriers (default: 8)
+- `carrier_spacing`: Frequency spacing between carriers (default: 1300 Hz)
+- `ldpc_matrix_file`: Path to LDPC matrix file (default: `ldpc_matrices/ldpc_voice_576_384.alist`)
 
 ### File-Based Testing
 
@@ -765,10 +664,7 @@ gr-sleipnir/
 ├── README.md                      # This file
 ├── CMakeLists.txt                 # Root CMake configuration
 ├── docs/                          # Additional documentation
-│   ├── APRS_TEXT_MESSAGING.md     # APRS and text messaging guide
 │   ├── CONTRIBUTING.md            # Contributing guidelines
-│   ├── CRYPTO_INTEGRATION.md      # Crypto integration guide
-│   ├── CRYPTO_WIRING.md           # Crypto block wiring guide
 │   ├── FER_TRACKING.md            # Frame Error Rate tracking documentation
 │   ├── GR_LINUX_CRYPTO_VERIFICATION.md  # gr-linux-crypto verification
 │   ├── SYNC_FRAME_ANALYSIS.md     # Sync frame analysis
@@ -781,10 +677,6 @@ gr-sleipnir/
 │   ├── sleipnir_rx_verified.grc # RX with signature verification
 │   ├── sleipnir_tx_ptt.grc       # TX with GPIO PTT control
 │   ├── sleipnir_rx_zmq.grc       # RX with ZMQ output
-│   ├── tx_4fsk_opus.grc          # 4FSK Opus transmitter (legacy)
-│   ├── rx_4fsk_opus.grc          # 4FSK Opus receiver (legacy)
-│   ├── tx_8fsk_opus.grc          # 8FSK Opus transmitter (legacy)
-│   ├── rx_8fsk_opus.grc          # 8FSK Opus receiver (legacy)
 │   ├── README_EXAMPLES.md        # Examples documentation
 │   ├── SLEIPNIR_TX_MODULE.md     # TX module guide
 │   ├── SLEIPNIR_RX_MODULE.md     # RX module guide
@@ -910,10 +802,8 @@ Example flowgraphs demonstrating gr-sleipnir module usage:
 - **[Examples Documentation](examples/README_EXAMPLES.md)** - Complete guide to example flowgraphs
 
 **gr-sleipnir Module Examples:**
-- `sleipnir_tx_basic.grc` - Basic TX example using sleipnir_tx_hier
-- `sleipnir_rx_basic.grc` - Basic RX example using sleipnir_rx_hier
-- `sleipnir_tx_encrypted.grc` - TX with encryption and signing
-- `sleipnir_rx_verified.grc` - RX with signature verification
+- `sleipnir_tx_basic.grc` - Basic TX example
+- `sleipnir_rx_basic.grc` - Basic RX example
 - `sleipnir_tx_ptt.grc` - TX with GPIO PTT control
 - `sleipnir_rx_zmq.grc` - RX with ZMQ status output
 
