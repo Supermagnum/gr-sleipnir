@@ -1,6 +1,7 @@
 # gr-sleipnir
 
-## Status: Active Development (GNU Radio 3.10)
+## Status: Waiting for Gnuradio 4.0.
+Do not use.
 
 This project is actively being developed for GNU Radio 3.10. The system has been refactored from FSK to 8-carrier QPSK modulation, and encryption, text messaging, and APRS support have been removed to focus on voice communication.
 
