@@ -1,16 +1,46 @@
 # gr-sleipnir
 
+## Table of Contents
+
+- [About the Name](#about-the-name)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Cryptography](#cryptography-brainpoolp256r1--chacha20poly1305-optional)
+- [Why Opus Over Codec2?](#why-opus-over-codec2)
+- [System Architecture](#system-architecture)
+- [Technical Specifications](#technical-specifications)
+- [Performance](#performance)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [1. Install System Dependencies](#1-install-system-dependencies)
+  - [2. Build and Install gr-opus Module](#2-build-and-install-gr-opus-module)
+  - [3. Build and Install gr-sleipnir](#3-build-and-install-gr-sleipnir)
+  - [4. Verify Installation](#4-verify-installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Documentation](#documentation)
+  - [Superframe System](#superframe-system)
+  - [TX/RX Modules](#txrx-modules)
+  - [PTT Control](#ptt-control)
+  - [LDPC Matrices](#ldpc-matrices)
+  - [Sync Frames](#sync-frames)
+  - [Test Documentation](#test-documentation)
+  - [Technical Glossary](#technical-glossary)
+  - [Examples](#examples)
+- [Testing](#testing)
+- [Status](#status)
+- [Future Work](#future-work)
+- [License](#license)
+- [Contributing](#contributing)
+- [Legal and Appropriate Uses](#legal-and-appropriate-uses-for-amateur-radio)
+- [References](#references)
+
 ## Project status
 
-### GNU Radio 3.10 (this repository root)
-
-Development targets **GNU Radio 3.10** with Python OOT modules, flowgraphs under `examples/`, and **`python/`** utilities. The **voice-only** path is the focus: **8-carrier QPSK** with Opus in superframes. **Encryption, text messaging, and APRS** are no longer part of the main product direction; some documentation and tests still mention them for historical flows.
-
-In GR3, mixing **`sync_block` stream scheduling** with **message-only blocks** can **drop PDUs** because the classic scheduler may not run message handlers without stream work. Use tagged streams for critical PDUs or migrate to the GR4 subtree below.
 
 ### GNU Radio 4.0 port (`gnuradio4/`)
 
-A **CMake-based GR4 port** lives under **`gnuradio4/`** on the **`main` branch**. It requires **GNU Radio 4.0 RC2 or later** (typical prefix `/opt/gnuradio4-gcc`). It is **logically separate** from the GR3 install layout: configure with `cmake -S gnuradio4`, link against **gnuradio4** and **`gnuradio4::gr-opus`** (**required**); **OpenSSL**, **gr-linux-crypto**, and **gr-nacl** are **optional** for signing/MAC-oriented features.
+A **CMake-based GR4 port** lives under **`gnuradio4/`** in **this repository**. It requires **GNU Radio 4.0 RC2 or later** (typical prefix `/opt/gnuradio4-gcc`). It is **logically separate** from the GR3 install layout: configure with `cmake -S gnuradio4`, link against **gnuradio4** and **`gnuradio4::gr-opus`** (**required**); **OpenSSL**, **gr-linux-crypto**, and **gr-nacl** are **optional** for signing/MAC-oriented features.
 
 The GR4 path uses the **unified scheduler**, which fixes the GR3 **stream vs. message starvation** issue. It ships header-only **C++** blocks, **Boost.UT** tests in `gnuradio4/test/`, and **`gnuradio4/python/sleipnir/`** helpers importable as **`SuperframeAssembler.py`** / **`SuperframeParser.py`** (same PDU layout as the C++ blocks; for tooling and offline scripts).
 
@@ -81,41 +111,6 @@ A Experimental GNU Radio-based digital voice mode designed for amateur radio nar
 **No Warranty**: This software is distributed without warranty of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement.
 
 By using this software, you acknowledge that you have read, understood, and agree to these terms. If you do not agree with these terms, do not use this software.
-
-## Table of Contents
-
-- [About the Name](#about-the-name)
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Cryptography](#cryptography-brainpoolp256r1--chacha20poly1305-optional)
-- [Why Opus Over Codec2?](#why-opus-over-codec2)
-- [System Architecture](#system-architecture)
-- [Technical Specifications](#technical-specifications)
-- [Performance](#performance)
-- [Requirements](#requirements)
-- [Installation](#installation)
-  - [1. Install System Dependencies](#1-install-system-dependencies)
-  - [2. Build and Install gr-opus Module](#2-build-and-install-gr-opus-module)
-  - [3. Build and Install gr-sleipnir](#3-build-and-install-gr-sleipnir)
-  - [4. Verify Installation](#4-verify-installation)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Documentation](#documentation)
-  - [Superframe System](#superframe-system)
-  - [TX/RX Modules](#txrx-modules)
-  - [PTT Control](#ptt-control)
-  - [LDPC Matrices](#ldpc-matrices)
-  - [Sync Frames](#sync-frames)
-  - [Test Documentation](#test-documentation)
-  - [Technical Glossary](#technical-glossary)
-  - [Examples](#examples)
-- [Testing](#testing)
-- [Status](#status)
-- [Future Work](#future-work)
-- [License](#license)
-- [Contributing](#contributing)
-- [Legal and Appropriate Uses](#legal-and-appropriate-uses-for-amateur-radio)
-- [References](#references)
 
 ## About the Name
 
