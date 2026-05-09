@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(gnuradio4)
+include("${CMAKE_CURRENT_LIST_DIR}/gr-sleipnir4-targets.cmake")

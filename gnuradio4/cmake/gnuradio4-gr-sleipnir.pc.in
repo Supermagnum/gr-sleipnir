@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+
+Name: gnuradio4-gr-sleipnir
+Description: GNU Radio 4.0 gr-sleipnir superframe voice blocks (gr-sleipnir4)
+Version: @PROJECT_VERSION@
+Requires: gnuradio4
+Cflags: -I${includedir}
