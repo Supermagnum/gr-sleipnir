@@ -1,21 +1,30 @@
 # gr-sleipnir
 
-## Status: Waiting for Gnuradio 4.0.
-Do not use.
+## Project status
 
-## GNU Radio 4.0 Port
+### GNU Radio 3.10 (this repository root)
 
-A GR4-compatible port is available on the `gnuradio4` branch. It requires GNU Radio 4.0 RC2 or later (`/opt/gnuradio4-gcc`) and is independent of the GR3 tree on this branch. The GR4 port fixes the message delivery issues present in the GR3 version by using GR4's unified scheduler.
+Development targets **GNU Radio 3.10** with Python OOT modules, flowgraphs under `examples/`, and **`python/`** utilities. The **voice-only** path is the focus: **8-carrier QPSK** with Opus in superframes. **Encryption, text messaging, and APRS** are no longer part of the main product direction; some documentation and tests still mention them for historical flows.
 
-Module license is GPLv3. Primary dependency is gnuradio4 core. gr-opus GR4 port is required. gr-linux-crypto and gr-nacl GR4 ports are optional for signing and MAC features.
+In GR3, mixing **`sync_block` stream scheduling** with **message-only blocks** can **drop PDUs** because the classic scheduler may not run message handlers without stream work. Use tagged streams for critical PDUs or migrate to the GR4 subtree below.
 
-## GNU Radio 4.0 Port
+### GNU Radio 4.0 port (`gnuradio4/`)
 
-A GR4-compatible port is available on the `gnuradio4` branch. It requires GNU Radio 4.0 RC2 or later (`/opt/gnuradio4-gcc`) and is independent of the GR3 tree on this branch. The GR4 port fixes the message delivery issues present in the GR3 version by using GR4's unified scheduler.
+A **CMake-based GR4 port** lives under **`gnuradio4/`** on the **`main` branch**. It requires **GNU Radio 4.0 RC2 or later** (typical prefix `/opt/gnuradio4-gcc`). It is **logically separate** from the GR3 install layout: configure with `cmake -S gnuradio4`, link against **gnuradio4** and **`gnuradio4::gr-opus`** (**required**); **OpenSSL**, **gr-linux-crypto**, and **gr-nacl** are **optional** for signing/MAC-oriented features.
 
-Module license is GPLv3. Primary dependency is gnuradio4 core. gr-opus GR4 port is required. gr-linux-crypto and gr-nacl GR4 ports are optional for signing and MAC features.
+The GR4 path uses the **unified scheduler**, which fixes the GR3 **stream vs. message starvation** issue. It ships header-only **C++** blocks, **Boost.UT** tests in `gnuradio4/test/`, and **`gnuradio4/python/sleipnir/`** helpers importable as **`SuperframeAssembler.py`** / **`SuperframeParser.py`** (same PDU layout as the C++ blocks; for tooling and offline scripts).
 
-This project is actively being developed for GNU Radio 3.10. The system has been refactored from FSK to 8-carrier QPSK modulation, and encryption, text messaging, and APRS support have been removed to focus on voice communication.
+**Example build:**
+
+```bash
+cmake -S gnuradio4 -B gnuradio4/build \
+  -DCMAKE_PREFIX_PATH="/opt/gnuradio4-gcc;/gnuradio4/build" \
+  -DCMAKE_CXX_COMPILER=g++-14
+cmake --build gnuradio4/build -j"$(nproc)"
+ctest --test-dir gnuradio4/build --output-on-failure
+```
+
+Module license: **GPLv3**.
 
 ## Current Status (January 2025)
 
