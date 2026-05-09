@@ -226,7 +226,7 @@ const suite<"SuperframeParser"> SuperframeParserSuite = [] {
             readStatusFromSink(status_sink, fer, sync, e, t);
             // Drain any opus output too
             if (opus_sink.streamReader().available() > 0UZ) {
-                opus_sink.streamReader().template get<gr::SpanReleasePolicy::ProcessAll>(1UZ);
+                (void) opus_sink.streamReader().template get<gr::SpanReleasePolicy::ProcessAll>(1UZ);
             }
         }
 

@@ -12,21 +12,16 @@
 - [Performance](#performance)
 - [Requirements](#requirements)
 - [Installation](#installation)
-  - [1. Install System Dependencies](#1-install-system-dependencies)
-  - [2. Build and Install gr-opus Module](#2-build-and-install-gr-opus-module)
-  - [3. Build and Install gr-sleipnir](#3-build-and-install-gr-sleipnir)
-  - [4. Verify Installation](#4-verify-installation)
+  - [1. Provide GNU Radio 4 and gr-opus](#1-provide-gnu-radio-4-and-gr-opus)
+  - [2. Configure and build](#2-configure-and-build)
+  - [3. Run unit tests](#3-run-unit-tests)
+  - [4. Install headers and CMake package (optional)](#4-install-headers-and-cmake-package-optional)
+  - [Troubleshooting CMake](#troubleshooting-cmake)
 - [Usage](#usage)
 - [Project Structure](#project-structure)
 - [Documentation](#documentation)
-  - [Superframe System](#superframe-system)
-  - [TX/RX Modules](#txrx-modules)
-  - [PTT Control](#ptt-control)
-  - [LDPC Matrices](#ldpc-matrices)
-  - [Sync Frames](#sync-frames)
-  - [Test Documentation](#test-documentation)
-  - [Technical Glossary](#technical-glossary)
-  - [Examples](#examples)
+  - [Supported: GNU Radio 4 module](#supported-gnu-radio-4-module)
+  - [Historical: GNU Radio 3 era](#historical-gnu-radio-3-era)
 - [Testing](#testing)
 - [Status](#status)
 - [Future Work](#future-work)
@@ -454,225 +449,92 @@ Based on comprehensive Phase 3 testing (**7,728 tests completed, 100% complete**
 - **8FSK (Recommended)**: Use for normal operation, provides superior performance and audio quality
 - **4FSK (Fallback)**: Use only when signal is extremely weak (<-1 dB SNR) and maximum sensitivity is required
 
-### Performance Graph
+### Performance / waterfall material
 
-The following graph shows the performance of the system in dB versus the Shannon limit:
-
-![Performance vs Shannon Limit](Pictures/performance.jpg)
+Older waterfall and FER comparison plots lived alongside the GNU Radio 3 tree; they were not carried forward with this repository layout. Treat performance claims in historical sections below as **context** unless reproduced with your own measurement scripts.
 
 ## Requirements
 
-### System Dependencies
+### GNU Radio 4 toolchain
 
-- GNU Radio 3.8 or later
-- libopus-dev (Opus codec development libraries)
-- CMake 3.8 or later
-- ZeroMQ libraries (optional, for PTT control and I/Q streaming)
+- **GNU Radio 4.0** (RC2 or later) installed so CMake can **`find_package(gnuradio4)`** — typical install prefix **`/opt/gnuradio4-gcc`** (set **`CMAKE_PREFIX_PATH`** to your layout).
+- **CMake 3.22** or later.
+- **C++23** compiler; this project prefers **`g++-14`** or **`g++-15`** when auto-detected.
+- **[gr-opus](https://github.com/Supermagnum/gr-opus)** built for **GNU Radio 4**, installed so **`gnuradio4-gr-opus`** appears under **`lib/cmake/`** (recommended; aligns Opus PDU types with the C++ blocks and tests).
 
-### GNU Radio Out-of-Tree (OOT) Modules
+Optional feature packages (enable when their CMake configs are on **`CMAKE_PREFIX_PATH`**):
 
-gr-sleipnir requires the following GNU Radio OOT modules:
+- **OpenSSL** — signing-related compile definitions in the interface target.
+- **[gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)** and **[gr-nacl](https://github.com/Supermagnum/gr-nacl)** — **GNU Radio 4** ports for Linux crypto / NaCl wiring when you use those code paths.
 
-- **[gr-opus](https://github.com/Supermagnum/gr-opus)** - Opus audio codec support
-- **[gr-linux-crypto](https://github.com/Supermagnum/gr-linux-crypto)** - Linux crypto infrastructure integration (optional, for BrainpoolP256r1 ECDSA)
-- **[gr-openssl](https://github.com/Supermagnum/gr-openssl)** - OpenSSL integration (optional, for additional crypto operations)
-- **[gr-nacl](https://github.com/Supermagnum/gr-nacl)** - NaCl/ChaCha20-Poly1305 support (optional, for authenticated encryption)
+### Boost.UT (tests)
 
-**Note**: Cryptographic features are optional. The system can operate without these modules for basic voice communication.
+With **`GR_SLEIPNIR4_BUILD_TESTS=ON`** (default), CMake **FetchContent** pulls **Boost.UT** on first configure. You need working Git/HTTPS access from the build machine, or an offline mirror strategy.
 
-### Python Dependencies
+### Python (optional scripts)
 
-- numpy
-- cryptography (for ECDSA signatures and ChaCha20-Poly1305 MAC when gr-linux-crypto/gr-nacl unavailable)
+Diagnostic and channel scripts under **`tests/`** may require **NumPy**, **SciPy**, **pesq**, **pystoi**, etc. Use a **venv**; they are **not** required to compile the CMake library.
 
-### Installation
+## Installation
 
-#### 1. Install System Dependencies
+#### 1. Provide GNU Radio 4 and gr-opus
 
-```bash
-# Install system dependencies (Ubuntu/Debian)
-sudo apt-get install gnuradio-dev libopus-dev cmake python3-dev
+Install or build **GNU Radio 4** and **gr-opus** for that stack. Note the install prefix that contains **`lib/cmake/gnuradio4/`** and **`lib/cmake/gnuradio4-gr-opus/`** (exact names match your gr-opus install).
 
-# Optional: Install ZeroMQ for PTT control and I/Q streaming
-sudo apt-get install libzmq3-dev
+#### 2. Configure and build
 
-# Install Python dependencies
-pip3 install numpy cryptography --break-system-packages
-```
-
-#### 2. Build and Install Required GNU Radio OOT Modules
-
-gr-sleipnir requires several GNU Radio OOT modules:
-
-**gr-opus (Required)**:
-```bash
-# Clone and build gr-opus
-git clone https://github.com/Supermagnum/gr-opus.git
-cd gr-opus
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-sudo ldconfig
-cd ../..
-```
-
-**gr-linux-crypto (Optional, for BrainpoolP256r1 ECDSA)**:
-```bash
-# Clone and build gr-linux-crypto
-git clone https://github.com/Supermagnum/gr-linux-crypto.git
-cd gr-linux-crypto
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-sudo ldconfig
-cd ../..
-```
-
-**gr-openssl (Optional, for additional crypto operations)**:
-```bash
-# Clone and build gr-openssl
-git clone https://github.com/Supermagnum/gr-openssl.git
-cd gr-openssl
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-sudo ldconfig
-cd ../..
-```
-
-**gr-nacl (Optional, for ChaCha20-Poly1305)**:
-```bash
-# Clone and build gr-nacl
-git clone https://github.com/Supermagnum/gr-nacl.git
-cd gr-nacl
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-sudo ldconfig
-cd ../..
-```
-
-**Note**: Only gr-opus is required for basic voice communication. The crypto modules are optional and used when cryptographic features are enabled.
-
-#### 3. Build and Install gr-sleipnir
+From the repository root:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Supermagnum/gr-sleipnir.git
-cd gr-sleipnir
-
-# Create build directory
-mkdir build && cd build
-
-# Configure with CMake
-cmake ..
-
-# Build (validates Python syntax)
-make
-
-# Optional: Validate Python files
-make check_python
-
-# Install the module
-# Use absolute path to avoid sudo working directory issues
-sudo make -C $(pwd)/build install
-
-# Update library cache
-sudo ldconfig
+cmake -S . -B build \
+  -DCMAKE_PREFIX_PATH="/opt/gnuradio4-gcc;<path-to-gr-opus-install-prefix>" \
+  -DCMAKE_CXX_COMPILER=g++-14
+cmake --build build -j"$(nproc)"
 ```
 
-**Note**: gr-sleipnir is a Python-only GNU Radio module, so `make` doesn't compile any C/C++ code. It validates the build configuration and Python syntax. The actual installation happens with `make install`.
-
-#### 4. Verify Installation
-
-After installation, verify that the module can be imported:
+#### 3. Run unit tests
 
 ```bash
-python3 -c "import sleipnir; print('gr-sleipnir installed successfully')"
+ctest --test-dir build --output-on-failure
 ```
 
-If you encounter import errors, check that the Python modules are installed in the correct location:
+#### 4. Install headers and CMake package (optional)
 
 ```bash
-python3 -c "import gnuradio; import os; print(os.path.dirname(gnuradio.__file__))"
+cmake --install build --prefix /usr/local
 ```
 
-The sleipnir module should be installed in `gnuradio/sleipnir/` within that directory.
+Use a different **`--prefix`** or **DESTDIR** if you are packaging.
 
-#### Troubleshooting Installation
+#### Troubleshooting CMake
 
-**Issue: "getcwd: File or folder not found" when using sudo**
+**`gnuradio4` not found**
 
-This error occurs when `sudo` loses the current working directory context. **Solution: Use absolute path with `-C` flag:**
+- Add the GNU Radio 4 install root to **`CMAKE_PREFIX_PATH`** (directory that contains **`lib/cmake/gnuradio4`**).
 
-```bash
-# From project root directory
-sudo make -C $(pwd)/build install
+**`gnuradio4-gr-opus` not found**
 
-# Or with explicit absolute path
-sudo make -C /home/yourusername/github-projects/gr-sleipnir/build install
-```
+- The project still configures; unit tests link the in-tree **`gnuradio4::gr-sleipnir`** target. Add gr-opus’s prefix to **`CMAKE_PREFIX_PATH`** when you want **`find_package(gnuradio4-gr-opus)`** to succeed.
 
-**Alternative: Test installation without sudo (using DESTDIR):**
-```bash
-cd build
-make install DESTDIR=/tmp/gr-sleipnir-install
-# Then manually copy files if needed
-```
+**Boost.UT download fails**
 
-**Issue: Module not found after installation**
-
-- Verify installation location: `python3 -c "import gnuradio; import os; print(os.path.dirname(gnuradio.__file__))"`
-- Check that files exist: `ls -la /usr/lib/python3/dist-packages/gnuradio/sleipnir/`
-- Ensure Python can find the module: `python3 -c "import sys; print(sys.path)"`
+- Allow network on first configure, or vendor **ut** and adjust **FetchContent** (advanced).
 
 ## Usage
 
-### Running the Flowgraphs
+### C++ blocks (GNU Radio 4)
 
-**Transmitter**:
-Use the test framework to run the transmitter flowgraph:
+Include **`include/gnuradio-4.0/sleipnir.hpp`** (or individual headers under **`include/gnuradio-4.0/sleipnir/`**) in your application. Link **`gnuradio4::gr-sleipnir`** after **`find_package(gr-sleipnir4)`** once the package is installed, or add the **`include/`** tree and link **`gnuradio4::gnuradio-core`** / **`gnuradio4::gnuradio-blocklib-core`** as the **CMakeLists.txt** does for tests.
 
-```bash
-cd tests
-python3 test_comprehensive.py --phase 1
-```
+**`test/qa_*.cpp`** shows how **SuperframeAssembler**, **SuperframeParser**, **SleipnirTxHier**, and **SleipnirRxHier** are driven from Boost.UT.
 
-Or build flowgraphs programmatically using the `flowgraph_builder` module.
+### Python helpers
 
-**Receiver**:
-The receiver is automatically configured when running tests. Use the test framework:
+**`python/sleipnir/`** implements offline analogues of the PDU path (**`superframe_assembler.py`**, **`superframe_parser.py`**, plus thin **`SuperframeAssembler.py`** / **`SuperframeParser.py`** shims). See **`python/README_SUPERFRAME.md`**. Add the repository **`python/`** directory to **`PYTHONPATH`** when running scripts.
 
-```bash
-cd tests
-python3 test_comprehensive.py --phase 1
-```
+### Legacy GNU Radio 3 material
 
-### Configuration
-
-Key parameters can be adjusted in the test configuration (`tests/config_comprehensive.yaml`):
-- `audio_samp_rate`: Audio sample rate (default: 8000 Hz)
-- `rf_samp_rate`: RF sample rate (default: 48000 Hz)
-- `symbol_rate`: Symbol rate per carrier (default: 900 baud)
-- `num_carriers`: Number of QPSK carriers (default: 8)
-- `carrier_spacing`: Frequency spacing between carriers (default: 1300 Hz)
-- `ldpc_matrix_file`: Path to LDPC matrix file (default: `ldpc_matrices/ldpc_voice_576_384.alist`)
-
-### File-Based Testing
-
-The flowgraphs are configured for file-based testing:
-- **Transmitter**: Reads from `input.wav`, outputs to `tx_output.cfile`
-- **Receiver**: Reads from `tx_output.cfile`, outputs to `output.wav`
-
-To test the system:
-1. Place a WAV file named `input.wav` in the `examples` directory
-2. Run the transmitter flowgraph to generate `tx_output.cfile`
-3. Run the receiver flowgraph to decode and generate `output.wav`
-4. Compare `input.wav` and `output.wav` to verify audio quality
+**`examples/*.grc`**, **`grc/`**, and much of **`tests/`** target the older Python OOT / Companion workflow. They are **not** exercised by **`ctest`** and may be missing dependencies after the GR4 promotion. Use them only if you are reviving that stack.
 
 ## Project Structure
 
@@ -713,173 +575,45 @@ Note: External **gr-opus** (GNU Radio 4 build): https://github.com/Supermagnum/g
 
 ## Documentation
 
-### Superframe System
+### Supported: GNU Radio 4 module
 
-- **[Superframe Python API](python/README_SUPERFRAME.md)** - Python API documentation for superframe components
-- **[Superframe Flowgraphs](examples/SUPERFRAME_FLOWGRAPHS.md)** - Guide for modifying and creating GRC flowgraphs for superframe transmission
-- **[Superframe LDPC Matrices](ldpc_matrices/SUPERFRAME_LDPC.md)** - Documentation for LDPC matrices used in superframe system
+- **`include/gnuradio-4.0/sleipnir/`** — block declarations (**SuperframeAssembler**, **SuperframeParser**, **SleipnirTxHier**, **SleipnirRxHier**).
+- **`test/qa_*.cpp`** — runnable examples executed by **`ctest`**.
+- **`cmake/gr-sleipnir4-config.cmake.in`** — CMake package template installed with **`cmake --install`**.
+- **Python PDU helpers:** [python/README_SUPERFRAME.md](python/README_SUPERFRAME.md), [python/README_TX_MODULE.md](python/README_TX_MODULE.md), [python/README_RX_MODULE.md](python/README_RX_MODULE.md).
 
-### TX/RX Modules
+### Historical: GNU Radio 3 era
 
-- **[Block Usage Guide](docs/BLOCK_USAGE_GUIDE.md)** - **Complete reference** for TX and RX blocks: all parameters, inputs, outputs, cryptographic operations, and legal information
-- **[TX Module Documentation](python/README_TX_MODULE.md)** - Quick reference for the TX module
-- **[TX Module Guide](examples/SLEIPNIR_TX_MODULE.md)** - Complete guide to the sleipnir_tx_hier module
-- **[RX Module Documentation](python/README_RX_MODULE.md)** - Quick reference for the RX module
-- **[RX Module Guide](examples/SLEIPNIR_RX_MODULE.md)** - Complete guide to the sleipnir_rx_hier module
+Markdown under **`docs/`**, Companion flowgraphs and notes under **`examples/`**, parity matrices under **`ldpc_matrices/`**, and assorted **`tests/*.md`** describe earlier **4FSK/8FSK** experiments, encryption, APRS/text paths, sync frames, PTT wiring, and LDPC assets. That material is **not** continuously validated by the GR4 **`ctest`** targets; use it as background while migrating flowgraphs.
 
-### Crypto Integration
+Useful entry points:
 
-- **[Crypto Integration Guide](docs/CRYPTO_INTEGRATION.md)** - Integration of gr-linux-crypto and gr-nacl blocks into TX/RX flow
-- **[Crypto Block Wiring](docs/CRYPTO_WIRING.md)** - Detailed wiring diagrams and connection guide for crypto blocks
-- **[gr-linux-crypto Verification](docs/GR_LINUX_CRYPTO_VERIFICATION.md)** - Steps to verify gr-linux-crypto installation and functionality
-
-### APRS and Text Messaging
-
-- **[APRS and Text Messaging Guide](docs/APRS_TEXT_MESSAGING.md)** - Comprehensive guide to APRS packet and text message transmission/reception, frame type multiplexing, and integration examples
-
-### FER Tracking
-
-- **[FER Tracking Documentation](docs/FER_TRACKING.md)** - Frame Error Rate tracking and calculation documentation, including accurate error counting and validation
-- **[Channel-Specific Thresholds](docs/CHANNEL_THRESHOLDS.md)** - Documentation on channel-specific FER validation thresholds and frequency offset tolerance
-
-### Sync Frames
-
-- **[Sync Frame Analysis](docs/SYNC_FRAME_ANALYSIS.md)** - Analysis of sync frame requirements for receiver acquisition
-- **[Sync Frame Implementation](docs/SYNC_FRAME_IMPLEMENTATION.md)** - Implementation details for periodic sync frames in TX and RX, including encryption and MAC support
-
-### PTT Control
-
-- **[PTT Methods Guide](examples/PTT_METHODS.md)** - Documentation for GPIO, Serial, VOX, and Network PTT control methods
-
-### LDPC Matrices
-
-- **[LDPC Matrices README](ldpc_matrices/README.md)** - Overview of LDPC parity check matrices
-- **[LDPC Matrices Summary](ldpc_matrices/README_SUMMARY.md)** - Summary of available LDPC matrices
-- **[LDPC Notes](ldpc_matrices/NOTE.md)** - Additional notes on LDPC matrices
-
-### Test Documentation
-
-- **[Test Suite README](tests/README_TESTING.md)** - Comprehensive test suite documentation
-- **[Test Scenarios](tests/TEST_SCENARIOS.md)** - Detailed documentation of test scenarios
-- **[Test Summary](tests/TEST_SUMMARY.md)** - Quick reference summary of test results
-- **[Test Results](docs/TEST_RESULTS.md)** - Latest test execution results
-- **[Integration Tests](tests/INTEGRATION_TESTS.md)** - Guide for running integration tests
-- **[FER Tracking](docs/FER_TRACKING.md)** - Frame Error Rate tracking and calculation documentation
-- **[Functional Test Suite](tests/run_all_functionality_tests.sh)** - Run all functional unit tests
-- **[Test Documentation](tests/README_TESTING.md)** - Complete testing guide
-- **[Functional Test Suite](tests/run_all_functionality_tests.sh)** - Run all functional unit tests
-
-### Technical Glossary
-
-- **[Technical Glossary](docs/TECHNICAL_GLOSSARY.md)** - Comprehensive explanation of all technical terms, jargon, and acronyms used in gr-sleipnir documentation. Includes definitions for modulation schemes (4FSK, 8FSK), error correction codes (LDPC), performance metrics (FER, SNR, WarpQ), channel models (AWGN, Rayleigh, Rician), cryptography (ECDSA, ChaCha20-Poly1305), audio codecs (Opus), and more.
-
-### Examples
-
-Example flowgraphs demonstrating gr-sleipnir module usage:
-
-- **[Examples Documentation](examples/README_EXAMPLES.md)** - Complete guide to example flowgraphs
-
-**gr-sleipnir Module Examples:**
-- `sleipnir_tx_basic.grc` - Basic TX example
-- `sleipnir_rx_basic.grc` - Basic RX example
-- `sleipnir_tx_ptt.grc` - TX with GPIO PTT control
-- `sleipnir_rx_zmq.grc` - RX with ZMQ status output
-
-**Legacy Examples (direct block usage):**
-- `tx_4fsk_opus.grc` - 4FSK Opus transmitter (legacy)
-- `rx_4fsk_opus.grc` - 4FSK Opus receiver (legacy)
-- `tx_8fsk_opus.grc` - 8FSK Opus transmitter (legacy)
-- `rx_8fsk_opus.grc` - 8FSK Opus receiver (legacy)
+- [Technical glossary](docs/TECHNICAL_GLOSSARY.md)
+- [Contributing](docs/CONTRIBUTING.md)
+- [Block usage guide](docs/BLOCK_USAGE_GUIDE.md) (historical GR Companion / Python hierarchy reference)
+- [Examples index](examples/README_EXAMPLES.md) (lists **`examples/*.grc`**)
+- Topic notes: [APRS and text](docs/APRS_TEXT_MESSAGING.md), [crypto integration](docs/CRYPTO_INTEGRATION.md), [crypto wiring](docs/CRYPTO_WIRING.md), [FER tracking](docs/FER_TRACKING.md), [channel thresholds](docs/CHANNEL_THRESHOLDS.md), [sync frame analysis](docs/SYNC_FRAME_ANALYSIS.md), [sync frame implementation](docs/SYNC_FRAME_IMPLEMENTATION.md), [superframe flowgraphs](examples/SUPERFRAME_FLOWGRAPHS.md), [PTT methods](examples/PTT_METHODS.md), [test-suite overview](tests/README_TESTING.md)
 
 ## Testing
 
-The gr-sleipnir project includes functional unit tests that verify actual code behavior, not just end-to-end audio quality metrics. These tests are designed to catch "plausible but broken" code that looks correct but doesn't actually work.
+### CMake (supported)
 
-### Running Tests
-
-To run all functional tests:
+After a successful configure/build:
 
 ```bash
-cd /home/haaken/github-projects/gr-sleipnir
-./tests/run_all_functionality_tests.sh
+ctest --test-dir build --output-on-failure
 ```
 
-Or run individual test suites:
+This executes **`qa_SuperframeAssembler`**, **`qa_SuperframeParser`**, **`qa_SleipnirTxHier`**, and **`qa_SleipnirRxHier`**. Disable them with **`cmake -D GR_SLEIPNIR4_BUILD_TESTS=OFF`** if you intentionally skip Boost.UT (**FetchContent**).
 
-```bash
-# Critical functionality tests (catches passthrough, thresholding, etc.)
-python3 -m pytest tests/test_critical_functionality.py -v
+### Legacy Python suites
 
-# LDPC encoding/decoding tests
-python3 -m pytest tests/test_ldpc_functionality.py -v
+Older **`pytest`** scripts and **`tests/run_all_functionality_tests.sh`** targeted the Python OOT and **Companion** toolchain. References inside **`tests/README_TESTING.md`** may list removed files. Scripts that remain (such as **`tests/test_itu_vhf_channel.py`**) pull in **NumPy** / **SciPy** / optional **pesq** / **pystoi**. Treat those runs as **best-effort** until explicitly ported to GR4.
 
-# Cryptographic functionality tests
-python3 -m pytest tests/test_crypto_functionality.py -v
+### WarpQ tables (historical context)
 
-# Meta-test to verify tests actually exercise code
-python3 -m pytest tests/test_actual_code_exercise.py -v
-```
+Older automation reported **WarpQ** scores (**0 lowest** … **5 reference-like**) on decoded waveforms. Those benchmarks came from GR3-era harnesses and modulations; README tables farther above remain narrative context only.
 
-### Test Suites
-
-**Critical Functionality Tests** (`test_critical_functionality.py`):
-- Verifies LDPC encoder actually encodes (not passthrough)
-- Verifies LDPC decoder actually decodes and corrects errors (not just thresholding)
-- Verifies encryption actually encrypts (not just MAC)
-- Verifies decryption actually decrypts (not just verification)
-
-**LDPC Functionality Tests** (`test_ldpc_functionality.py`):
-- Encoding changes data and satisfies parity checks
-- Decoding corrects errors and recovers original data
-- Encode-decode cycle recovers original information bits
-
-**Crypto Functionality Tests** (`test_crypto_functionality.py`):
-- ChaCha20-Poly1305 encryption actually encrypts data
-- Decryption recovers plaintext
-- MAC verification works correctly
-- Different inputs produce different ciphertexts
-
-**Other Functional Tests**:
-- `test_signature_verification.py` - ECDSA signature generation and verification
-- `test_encryption_switching.py` - Encryption enable/disable functionality
-- `test_recipient_checking.py` - Multi-recipient message handling
-- `test_multi_recipient.py` - Multi-recipient scenarios
-
-For detailed test documentation, see [Test Documentation](tests/README_TESTING.md).
-
-### Understanding WarpQ Scores
-
-**WarpQ** (Warped-Quality) is an audio quality assessment metric used to evaluate the perceptual quality of decoded audio compared to the original reference audio.
-
-**What WarpQ Measures:**
-- Perceptual audio quality degradation
-- How well the decoded audio matches the original
-- Impact of transmission errors, codec artifacts, and channel impairments
-
-**WarpQ Score Scale (0-5):**
-- **5.0**: Perfect quality (no perceptible difference from reference)
-- **4.0-4.9**: Excellent quality (minimal artifacts, very good)
-- **3.0-3.9**: Good quality (acceptable, minor artifacts)
-- **2.0-2.9**: Fair quality (noticeable degradation, but intelligible)
-- **1.0-1.9**: Poor quality (significant artifacts, difficult to understand)
-- **0.0-0.9**: Very poor quality (severe degradation, barely intelligible)
-
-**Typical WarpQ Scores in gr-sleipnir:**
-- **High SNR (≥10 dB)**: 4.5-5.0 (excellent quality)
-- **Mid SNR (0-9 dB)**: 4.0-4.5 (good to excellent quality)
-- **Low SNR (<0 dB)**: 3.0-4.0 (fair to good quality, may have artifacts)
-
-**WarpQ vs FER:**
-- **FER (Frame Error Rate)**: Measures how many frames fail to decode correctly
-- **WarpQ**: Measures perceptual audio quality of successfully decoded frames
-- High FER can lead to lower WarpQ scores due to missing/corrupted frames
-- Even with low FER, WarpQ may be lower if decoded frames have artifacts
-
-**Why WarpQ Matters:**
-- Provides objective measure of audio quality beyond simple pass/fail
-- Helps identify subtle quality issues that FER alone doesn't capture
-- Useful for comparing different modulation modes, codec settings, or channel conditions
-- Validates that the system meets quality requirements for voice communication
 
 ## Status
 
