@@ -9,6 +9,12 @@ A GR4-compatible port is available on the `gnuradio4` branch. It requires GNU Ra
 
 Module license is GPLv3. Primary dependency is gnuradio4 core. gr-opus GR4 port is required. gr-linux-crypto and gr-nacl GR4 ports are optional for signing and MAC features.
 
+## GNU Radio 4.0 Port
+
+A GR4-compatible port is available on the `gnuradio4` branch. It requires GNU Radio 4.0 RC2 or later (`/opt/gnuradio4-gcc`) and is independent of the GR3 tree on this branch. The GR4 port fixes the message delivery issues present in the GR3 version by using GR4's unified scheduler.
+
+Module license is GPLv3. Primary dependency is gnuradio4 core. gr-opus GR4 port is required. gr-linux-crypto and gr-nacl GR4 ports are optional for signing and MAC features.
+
 This project is actively being developed for GNU Radio 3.10. The system has been refactored from FSK to 8-carrier QPSK modulation, and encryption, text messaging, and APRS support have been removed to focus on voice communication.
 
 ## Current Status (January 2025)
