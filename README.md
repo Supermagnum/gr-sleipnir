@@ -38,20 +38,20 @@
 ## Project status
 
 
-### GNU Radio 4.0 port (`gnuradio4/`)
+### GNU Radio 4.0 (repository root)
 
-A **CMake-based GR4 port** lives under **`gnuradio4/`** in **this repository**. It requires **GNU Radio 4.0 RC2 or later** (typical prefix `/opt/gnuradio4-gcc`). It is **logically separate** from the GR3 install layout: configure with `cmake -S gnuradio4`, link against **gnuradio4** and **`gnuradio4::gr-opus`** (**required**); **OpenSSL**, **gr-linux-crypto**, and **gr-nacl** are **optional** for signing/MAC-oriented features.
+This repository is the **CMake-based GR4 module** (**gr-sleipnir4**): header-only GR4 blocks, tests, and Python helpers built against **GNU Radio 4.0 RC2 or later** (typical prefix `/opt/gnuradio4-gcc`). It is independent of GR3-era GNU Radio installs on the machine: configure with `cmake -S .`, link against **gnuradio4** and **`gnuradio4::gr-opus`** (**required** for the PDU types used by the unit tests); **OpenSSL**, **gr-linux-crypto**, and **gr-nacl** are **optional** for signing/MAC-oriented features.
 
-The GR4 path uses the **unified scheduler**, which fixes the GR3 **stream vs. message starvation** issue. It ships header-only **C++** blocks, **Boost.UT** tests in `gnuradio4/test/`, and **`gnuradio4/python/sleipnir/`** helpers importable as **`SuperframeAssembler.py`** / **`SuperframeParser.py`** (same PDU layout as the C++ blocks; for tooling and offline scripts).
+The module uses GR4's **unified scheduler** (**stream vs. message starvation** addressed compared to classical GR3 scheduling). **`test/`** holds **Boost.UT** C++ tests; **`python/sleipnir/`** exposes helpers mirroring the PDU layout (**`SuperframeAssembler.py`** / **`SuperframeParser.py`**, tooling and offline scripts).
 
 **Example build:**
 
 ```bash
-cmake -S gnuradio4 -B gnuradio4/build \
-  -DCMAKE_PREFIX_PATH="/opt/gnuradio4-gcc;/gnuradio4/build" \
+cmake -S . -B build \
+  -DCMAKE_PREFIX_PATH="/opt/gnuradio4-gcc;<path-to-gr-opus>/gnuradio4/build" \
   -DCMAKE_CXX_COMPILER=g++-14
-cmake --build gnuradio4/build -j"$(nproc)"
-ctest --test-dir gnuradio4/build --output-on-failure
+cmake --build build -j"$(nproc)"
+ctest --test-dir build --output-on-failure
 ```
 
 Module license: **GPLv3**.
@@ -676,78 +676,39 @@ To test the system:
 
 ## Project Structure
 
+GNU Radio 4 module layout at the repository root:
+
 ```
 gr-sleipnir/
-├── README.md                      # This file
-├── CMakeLists.txt                 # Root CMake configuration
-├── docs/                          # Additional documentation
-│   ├── CONTRIBUTING.md            # Contributing guidelines
-│   ├── FER_TRACKING.md            # Frame Error Rate tracking documentation
-│   ├── GR_LINUX_CRYPTO_VERIFICATION.md  # gr-linux-crypto verification
-│   ├── SYNC_FRAME_ANALYSIS.md     # Sync frame analysis
-│   ├── SYNC_FRAME_IMPLEMENTATION.md  # Sync frame implementation
-│   └── TEST_RESULTS.md            # Latest test execution results
-├── examples/                      # Example flowgraphs and documentation
-│   ├── sleipnir_tx_basic.grc     # Basic TX example
-│   ├── sleipnir_rx_basic.grc     # Basic RX example
-│   ├── sleipnir_tx_encrypted.grc # TX with encryption/signing
-│   ├── sleipnir_rx_verified.grc # RX with signature verification
-│   ├── sleipnir_tx_ptt.grc       # TX with GPIO PTT control
-│   ├── sleipnir_rx_zmq.grc       # RX with ZMQ output
-│   ├── README_EXAMPLES.md        # Examples documentation
-│   ├── SLEIPNIR_TX_MODULE.md     # TX module guide
-│   ├── SLEIPNIR_RX_MODULE.md     # RX module guide
-│   ├── SUPERFRAME_FLOWGRAPHS.md  # Superframe flowgraph guide
-│   └── PTT_METHODS.md            # PTT control methods guide
-├── ldpc_matrices/                 # LDPC FEC matrix files
-│   ├── ldpc_rate34.alist         # Rate 3/4 LDPC matrix (4FSK)
-│   ├── ldpc_rate23.alist         # Rate 2/3 LDPC matrix (8FSK)
-│   ├── ldpc_voice_576_384.alist  # Voice frame LDPC (rate 2/3)
-│   ├── ldpc_auth_768_256.alist   # Auth frame LDPC (rate 1/3)
-│   ├── README.md                  # LDPC matrices overview
-│   ├── README_SUMMARY.md          # LDPC matrices summary
-│   ├── SUPERFRAME_LDPC.md        # Superframe LDPC documentation
-│   └── NOTE.md                    # Additional LDPC notes
-├── python/                        # Python utilities and modules
-│   ├── sleipnir_superframe_assembler.py  # Superframe assembler (TX)
-│   ├── sleipnir_superframe_parser.py     # Superframe parser (RX)
-│   ├── superframe_controller.py          # Standalone controller (optional, for testing)
-│   ├── voice_frame_builder.py    # Voice frame builder
-│   ├── crypto_helpers.py          # Cryptographic helpers
-│   ├── crypto_integration.py      # Crypto block integration wrappers
-│   ├── sleipnir_tx_hier.py       # TX hierarchical block
-│   ├── sleipnir_rx_hier.py       # RX hierarchical block
-│   ├── sleipnir_superframe_assembler.py  # Superframe assembler
-│   ├── sleipnir_superframe_parser.py     # Superframe parser
-│   ├── ptt_gpio.py               # GPIO PTT control
-│   ├── ptt_serial.py             # Serial PTT control
-│   ├── ptt_vox.py                # VOX PTT control
-│   ├── ptt_network.py            # Network PTT control
-│   ├── ptt_control_integration.py # PTT integration helper
-│   ├── zmq_control_helper.py     # ZMQ control helper
-│   ├── zmq_status_output.py      # ZMQ status output
-│   ├── frame_aware_ldpc.py       # Frame-aware LDPC encoder/decoder
-│   ├── README_SUPERFRAME.md      # Superframe Python API
-│   ├── README_TX_MODULE.md       # TX module quick reference
-│   └── README_RX_MODULE.md       # RX module quick reference
-├── tests/                        # Test suite
-│   ├── README.md                 # Test suite documentation
-│   ├── README_TESTING.md         # Comprehensive test suite documentation
-│   ├── TEST_SCENARIOS.md         # Test scenarios documentation
-│   ├── TEST_SUMMARY.md           # Test summary
-│   ├── INTEGRATION_TESTS.md      # Integration test guide
-│   ├── test_ldpc_functionality.py     # LDPC encoding/decoding tests
-│   ├── test_crypto_functionality.py   # Cryptographic functionality tests
-│   ├── test_critical_functionality.py # Critical bug detection tests
-│   ├── test_actual_code_exercise.py   # Meta-test for code exercise verification
-│   ├── analyze_results.py        # Test results analysis and reporting tool
-│   ├── config_comprehensive.yaml # Comprehensive test configuration
-│   ├── run_all_tests.py          # Test runner
-│   └── test_*.py                 # Individual test files
-└── Pictures/                     # Images and graphics
-    └── performance.jpg           # Performance graph
+├── CMakeLists.txt                 # gr-sleipnir4 CMake project (interface library + install rules)
+├── cmake/
+│   ├── gr-sleipnir4-config.cmake.in
+│   └── gnuradio4-gr-sleipnir.pc.in
+├── include/
+│   └── gnuradio-4.0/
+│       ├── sleipnir.hpp                    # Convenience umbrella header
+│       └── sleipnir/
+│           ├── SuperframeAssembler.hpp
+│           ├── SuperframeParser.hpp
+│           ├── SleipnirTxHier.hpp
+│           ├── SleipnirRxHier.hpp
+│           └── detail/SleipnirFrameFormat.hpp
+├── python/
+│   └── sleipnir/                  # PDU helpers mirroring C++ blocks (offline / tooling)
+├── test/
+│   ├── CMakeLists.txt
+│   ├── qa_SuperframeAssembler.cpp
+│   ├── qa_SuperframeParser.cpp
+│   ├── qa_SleipnirTxHier.cpp
+│   └── qa_SleipnirRxHier.cpp
+├── README.md
+├── docs/                          # Supplementary Markdown (historical / analysis)
+├── examples/                      # GR3-era .grc material (legacy)
+├── tests/                         # Python-based validation scripts (outside CMake `test/`)
+├── grc/                           # Legacy GNU Radio Companion blocks (GR 3.x)
+└── ldpc_matrices/                 # LDPC matrices (legacy artefacts)
 
-Note: gr-opus is a separate module available at https://github.com/Supermagnum/gr-opus
+Note: External **gr-opus** (GNU Radio 4 build): https://github.com/Supermagnum/gr-opus
 ```
 
 ## Documentation

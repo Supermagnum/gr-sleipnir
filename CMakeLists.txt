@@ -1,74 +1,150 @@
-cmake_minimum_required(VERSION 3.8)
-project(gr-sleipnir)
+# SPDX-License-Identifier: GPL-3.0-or-later
+cmake_minimum_required(VERSION 3.22)
 
-# Set the version of this module here
-set(GR_OPUS_VERSION_MAJOR 1)
-set(GR_OPUS_VERSION_MINOR 0)
-set(GR_OPUS_VERSION_PATCH 0)
-set(GR_OPUS_VERSION "${GR_OPUS_VERSION_MAJOR}.${GR_OPUS_VERSION_MINOR}.${GR_OPUS_VERSION_PATCH}")
-
-# Find required packages
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GR REQUIRED gnuradio-runtime)
-
-# Include directories
-include_directories(${GR_INCLUDE_DIRS})
-
-# Find Python
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
-
-# Set Python installation paths
-if(NOT GR_PYTHON_DIR)
-    execute_process(
-        COMMAND ${Python3_EXECUTABLE} -c "import gnuradio; import os; print(os.path.dirname(gnuradio.__file__))"
-        OUTPUT_VARIABLE GR_PYTHON_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-    if(NOT GR_PYTHON_DIR)
-        # Fallback: use Python site-packages
-        execute_process(
-            COMMAND ${Python3_EXECUTABLE} -c "import site; print(site.getsitepackages()[0])"
-            OUTPUT_VARIABLE GR_PYTHON_DIR
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-        )
-    endif()
-endif()
-set(GR_PYTHON_DIR ${GR_PYTHON_DIR} CACHE PATH "Directory for Python modules")
-
-# Try to find GRC blocks directory
-# Prefer system directory, fall back to user directory
-if(NOT GRC_BLOCKS_DIR)
-    set(GRC_BLOCKS_DIR_SYSTEM "/usr/share/gnuradio/grc/blocks")
-    if(EXISTS "${GRC_BLOCKS_DIR_SYSTEM}")
-        set(GRC_BLOCKS_DIR "${GRC_BLOCKS_DIR_SYSTEM}")
-    else()
-        execute_process(
-            COMMAND ${Python3_EXECUTABLE} -c "import os; print(os.path.join(os.path.expanduser('~'), '.gnuradio', 'grc', 'blocks'))"
-            OUTPUT_VARIABLE GRC_BLOCKS_DIR
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-        )
-    endif()
-endif()
-set(GRC_BLOCKS_DIR "${GRC_BLOCKS_DIR}" CACHE PATH "Directory for GRC block definitions")
-
-# Add subdirectories
-add_subdirectory(python)
-
-# Add grc subdirectory if it exists and has CMakeLists.txt
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/grc/CMakeLists.txt)
-    add_subdirectory(grc)
+if(NOT DEFINED CMAKE_CXX_COMPILER)
+  find_program(_GR_SLEIPNIR4_CXX NAMES g++-14 g++-15 DOC "C++23 compiler")
+  if(_GR_SLEIPNIR4_CXX)
+    set(CMAKE_CXX_COMPILER "${_GR_SLEIPNIR4_CXX}" CACHE FILEPATH "C++ compiler" FORCE)
+  endif()
 endif()
 
-########################################################################
-# Custom target: build info (runs automatically)
-########################################################################
-add_custom_target(build_info ALL
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-    COMMAND ${CMAKE_COMMAND} -E echo "gr-sleipnir: Python-only module - nothing to compile"
-    COMMAND ${CMAKE_COMMAND} -E echo "Run 'make install' to install, or 'make check_python' to validate"
-    COMMAND ${CMAKE_COMMAND} -E echo ""
-)
+project(
+  gr-sleipnir4
+  VERSION 1.0.0
+  LANGUAGES CXX
+  DESCRIPTION "GNU Radio 4.0 port of gr-sleipnir — 8-carrier QPSK digital voice superframe blocks")
 
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+include(GNUInstallDirs)
+
+option(GR_SLEIPNIR4_BUILD_TESTS "Build Boost.UT unit tests" ON)
+
+# --- Required: gnuradio4 core ---
+find_package(gnuradio4 REQUIRED CONFIG)
+
+# --- Required: gr-opus (for Opus PDU message types in tests) ---
+find_package(gnuradio4-gr-opus QUIET CONFIG)
+if(NOT gnuradio4-gr-opus_FOUND)
+  message(STATUS "gr-sleipnir4: gnuradio4::gr-opus not found via find_package; tests will not link against it")
+  set(GR_SLEIPNIR4_HAVE_OPUS OFF)
+else()
+  message(STATUS "gr-sleipnir4: gnuradio4::gr-opus found")
+  set(GR_SLEIPNIR4_HAVE_OPUS ON)
+endif()
+
+# --- Optional: OpenSSL for ECDSA frame signing ---
+find_package(OpenSSL QUIET)
+if(OpenSSL_FOUND)
+  message(STATUS "gr-sleipnir4: OpenSSL ${OPENSSL_VERSION} found — ECDSA signing enabled (GR_SLEIPNIR4_HAVE_OPENSSL)")
+  set(GR_SLEIPNIR4_HAVE_OPENSSL ON)
+else()
+  message(STATUS "gr-sleipnir4: OpenSSL not found — signing stubs will be used")
+  set(GR_SLEIPNIR4_HAVE_OPENSSL OFF)
+endif()
+
+# --- Optional: gr-linux-crypto ---
+find_package(gnuradio4-gr-linux-crypto QUIET CONFIG)
+if(gnuradio4-gr-linux-crypto_FOUND)
+  message(STATUS "gr-sleipnir4: gnuradio4::gr-linux-crypto found")
+  set(GR_SLEIPNIR4_HAVE_LINUX_CRYPTO ON)
+else()
+  set(GR_SLEIPNIR4_HAVE_LINUX_CRYPTO OFF)
+endif()
+
+# --- Optional: gr-nacl (ChaCha20 MAC) ---
+find_package(gnuradio4-gr-nacl QUIET CONFIG)
+if(gnuradio4-gr-nacl_FOUND)
+  message(STATUS "gr-sleipnir4: gnuradio4::gr-nacl found")
+  set(GR_SLEIPNIR4_HAVE_NACL ON)
+else()
+  set(GR_SLEIPNIR4_HAVE_NACL OFF)
+endif()
+
+# --- Interface library ---
+add_library(gnuradio4-gr-sleipnir INTERFACE)
+add_library(gnuradio4::gr-sleipnir ALIAS gnuradio4-gr-sleipnir)
+
+target_include_directories(
+  gnuradio4-gr-sleipnir
+  INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>)
+
+target_link_libraries(gnuradio4-gr-sleipnir
+  INTERFACE
+    gnuradio4::gnuradio-core
+    gnuradio4::gnuradio-blocklib-core)
+
+if(GR_SLEIPNIR4_HAVE_OPENSSL)
+  target_compile_definitions(gnuradio4-gr-sleipnir INTERFACE GR_SLEIPNIR4_HAVE_OPENSSL)
+  target_link_libraries(gnuradio4-gr-sleipnir INTERFACE OpenSSL::Crypto)
+endif()
+
+if(GR_SLEIPNIR4_HAVE_NACL)
+  target_compile_definitions(gnuradio4-gr-sleipnir INTERFACE GR_SLEIPNIR4_HAVE_NACL)
+  target_link_libraries(gnuradio4-gr-sleipnir INTERFACE gnuradio4::gr-nacl)
+endif()
+
+if(GR_SLEIPNIR4_HAVE_LINUX_CRYPTO)
+  target_compile_definitions(gnuradio4-gr-sleipnir INTERFACE GR_SLEIPNIR4_HAVE_LINUX_CRYPTO)
+  target_link_libraries(gnuradio4-gr-sleipnir INTERFACE gnuradio4::gr-linux-crypto)
+endif()
+
+# --- Install headers ---
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+# --- Install targets ---
+install(
+  TARGETS gnuradio4-gr-sleipnir
+  EXPORT gr-sleipnir4-targets
+  INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+install(
+  EXPORT gr-sleipnir4-targets
+  FILE gr-sleipnir4-targets.cmake
+  NAMESPACE gnuradio4::
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/gr-sleipnir4")
+
+# --- CMake package config ---
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/gr-sleipnir4-config.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/gr-sleipnir4-config.cmake"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/gr-sleipnir4")
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/gr-sleipnir4-config-version.cmake"
+  VERSION "${PROJECT_VERSION}"
+  COMPATIBILITY SameMajorVersion)
+
+install(
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/gr-sleipnir4-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/gr-sleipnir4-config-version.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/gr-sleipnir4")
+
+# --- pkg-config ---
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/gnuradio4-gr-sleipnir.pc.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/gnuradio4-gr-sleipnir.pc"
+  @ONLY)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gnuradio4-gr-sleipnir.pc"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+
+# --- Tests ---
+if(GR_SLEIPNIR4_BUILD_TESTS)
+  include(FetchContent)
+  set(BOOST_UT_DISABLE_MODULE ON CACHE BOOL "Disable UT Module Support" FORCE)
+  FetchContent_Declare(
+    ut
+    GIT_REPOSITORY https://github.com/boost-ext/ut.git
+    GIT_TAG 53e17f25119598c6458d30351b260193096ba67e
+    EXCLUDE_FROM_ALL)
+  FetchContent_MakeAvailable(ut)
+  enable_testing()
+  add_subdirectory(test)
+endif()

@@ -15,4 +15,7 @@ compile_commands.json
 wav/
 *.wav
 prompt/
+pytest_cache/
+.pytest_cache/
+tests/.venv/
 

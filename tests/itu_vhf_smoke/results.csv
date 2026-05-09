@@ -1,0 +1,12 @@
+scenario,snr_db,fer,frame_errors,total_frames,sync_detected,pesq,stoi,actual_snr_db,elapsed_s
+urban_stationary,-5.0,0.8616,417,484,False,,,nan,1.046
+urban_stationary,-4.0,0.8264,400,484,False,,,nan,1.102
+urban_stationary,-3.0,0.7293,353,484,False,,,nan,1.021
+urban_stationary,-2.0,0.7025,340,484,False,,,nan,1.031
+urban_stationary,-1.0,0.5682,275,484,False,,,nan,1.024
+urban_stationary,0.0,0.4917,238,484,False,,,nan,1.029
+urban_stationary,1.0,0.3554,172,484,False,,,nan,1.022
+urban_stationary,2.0,0.2417,117,484,False,,,nan,1.018
+urban_stationary,3.0,0.1963,95,484,False,,,nan,1.035
+urban_stationary,4.0,0.093,45,484,True,,,nan,1.061
+urban_stationary,5.0,0.0413,20,484,True,,,-inf,1.034
