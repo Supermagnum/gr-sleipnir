@@ -88,7 +88,7 @@ if(GR_SLEIPNIR4_HAVE_NACL)
 endif()
 
 if(GR_SLEIPNIR4_HAVE_LINUX_CRYPTO)
-  target_compile_definitions(gnuradio4-gr-sleipnir INTERFACE GR_SLEIPNIR4_HAVE_LINUX_CRYPTO)
+  target_compile_definitions(gnuradio4-gr-sleipnir INTERFACE GR_SLEIPNIR4_HAVE_LINUX_CRYPTO HAVE_GR_LINUX_CRYPTO)
   target_link_libraries(gnuradio4-gr-sleipnir INTERFACE gnuradio4::gr-linux-crypto)
 endif()
 
@@ -96,7 +96,12 @@ endif()
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
-# --- Install targets ---
+install(
+  DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/python/sleipnir/"
+  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/gr-sleipnir4/python/sleipnir"
+  FILES_MATCHING
+  PATTERN "*.py")
+
 install(
   TARGETS gnuradio4-gr-sleipnir
   EXPORT gr-sleipnir4-targets

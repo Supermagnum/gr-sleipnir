@@ -418,7 +418,7 @@ class SleipnirChain:
             pdu_in = b"".join(frames[blk * VOICE_FRAMES_PER_SF : (blk + 1) * VOICE_FRAMES_PER_SF])
             assembled = self.assembler.assemble(pdu_in)
             corrupted = corrupt_pdu_iid_bits(assembled, digital_ebno_db, rng)
-            _parsed_opus, pstats = self.parser.parse(corrupted)
+            _parsed_opus, pstats, _text_frames = self.parser.parse(corrupted)
             last_sync = bool(pstats.get("sync_detected", False))
 
             fsz = int(ff.VOICE_FRAME_SIZE)

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 from . import frame_format
 
@@ -29,13 +29,13 @@ class SuperframeParser:
         self.total_frames_received = 0
         self._sync_detected = False
 
-    def parse(self, pdu_bytes: bytes) -> Tuple[bytes, Dict[str, object]]:
+    def parse(self, pdu_bytes: bytes) -> Tuple[bytes, Dict[str, object], List[bytes]]:
         """
-        Parse superframe pdu (multiple of 49 bytes). Returns (opus_aggregate, status_dict).
-        opus_aggregate concatenates OPUS_STORED_BYTES (39) payload bytes per good voice frame
-        into one flat blob (matching C++ output shape).
-        status_dict keys: fer, frame_errors, total_frames, sync_detected.
-        Updates cumulative counters like the C++ block.
+        Parse superframe pdu. Returns ``(opus_aggregate, status_dict, text_frames)``.
+        ``opus_aggregate`` concatenates OPUS_STORED_BYTES (39) payload bytes per good voice frame.
+
+        ``text_frames`` is a list of 64-byte chunks from an optional TEXT trailer
+        (matches the C++ SuperframeParser ``text_frame_out`` path).
         """
         if self.require_signatures:
             raise NotImplementedError(
@@ -44,8 +44,11 @@ class SuperframeParser:
         _ = self.local_callsign
         _ = self.mac_key
 
-        raw = pdu_bytes
+        voice_flat, text_concat = frame_format.split_voice_and_text_trailer(bytes(pdu_bytes))
+        text_frames: List[bytes] = frame_format.iter_text_frames(text_concat)
+        raw = voice_flat
         frame_sz = frame_format.VOICE_FRAME_SIZE
+
         if not raw or len(raw) % frame_sz != 0:
             fer = (
                 float(self.frame_error_count) / float(self.total_frames_received)
@@ -57,7 +60,7 @@ class SuperframeParser:
                 "frame_errors": self.frame_error_count,
                 "total_frames": self.total_frames_received,
                 "sync_detected": self._sync_detected,
-            }
+            }, text_frames
 
         sync_this_call = False
         opus_out = bytearray()
@@ -93,4 +96,4 @@ class SuperframeParser:
             "sync_detected": bool(sync_this_call or self._sync_detected),
             "errors_this_superframe": errors_this_call,
         }
-        return bytes(opus_out), stats
+        return bytes(opus_out), stats, text_frames

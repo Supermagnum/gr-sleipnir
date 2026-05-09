@@ -135,9 +135,10 @@ const suite<"SuperframeParser"> SuperframeParserSuite = [] {
             {"enable_sync_detection", false}}};
         parser.init(std::make_shared<gr::Sequence>());
 
-        gr::MsgPortIn opus_sink, status_sink;
+        gr::MsgPortIn opus_sink, status_sink, text_sink;
         expect(parser.opus_frames_out.connect(opus_sink).has_value());
         expect(parser.status_out.connect(status_sink).has_value());
+        expect(parser.text_frame_out.connect(text_sink).has_value());
 
         parser.handleLdpcDecodedPdu(makePdu(buildValidSuperframePayload()));
 
@@ -156,9 +157,10 @@ const suite<"SuperframeParser"> SuperframeParserSuite = [] {
             {"enable_sync_detection", true}}};
         parser.init(std::make_shared<gr::Sequence>());
 
-        gr::MsgPortIn opus_sink, status_sink;
+        gr::MsgPortIn opus_sink, status_sink, text_sink;
         expect(parser.opus_frames_out.connect(opus_sink).has_value());
         expect(parser.status_out.connect(status_sink).has_value());
+        expect(parser.text_frame_out.connect(text_sink).has_value());
 
         parser.handleLdpcDecodedPdu(makePdu(buildSyncSuperframePayload()));
 
@@ -179,9 +181,10 @@ const suite<"SuperframeParser"> SuperframeParserSuite = [] {
             {"enable_sync_detection", false}}};
         parser.init(std::make_shared<gr::Sequence>());
 
-        gr::MsgPortIn opus_sink, status_sink;
+        gr::MsgPortIn opus_sink, status_sink, text_sink;
         expect(parser.opus_frames_out.connect(opus_sink).has_value());
         expect(parser.status_out.connect(status_sink).has_value());
+        expect(parser.text_frame_out.connect(text_sink).has_value());
 
         // Build a payload where all frames have byte 0 set to an invalid type.
         const std::size_t n_frames = 5UZ;
@@ -208,9 +211,10 @@ const suite<"SuperframeParser"> SuperframeParserSuite = [] {
             {"enable_sync_detection", false}}};
         parser.init(std::make_shared<gr::Sequence>());
 
-        gr::MsgPortIn opus_sink, status_sink;
+        gr::MsgPortIn opus_sink, status_sink, text_sink;
         expect(parser.opus_frames_out.connect(opus_sink).has_value());
         expect(parser.status_out.connect(status_sink).has_value());
+        expect(parser.text_frame_out.connect(text_sink).has_value());
 
         // Send 4 valid voice frames
         {
@@ -293,9 +297,10 @@ const suite<"SuperframeParser"> SuperframeParserSuite = [] {
             {"enable_sync_detection", false}}};
         parser.init(std::make_shared<gr::Sequence>());
 
-        gr::MsgPortIn opus_sink, status_sink;
+        gr::MsgPortIn opus_sink, status_sink, text_sink;
         expect(parser.opus_frames_out.connect(opus_sink).has_value());
         expect(parser.status_out.connect(status_sink).has_value());
+        expect(parser.text_frame_out.connect(text_sink).has_value());
 
         std::vector<std::uint8_t> assembled(asm_pdu->data(),
                                             asm_pdu->data() + asm_pdu->size());

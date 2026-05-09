@@ -7,6 +7,8 @@
 #include <gnuradio-4.0/sleipnir/detail/SleipnirFrameFormat.hpp>
 #include <gnuradio-4.0/sleipnir/SuperframeAssembler.hpp>
 #include <gnuradio-4.0/sleipnir/SuperframeParser.hpp>
+#include <gnuradio-4.0/sleipnir/TextMessageAssembler.hpp>
+#include <gnuradio-4.0/sleipnir/TextMessageParser.hpp>
 #include <gnuradio-4.0/sleipnir/SleipnirTxHier.hpp>
 #include <gnuradio-4.0/sleipnir/SleipnirRxHier.hpp>
 

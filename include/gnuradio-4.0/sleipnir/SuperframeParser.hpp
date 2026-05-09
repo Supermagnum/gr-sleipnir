@@ -9,10 +9,13 @@
 #include <gnuradio-4.0/Tensor.hpp>
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/sleipnir/detail/SleipnirFrameFormat.hpp>
+#include <gnuradio-4.0/sleipnir/detail/TextFrameFormat.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <span>
 #include <string>
 #include <vector>
@@ -24,13 +27,11 @@ GR_REGISTER_BLOCK(gnuradio4::sleipnir::SuperframeParser)
 /**
  * SuperframeParser — pure message-to-message block (no stream ports).
  *
- * Input  (ldpc_decoded_in):  gr::Message with pdu_bytes Tensor<uint8_t> of
- *                             assembled frame payloads (N x 49 bytes).
- * Output (opus_frames_out):  gr::Message with pdu_bytes Tensor<uint8_t> of
- *                             recovered Opus data (up to 24 x 39 bytes).
- * Output (status_out):       gr::Message with status fields:
- *                             fer (float), frame_errors (Size_t),
- *                             total_frames (Size_t), sync_detected (bool).
+ * Input  (ldpc_decoded_in): gr::Message with pdu_bytes (49-byte-aligned voice/sync
+ *                           payloads, optional TEXT trailer).
+ * Output (opus_frames_out): recovered Opus data (voice frames).
+ * Output (status_out): fer (float), frame_errors, total_frames, sync_detected.
+ * Output (text_frame_out): emits one message per appended 64-byte TEXT frame chunk.
  *
  * Frame error rate tracking:
  *   frame_error_count       — cumulative count of frames that failed to decode
@@ -43,6 +44,7 @@ struct SuperframeParser : gr::Block<SuperframeParser> {
     gr::MsgPortIn  ldpc_decoded_in{};
     gr::MsgPortOut opus_frames_out{};
     gr::MsgPortOut status_out{};
+    gr::MsgPortOut text_frame_out{};
 
     gr::Annotated<std::string,             "local_callsign",       gr::Doc<"This station callsign">>                     local_callsign       = std::string("N0CALL");
     gr::Annotated<bool,                    "require_signatures",   gr::Doc<"Reject superframes without valid signatures">> require_signatures   = false;
@@ -53,7 +55,7 @@ struct SuperframeParser : gr::Block<SuperframeParser> {
     gr::Annotated<gr::Size_t, "frame_error_count",      gr::Doc<"Cumulative frame error count">>     frame_error_count     = gr::Size_t{0U};
     gr::Annotated<gr::Size_t, "total_frames_received",  gr::Doc<"Cumulative total frames received">> total_frames_received = gr::Size_t{0U};
 
-    GR_MAKE_REFLECTABLE(SuperframeParser, ldpc_decoded_in, opus_frames_out, status_out,
+    GR_MAKE_REFLECTABLE(SuperframeParser, ldpc_decoded_in, opus_frames_out, status_out, text_frame_out,
                         local_callsign, require_signatures, enable_sync_detection, mac_key,
                         frame_error_count, total_frames_received);
 
@@ -87,6 +89,19 @@ struct SuperframeParser : gr::Block<SuperframeParser> {
         w.publish(1UZ);
     }
 
+    void publishTextFrame(std::array<std::uint8_t, detail::TEXT_FRAME_SIZE> frm) noexcept
+    {
+        gr::property_map body;
+        body[gr::convert_string_domain(std::string_view("pdu_bytes"))]
+            = gr::pmt::Value(gr::Tensor<std::uint8_t>(std::vector<std::uint8_t>(frm.begin(), frm.end())));
+        gr::Message msg;
+        msg.cmd  = gr::message::Command::Notify;
+        msg.data = std::move(body);
+        auto w = text_frame_out.streamWriter().template reserve<gr::SpanReleasePolicy::ProcessAll>(1UZ);
+        w[0]   = std::move(msg);
+        w.publish(1UZ);
+    }
+
     // Called directly in tests and via processMessages in production.
     void handleLdpcDecodedPdu(gr::Message msg) noexcept
     {
@@ -105,13 +120,22 @@ struct SuperframeParser : gr::Block<SuperframeParser> {
         }
 
         std::span<const std::uint8_t> raw(tensor->data(), tensor->size());
+
+        std::span<const std::uint8_t> voice_part{};
+        std::span<const std::uint8_t> text_part{};
+        detail::split_voice_and_text_trailer(raw, &voice_part, &text_part);
+
         const std::size_t frame_sz = detail::VOICE_FRAME_SIZE; // 49
-        if (raw.empty()) {
+
+        if (voice_part.empty()) {
             return;
         }
 
-        // Count frames
-        const std::size_t total_in_frames = raw.size() / frame_sz;
+        if (voice_part.size() % frame_sz != 0UZ) {
+            return;
+        }
+
+        const std::size_t total_in_frames = voice_part.size() / frame_sz;
 
         // Walk frames, detect sync, collect Opus bytes
         std::vector<std::uint8_t> opus_out;
@@ -121,7 +145,7 @@ struct SuperframeParser : gr::Block<SuperframeParser> {
         bool        sync_this_call   = false;
 
         for (std::size_t fi = 0UZ; fi < total_in_frames; ++fi) {
-            std::span<const std::uint8_t> frame = raw.subspan(fi * frame_sz, frame_sz);
+            std::span<const std::uint8_t> frame = voice_part.subspan(fi * frame_sz, frame_sz);
 
             // Detect sync frame
             if (enable_sync_detection && detail::isSyncFrame(frame)) {
@@ -159,6 +183,16 @@ struct SuperframeParser : gr::Block<SuperframeParser> {
 
         if (!opus_out.empty()) {
             publishOpusFrames(std::move(opus_out));
+        }
+
+        if (!text_part.empty() && text_part.size() % detail::TEXT_FRAME_SIZE == 0UZ) {
+            const std::size_t n_tf = text_part.size() / detail::TEXT_FRAME_SIZE;
+            for (std::size_t ti = 0UZ; ti < n_tf; ++ti) {
+                std::span<const std::uint8_t> blk = text_part.subspan(ti * detail::TEXT_FRAME_SIZE, detail::TEXT_FRAME_SIZE);
+                std::array<std::uint8_t, detail::TEXT_FRAME_SIZE> arr{};
+                std::memcpy(arr.data(), blk.data(), detail::TEXT_FRAME_SIZE);
+                publishTextFrame(arr);
+            }
         }
     }
 

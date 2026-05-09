@@ -25,7 +25,7 @@ class SuperframeAssembler:
     def reset(self) -> None:
         self._superframe_counter = 0
 
-    def assemble(self, opus_pdu_bytes: bytes) -> bytes:
+    def assemble(self, opus_pdu_bytes: bytes, text_frames_concat: bytes = b"") -> bytes:
         """
         opus_pdu_bytes: concatenation of exactly 24 * 40 = 960 bytes (Opus packet bytes).
         Returns assembled superframe pdu_bytes (without signing frame; matches C++ when signing off).
@@ -59,4 +59,4 @@ class SuperframeAssembler:
             self._superframe_counter & 0xFFFFFFFF,
         )
         self._superframe_counter = (self._superframe_counter + 1) & 0xFFFFFFFF
-        return out
+        return frame_format.append_text_trailer(out, text_frames_concat)

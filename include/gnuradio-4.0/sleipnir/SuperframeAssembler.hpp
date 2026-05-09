@@ -9,6 +9,7 @@
 #include <gnuradio-4.0/Tensor.hpp>
 #include <gnuradio-4.0/annotated.hpp>
 #include <gnuradio-4.0/sleipnir/detail/SleipnirFrameFormat.hpp>
+#include <gnuradio-4.0/sleipnir/detail/TextFrameFormat.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -38,11 +39,16 @@ GR_REGISTER_BLOCK(gnuradio4::sleipnir::SuperframeAssembler)
  * With enable_signing=true the first frame (64 bytes) is a signature placeholder
  * (only filled when GR_SLEIPNIR4_HAVE_OPENSSL is defined and private_key_path
  * points to a valid PEM key).
+ *
+ * When `text_frame_in` receives 64-byte TEXT frame PDUs before the next
+ * `opus_frames_in` cycle, they are concatenated and appended after all
+ * 49-byte voice/sync frames with a `TEXT` trailer (see `detail::append_text_trailer`).
  */
 struct SuperframeAssembler : gr::Block<SuperframeAssembler> {
     using Description = gr::Doc<"Assemble Opus PDU (24x40 bytes) into superframe PDU (N x 49 bytes) with optional sync frames.">;
 
     gr::MsgPortIn  opus_frames_in{};
+    gr::MsgPortIn  text_frame_in{};
     gr::MsgPortOut superframe_out{};
 
     gr::Annotated<std::string, "callsign",            gr::Doc<"Station callsign embedded in voice frames">>         callsign            = std::string("N0CALL");
@@ -51,11 +57,12 @@ struct SuperframeAssembler : gr::Block<SuperframeAssembler> {
     gr::Annotated<bool,        "enable_sync_frames",   gr::Doc<"Insert sync frames at sync_frame_interval">>        enable_sync_frames  = true;
     gr::Annotated<int,         "sync_frame_interval",  gr::Doc<"Insert sync frame every N superframes (0=never)">>  sync_frame_interval = 5;
 
-    GR_MAKE_REFLECTABLE(SuperframeAssembler, opus_frames_in, superframe_out,
+    GR_MAKE_REFLECTABLE(SuperframeAssembler, opus_frames_in, text_frame_in, superframe_out,
                         callsign, enable_signing, private_key_path,
                         enable_sync_frames, sync_frame_interval);
 
-    std::uint32_t _superframe_counter{0U};
+    std::uint32_t                 _superframe_counter{0U};
+    std::vector<std::uint8_t>     _queued_text_concat{};
 
     void publishSuperframe(std::vector<std::uint8_t> payload) noexcept
     {
@@ -99,14 +106,42 @@ struct SuperframeAssembler : gr::Block<SuperframeAssembler> {
             prepend_sync,
             _superframe_counter);
 
+        if (!_queued_text_concat.empty()) {
+            assembled = detail::append_text_trailer(std::move(assembled), std::span<const std::uint8_t>(_queued_text_concat));
+            _queued_text_concat.clear();
+        }
+
         ++_superframe_counter;
         publishSuperframe(std::move(assembled));
     }
 
-    // GR4 scheduler calls this when messages arrive on any input message port.
-    void processMessages(gr::MsgPortIn& /*port*/, gr::Message msg) noexcept
+    void handleTextFramePdu(gr::Message msg) noexcept
     {
-        handleOpusFramesPdu(std::move(msg));
+        if (!msg.data.has_value()) {
+            return;
+        }
+        const auto& body = msg.data.value();
+        const auto  key  = gr::convert_string_domain(std::string_view("pdu_bytes"));
+        const auto  it   = body.find(key);
+        if (it == body.end()) {
+            return;
+        }
+        const auto* tensor = it->second.get_if<gr::Tensor<std::uint8_t>>();
+        if (tensor == nullptr || tensor->size() < detail::TEXT_FRAME_SIZE) {
+            return;
+        }
+        const std::span<const std::uint8_t> tf(tensor->data(), detail::TEXT_FRAME_SIZE);
+        _queued_text_concat.insert(_queued_text_concat.end(), tf.begin(), tf.end());
+    }
+
+    // GR4 scheduler calls this when messages arrive on any input message port.
+    void processMessages(gr::MsgPortIn& port, gr::Message msg) noexcept
+    {
+        if (&port == &opus_frames_in) {
+            handleOpusFramesPdu(std::move(msg));
+        } else {
+            handleTextFramePdu(std::move(msg));
+        }
     }
 };
 

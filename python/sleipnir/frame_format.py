@@ -15,6 +15,47 @@ FRAMES_PER_SUPERFRAME: int = 25
 VOICE_FRAMES_PER_SF: int = 24
 FRAME_TYPE_VOICE: int = 0x00
 FRAME_TYPE_SYNC: int = 0xFF
+FRAME_TYPE_TEXT: int = 0x02
+TEXT_FRAME_BYTES: int = 64
+TEXT_PAYLOAD_BYTES: int = 31
+TEXT_TRAILER_MAGIC: bytes = b"TEXT"
+TEXT_TRAILER_TAIL: int = 6  # MAGIC(4) + le16 length
+
+
+def has_text_trailer(pdu: bytes) -> bool:
+    if len(pdu) < TEXT_TRAILER_TAIL:
+        return False
+    return pdu[-6:-2] == TEXT_TRAILER_MAGIC
+
+
+def split_voice_and_text_trailer(pdu: bytes) -> tuple[bytes, bytes]:
+    """Return ``(voice_flat, text_concat)``. Invalid trailer parsing yields ``(pdu, b'')``."""
+    n = len(pdu)
+    if not has_text_trailer(pdu):
+        return pdu, b""
+    tl = pdu[-2] | (pdu[-1] << 8)
+    if tl % TEXT_FRAME_BYTES != 0 or TEXT_TRAILER_TAIL + tl > n:
+        return pdu, b""
+    voice_len = n - TEXT_TRAILER_TAIL - tl
+    return pdu[:voice_len], pdu[voice_len : voice_len + tl]
+
+
+def append_text_trailer(voice_flat: bytes, text_concat: bytes) -> bytes:
+    if not text_concat:
+        return voice_flat
+    out = bytearray(voice_flat)
+    out.extend(text_concat)
+    out.extend(TEXT_TRAILER_MAGIC)
+    tl = len(text_concat)
+    out.append(tl & 0xFF)
+    out.append((tl >> 8) & 0xFF)
+    return bytes(out)
+
+
+def iter_text_frames(text_concat: bytes) -> List[bytes]:
+    if not text_concat or len(text_concat) % TEXT_FRAME_BYTES != 0:
+        return []
+    return [text_concat[i : i + TEXT_FRAME_BYTES] for i in range(0, len(text_concat), TEXT_FRAME_BYTES)]
 
 
 def build_voice_frame(opus_in: bytes, frame_num: int) -> bytes:
