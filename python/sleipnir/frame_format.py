@@ -58,6 +58,86 @@ def iter_text_frames(text_concat: bytes) -> List[bytes]:
     return [text_concat[i : i + TEXT_FRAME_BYTES] for i in range(0, len(text_concat), TEXT_FRAME_BYTES)]
 
 
+_M17_ALPHABET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-/"
+
+
+def encode_callsign_bytes(callsign: str) -> bytes:
+    """M17 base-40 callsign field (10 bytes). ``ALL`` / broadcast -> 10 x 0xFF."""
+    if not callsign or callsign.upper() in ("ALL", "BROADCAST"):
+        return bytes([0xFF]) * 10
+    norm = list(callsign.upper()[:9].ljust(9))
+    vals = [_M17_ALPHABET.index(ch) for ch in norm]
+    acc = 0
+    for i in range(9):
+        acc = acc * 40 + vals[8 - i]
+    out = bytearray(10)
+    for i in range(6):
+        out[i] = (acc >> (8 * (5 - i))) & 0xFF
+    return bytes(out)
+
+
+def decode_callsign_bytes(field: bytes) -> str:
+    if len(field) < 10:
+        return ""
+    if field[:10] == bytes([0xFF]) * 10:
+        return "ALL"
+    acc = 0
+    for i in range(6):
+        acc = (acc << 8) | field[i]
+    vals: List[int] = []
+    tmp = acc
+    for _ in range(9):
+        vals.append(int(tmp % 40))
+        tmp //= 40
+    s = "".join(_M17_ALPHABET[v] for v in vals)
+    return s.rstrip()
+
+
+def build_text_frame(
+    src: str,
+    dst: str,
+    msg_id: int,
+    frag_idx: int,
+    frag_total: int,
+    payload: bytes,
+    mac_tag: bytes = b"",
+) -> bytes:
+    """Build one 64-byte TEXT frame (type 0x02)."""
+    buf = bytearray(TEXT_FRAME_BYTES)
+    buf[0] = FRAME_TYPE_TEXT
+    src_b = encode_callsign_bytes(src)
+    dst_b = encode_callsign_bytes(dst if dst.upper() != "ALL" else "ALL")
+    buf[1:11] = src_b
+    buf[11:21] = dst_b
+    buf[21] = (msg_id >> 8) & 0xFF
+    buf[22] = msg_id & 0xFF
+    buf[23] = frag_idx & 0xFF
+    buf[24] = frag_total & 0xFF
+    pl = payload[:TEXT_PAYLOAD_BYTES]
+    buf[25 : 25 + len(pl)] = pl
+    mac = (mac_tag or b"")[:8]
+    buf[56 : 56 + len(mac)] = mac
+    return bytes(buf)
+
+
+def parse_text_frame(frame: bytes) -> dict | None:
+    """Parse a 64-byte TEXT frame; returns dict or None if not type 0x02."""
+    if len(frame) < TEXT_FRAME_BYTES or frame[0] != FRAME_TYPE_TEXT:
+        return None
+    payload = frame[25:56]
+    while payload and payload[-1] == 0:
+        payload = payload[:-1]
+    return {
+        "src": decode_callsign_bytes(frame[1:11]),
+        "dst": decode_callsign_bytes(frame[11:21]),
+        "msg_id": (frame[21] << 8) | frame[22],
+        "fragment_index": frame[23],
+        "fragment_total": frame[24],
+        "payload": bytes(payload),
+        "mac_tag": bytes(frame[56:64]),
+    }
+
+
 def build_voice_frame(opus_in: bytes, frame_num: int) -> bytes:
     """Return 49-byte voice frame; opus_in should be exactly 40 bytes (padded externally)."""
     buf = bytearray(VOICE_FRAME_SIZE)

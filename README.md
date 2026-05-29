@@ -62,7 +62,7 @@ Module license: **GPLv3**.
   - ~1,000-1,200 Hz bandwidth per carrier with pulse shaping
   - 1,300 Hz carrier spacing
 - **Tagged Stream Architecture** - Implemented tagged streams for reliable message delivery between decoder and parser
-- **Voice-Only Mode** - Removed encryption, text messaging, and APRS support to focus on core voice functionality
+- **Voice-Only Mode** - Core voice path prioritised; optional text messaging restored in GR4 blocks (see below)
 - **Soft-Decision LDPC** - Using soft-decision LDPC decoding with rate 2/3 for voice frames
 - **Multi-Carrier RX** - Full 8-carrier parallel demodulation with diversity combining
 
@@ -70,7 +70,8 @@ Module license: **GPLv3**.
 - TX chain: 8-carrier QPSK with frequency multiplexing
 - RX chain: 8 parallel QPSK demodulation chains with LLR combining
 - Message delivery: Tagged stream architecture for reliable PDU delivery
-- Frame processing: Voice-only superframes (no encryption, text, or APRS)
+- Frame processing: Voice superframes with optional TEXT trailer (64-byte fragments); encryption/APRS remain legacy GR3 paths
+- **Text messaging (GR4)**: `TextMessageAssembler` / `TextMessageParser` blocks, superframe TEXT trailer, M17 KISS bridge (`python/sleipnir/kiss_bridge.py`)
 
 ---
 
@@ -127,7 +128,7 @@ gr-sleipnir is an experimental digital voice communication system for ham radio 
 - **Modern Audio Codec**: Uses Opus codec (via gr-opus module) for superior voice quality
 - **Forward Error Correction**: Soft-decision LDPC coding (rate 2/3) for robust communication
 - **NFM Channel Spacing**: Designed to operate within standard narrowband FM channel allocations
-- **Voice Communication**: Focused on voice-only communication (encryption, text messaging, and APRS removed)
+- **Voice Communication**: Primary digital voice mode; **UTF-8 text messaging** via 64-byte TEXT frames (M17-style callsigns, fragmentation, optional gr-linux-crypto when built with `HAVE_GR_LINUX_CRYPTO`)
 - **Multi-Carrier Architecture**: Parallel carrier processing with diversity combining at the receiver
 - **PTT Control**: Push-to-talk control integration for radio operation
 - **GNU Radio Integration**: Built on GNU Radio framework for flexibility and extensibility
@@ -526,11 +527,54 @@ Use a different **`--prefix`** or **DESTDIR** if you are packaging.
 
 Include **`include/gnuradio-4.0/sleipnir.hpp`** (or individual headers under **`include/gnuradio-4.0/sleipnir/`**) in your application. Link **`gnuradio4::gr-sleipnir`** after **`find_package(gr-sleipnir4)`** once the package is installed, or add the **`include/`** tree and link **`gnuradio4::gnuradio-core`** / **`gnuradio4::gnuradio-blocklib-core`** as the **CMakeLists.txt** does for tests.
 
-**`test/qa_*.cpp`** shows how **SuperframeAssembler**, **SuperframeParser**, **SleipnirTxHier**, and **SleipnirRxHier** are driven from Boost.UT.
+**`test/qa_*.cpp`** shows how **SuperframeAssembler**, **SuperframeParser**, **TextMessageAssembler**, **TextMessageParser**, **SleipnirTxHier**, and **SleipnirRxHier** are driven from Boost.UT.
+
+#### Text messaging (TX)
+
+Wire blocks in message order:
+
+1. **`TextMessageAssembler`** — `msg_in` property map: `text` (UTF-8, max 800 chars), `dst` (`"ALL"` or callsign), optional `src`.
+2. **`TextMessageAssembler.frame_out`** → **`SuperframeAssembler.text_frame_in`** (64-byte PDU per fragment; queue until next voice superframe).
+3. **`SuperframeAssembler`** — `opus_frames_in` as before; output superframe includes voice/sync frames plus optional TEXT trailer.
+
+Settings on **`TextMessageAssembler`**: `src_callsign`, `enable_signing`, `enable_encryption`, `key_source` (`json` / `gnupg` / `galdralag`), `key_store_path`. Signing and encryption require **`gnuradio4-gr-linux-crypto`** at build time.
+
+#### Text messaging (RX)
+
+1. **`SuperframeParser`** splits TEXT trailer from voice PDU; **`text_frame_out`** emits each 64-byte fragment.
+2. **`TextMessageParser.frame_in`** reassembles fragments; **`msg_out`** property map: `text`, `src`, `dst`, `verified`, `decrypted`, `msg_id`.
+
+#### M17 KISS / LinHT
+
+**`python/sleipnir/kiss_bridge.SleipnirKissBridge`** converts sleipnir TEXT frames to/from M17 full-packet KISS (port 1). **`contact_store.ContactStore`** resolves callsigns and public keys via gr-linux-crypto when available.
 
 ### Python helpers
 
-**`python/sleipnir/`** implements offline analogues of the PDU path (**`superframe_assembler.py`**, **`superframe_parser.py`**, plus thin **`SuperframeAssembler.py`** / **`SuperframeParser.py`** shims). See **`python/README_SUPERFRAME.md`**. Add the repository **`python/`** directory to **`PYTHONPATH`** when running scripts.
+**`python/sleipnir/`** implements offline analogues of the PDU path (**`superframe_assembler.py`**, **`superframe_parser.py`**, **`text_message_assembler.py`**, **`text_message_parser.py`**, plus thin **`SuperframeAssembler.py`** / **`TextMessageAssembler.py`** shims). See **`python/README_SUPERFRAME.md`**. Add the repository **`python/`** directory to **`PYTHONPATH`** when running scripts.
+
+Example (offline):
+
+```python
+from sleipnir.text_message_assembler import TextMessageAssembler
+from sleipnir.text_message_parser import TextMessageParser
+from sleipnir.superframe_assembler import SuperframeAssembler
+
+asm = TextMessageAssembler(src_callsign="N0CALL")
+parser = TextMessageParser(local_callsign="K1ABC")
+sf = SuperframeAssembler(callsign="N0CALL")
+
+frames = asm.assemble("Hello world", dst="K1ABC")
+text_concat = b"".join(frames)
+superframe = sf.assemble(opus_pdu_bytes, text_frames_concat=text_concat)
+
+# RX side: extract text frames from superframe, feed parser
+from sleipnir.superframe_parser import SuperframeParser
+opus, stats, text_frames = SuperframeParser(local_callsign="K1ABC").parse(superframe)
+for fr in text_frames:
+    msg = parser.feed_frame(fr)
+    if msg:
+        print(msg.text, msg.src)
+```
 
 ### Legacy GNU Radio 3 material
 
@@ -552,15 +596,22 @@ gr-sleipnir/
 │       └── sleipnir/
 │           ├── SuperframeAssembler.hpp
 │           ├── SuperframeParser.hpp
+│           ├── TextMessageAssembler.hpp
+│           ├── TextMessageParser.hpp
 │           ├── SleipnirTxHier.hpp
 │           ├── SleipnirRxHier.hpp
-│           └── detail/SleipnirFrameFormat.hpp
+│           └── detail/
+│               ├── SleipnirFrameFormat.hpp
+│               └── TextFrameFormat.hpp
 ├── python/
-│   └── sleipnir/                  # PDU helpers mirroring C++ blocks (offline / tooling)
+│   └── sleipnir/                  # PDU + text helpers (offline / tooling)
 ├── test/
 │   ├── CMakeLists.txt
 │   ├── qa_SuperframeAssembler.cpp
 │   ├── qa_SuperframeParser.cpp
+│   ├── qa_TextMessageAssembler.cpp
+│   ├── qa_TextMessageParser.cpp
+│   ├── qa_KissBridge.py
 │   ├── qa_SleipnirTxHier.cpp
 │   └── qa_SleipnirRxHier.cpp
 ├── README.md
@@ -577,7 +628,7 @@ Note: External **gr-opus** (GNU Radio 4 build): https://github.com/Supermagnum/g
 
 ### Supported: GNU Radio 4 module
 
-- **`include/gnuradio-4.0/sleipnir/`** — block declarations (**SuperframeAssembler**, **SuperframeParser**, **SleipnirTxHier**, **SleipnirRxHier**).
+- **`include/gnuradio-4.0/sleipnir/`** — block declarations (**SuperframeAssembler**, **SuperframeParser**, **TextMessageAssembler**, **TextMessageParser**, **SleipnirTxHier**, **SleipnirRxHier**).
 - **`test/qa_*.cpp`** — runnable examples executed by **`ctest`**.
 - **`cmake/gr-sleipnir4-config.cmake.in`** — CMake package template installed with **`cmake --install`**.
 - **Python PDU helpers:** [python/README_SUPERFRAME.md](python/README_SUPERFRAME.md), [python/README_TX_MODULE.md](python/README_TX_MODULE.md), [python/README_RX_MODULE.md](python/README_RX_MODULE.md).
@@ -604,7 +655,7 @@ After a successful configure/build:
 ctest --test-dir build --output-on-failure
 ```
 
-This executes **`qa_SuperframeAssembler`**, **`qa_SuperframeParser`**, **`qa_SleipnirTxHier`**, and **`qa_SleipnirRxHier`**. Disable them with **`cmake -D GR_SLEIPNIR4_BUILD_TESTS=OFF`** if you intentionally skip Boost.UT (**FetchContent**).
+This executes **`qa_SuperframeAssembler`**, **`qa_SuperframeParser`**, **`qa_TextMessageAssembler`**, **`qa_TextMessageParser`**, **`qa_KissBridge`** (pytest), **`qa_SleipnirTxHier`**, and **`qa_SleipnirRxHier`**. Disable them with **`cmake -D GR_SLEIPNIR4_BUILD_TESTS=OFF`** if you intentionally skip Boost.UT (**FetchContent**).
 
 ### Legacy Python suites
 

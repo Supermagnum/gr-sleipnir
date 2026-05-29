@@ -8,5 +8,12 @@ from __future__ import annotations
 
 from . import contact_store as contact_store
 from . import kiss_bridge as kiss_bridge
+from . import text_message_assembler as text_message_assembler
+from . import text_message_parser as text_message_parser
 
-__all__ = ["kiss_bridge", "contact_store"]
+__all__ = [
+    "kiss_bridge",
+    "contact_store",
+    "text_message_assembler",
+    "text_message_parser",
+]
