@@ -2,6 +2,7 @@
 
 ## Table of Contents
 
+- [Modulation validation](#modulation-validation)
 - [About the Name](#about-the-name)
 - [Overview](#overview)
 - [Key Features](#key-features)
@@ -29,6 +30,18 @@
 - [Contributing](#contributing)
 - [Legal and Appropriate Uses](#legal-and-appropriate-uses-for-amateur-radio)
 - [References](#references)
+
+## Modulation validation
+
+Reference IQ for modulator blocks was checked with
+[radio-modulation-validator](https://github.com/Supermagnum/radio-modulation-validator)
+(2026-05-31). Summary: **SOFT FAIL** — 1/9 blocks passed, 8 soft fail, **0 hard fail**, 1 skipped.
+
+QPSK passed at family and order level. FSK-family modes passed at family level; the custom
+8-carrier mode (`mod_sleipnir_8qpsk`) is validated by a dedicated plugin (soft fail on full pass
+criteria, no hard fail). Order-level CPFSK vs named FSK orders reflects classifier training limits.
+
+Full per-block results: **[VALIDATION_REPORT.md](VALIDATION_REPORT.md)**
 
 ## Project status
 
