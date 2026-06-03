@@ -149,6 +149,15 @@ This script exits with code 0 if all tests pass, or non-zero if any test fails.
 - Access to LDPC matrix files in `ldpc_matrices/`
 - `cryptography` library (for crypto tests)
 
+Install Python test dependencies in a virtual environment:
+
+```bash
+cd /path/to/gr-sleipnir
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install pytest numpy cryptography
+```
+
 ## Troubleshooting
 
 ### Missing LDPC Matrix Files
@@ -159,8 +168,12 @@ Ensure LDPC matrix files exist:
 
 ### Missing Dependencies
 
-Install required Python packages:
+If packages are missing, activate the project venv (see **Test Requirements** above) or create one:
+
 ```bash
+cd /path/to/gr-sleipnir
+python3 -m venv .venv
+source .venv/bin/activate
 pip3 install pytest numpy cryptography
 ```
 
@@ -178,12 +191,12 @@ All functional tests complete in **under 30 seconds** on typical hardware.
 ## Test Coverage
 
 The functional tests verify:
-- ✅ LDPC encoding actually encodes
-- ✅ LDPC decoding actually decodes and corrects errors
-- ✅ Encryption actually encrypts
-- ✅ Decryption actually decrypts
-- ✅ Signatures are generated and verified
-- ✅ MAC computation and verification
-- ✅ Multi-recipient message handling
+- LDPC encoding actually encodes
+- LDPC decoding actually decodes and corrects errors
+- Encryption actually encrypts
+- Decryption actually decrypts
+- Signatures are generated and verified
+- MAC computation and verification
+- Multi-recipient message handling
 
 These tests ensure the code actually works, not just that it looks plausible.

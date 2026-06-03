@@ -162,7 +162,7 @@ The script will continue without M17 samples. Follow the installation instructio
 ### Audio Quality Issues
 
 If WarpQ scores are not available:
-- Install warpq: `pip install warpq`
+- With the project venv activated (`python3 -m venv .venv && source .venv/bin/activate`): `pip install warpq`
 - Or use basic audio metrics from the summary JSON
 
 ## References
